@@ -1,0 +1,115 @@
+import { parse as parseYaml, YAMLParseError } from 'yaml'
+import { invoke } from '@tauri-apps/api/core'
+import { open as openDialog } from '@tauri-apps/plugin-dialog'
+import { prezlProjectSchema, type LoadError } from './schema'
+import type { Branch, PrezlProject } from '@/types'
+
+type BackendProjectLoad = {
+  root: string
+  manifest: string
+}
+
+export type LoadedProject = {
+  project: PrezlProject
+  rawFiles: Map<string, string> // relPath -> contents
+}
+
+export async function pickProjectFolder(): Promise<string | null> {
+  const result = await openDialog({ directory: true, multiple: false })
+  if (!result) return null
+  return typeof result === 'string' ? result : (result as unknown as { path: string }).path
+}
+
+export async function loadProjectFromDisk(
+  path: string,
+): Promise<{ project: PrezlProject; rawFiles: Map<string, string> } | { error: LoadError }> {
+  let backend: BackendProjectLoad
+  try {
+    backend = await invoke<BackendProjectLoad>('load_project', { path })
+  } catch (e) {
+    return { error: translateBackendError(e) }
+  }
+
+  let raw: unknown
+  try {
+    raw = parseYaml(backend.manifest)
+  } catch (e) {
+    if (e instanceof YAMLParseError) {
+      return {
+        error: {
+          kind: 'parse',
+          message: e.message,
+          line: e.linePos?.[0]?.line,
+          column: e.linePos?.[0]?.col,
+        },
+      }
+    }
+    return {
+      kind: 'parse',
+      error: { kind: 'parse', message: (e as Error).message },
+    } as { error: LoadError }
+  }
+
+  const parsed = prezlProjectSchema.safeParse(raw)
+  if (!parsed.success) {
+    return {
+      error: {
+        kind: 'validation',
+        message: 'prezl.yaml failed validation',
+        issues: parsed.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message,
+        })),
+      },
+    }
+  }
+
+  const project: PrezlProject = {
+    project: parsed.data.project,
+    projects: parsed.data.projects,
+    branches: parsed.data.branches.map<Branch>((b) => ({
+      name: b.name,
+      alias: b.alias ?? b.name,
+      title: b.title,
+      order: b.order,
+      files: b.files,
+      open: b.open,
+      symbols: b.symbols,
+      preview: b.preview,
+    })),
+    rootPath: backend.root,
+  }
+
+  const rawFiles = new Map<string, string>()
+  const uniquePaths = new Set<string>()
+  for (const br of project.branches) for (const f of br.files) uniquePaths.add(f.path)
+  for (const rel of uniquePaths) {
+    try {
+      const contents = await invoke<string>('read_project_file', { relPath: rel })
+      rawFiles.set(rel, contents)
+    } catch (e) {
+      return { error: translateBackendError(e, rel) }
+    }
+  }
+
+  return { project, rawFiles }
+}
+
+function translateBackendError(raw: unknown, context?: string): LoadError {
+  // Rust side returns { kind, message } via thiserror/serde.
+  const err = raw as { kind?: string; message?: string } | string | undefined
+  if (typeof err === 'string') return { kind: 'io', message: err }
+  if (!err) return { kind: 'io', message: 'unknown error' }
+  const prefix = context ? `${context}: ` : ''
+  const kindMap: Record<string, LoadError['kind']> = {
+    'missing-manifest': 'io',
+    'no-active-project': 'io',
+    'path-escape': 'io',
+    'not-found': 'io',
+    io: 'io',
+  }
+  return {
+    kind: kindMap[err.kind ?? ''] ?? 'io',
+    message: prefix + (err.message ?? err.kind ?? 'unknown'),
+  }
+}

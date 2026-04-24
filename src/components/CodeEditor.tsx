@@ -1,7 +1,6 @@
 import Editor, { type OnMount } from '@monaco-editor/react'
 import { useCallback, useEffect, useRef } from 'react'
 import { useAppStore } from '@/state/store'
-import { M1_FILE_CONTENTS } from '@/project/fixtures'
 import { editorFontSize } from '@/hooks/useUiScale'
 
 function inferLanguage(path: string | null): string {
@@ -40,10 +39,11 @@ function inferLanguage(path: string | null): string {
 
 export function CodeEditor() {
   const activeFile = useAppStore((s) => s.activeFile)
+  const rawFiles = useAppStore((s) => s.rawFiles)
   const uiScale = useAppStore((s) => s.preferences.uiScale)
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
 
-  const content = activeFile ? (M1_FILE_CONTENTS[activeFile] ?? '') : ''
+  const content = activeFile ? (rawFiles.get(activeFile) ?? '') : ''
   const language = inferLanguage(activeFile)
 
   const onMount: OnMount = useCallback((editor, monaco) => {

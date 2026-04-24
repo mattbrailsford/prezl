@@ -1,0 +1,63 @@
+project:
+  name: Umbraco Dashboard Demo
+  language: typescript
+  theme: dark
+
+branches:
+  - name: main
+    alias: main
+    title: Starting point
+    order: 1
+    files:
+      - path: src/main.ts
+    open:
+      file: src/main.ts
+      line: 1
+
+  - name: feature/dashboard-shell
+    alias: shell
+    title: Add dashboard shell
+    order: 2
+    files:
+      - path: src/main.ts
+      - path: src/dashboard.ts
+    open:
+      file: src/dashboard.ts
+      line: 1
+
+  - name: feature/dashboard-preview
+    alias: preview
+    title: Preview dashboard
+    order: 3
+    files:
+      - path: src/main.ts
+      - path: src/dashboard.ts
+      - path: src/api.ts
+    open:
+      file: src/dashboard.ts
+      line: 1
+    preview:
+      type: url
+      src: https://example.com/umbraco-demo/dashboard
+      mode: external
+
+  - name: feature/recorded-demo
+    alias: demo
+    title: Recorded backoffice walkthrough
+    order: 4
+    files:
+      - path: src/main.ts
+      - path: src/dashboard.ts
+      - path: src/api.ts
+    open:
+      file: src/api.ts
+      line: 1
+    preview:
+      type: video
+      src: ./videos/backoffice-demo.mp4
+      startAt: 4.5
+      stopAt: 32.0
+      cues:
+        - time: 12.0
+        - time: 21.5
+        - time: 28.0

@@ -1,0 +1,77 @@
+import { z } from 'zod'
+
+const projectMeta = z.object({
+  name: z.string().min(1),
+  language: z.string().optional(),
+  theme: z.enum(['light', 'dark']).optional(),
+})
+
+const projectFolder = z.object({
+  name: z.string().min(1),
+  path: z.string().min(1),
+  icon: z.string().optional(),
+})
+
+const branchFile = z.object({
+  path: z.string().min(1),
+})
+
+const openTarget = z.object({
+  file: z.string().min(1),
+  line: z.number().int().positive().optional(),
+  mark: z.string().min(1).optional(),
+})
+
+const symbolTarget = z.object({
+  file: z.string().min(1),
+  line: z.number().int().positive().optional(),
+  mark: z.string().min(1).optional(),
+})
+
+const urlPreview = z.object({
+  type: z.literal('url'),
+  src: z.string().url().or(z.string().regex(/^\.{0,2}\//)),
+  mode: z.enum(['external', 'window', 'pane']).optional(),
+})
+
+const videoCue = z.object({
+  time: z.number().nonnegative(),
+  label: z.string().optional(),
+})
+
+const videoPreview = z.object({
+  type: z.literal('video'),
+  src: z.string().min(1),
+  startAt: z.number().nonnegative().optional(),
+  stopAt: z.number().nonnegative().optional(),
+  cues: z.array(videoCue).optional(),
+})
+
+const preview = z.discriminatedUnion('type', [urlPreview, videoPreview])
+
+const branch = z.object({
+  name: z.string().min(1),
+  alias: z.string().min(1).optional(),
+  title: z.string().optional(),
+  order: z.number().int(),
+  files: z.array(branchFile).min(1),
+  open: openTarget.optional(),
+  symbols: z.record(z.string(), symbolTarget).optional(),
+  preview: preview.optional(),
+})
+
+export const prezlProjectSchema = z.object({
+  project: projectMeta,
+  projects: z.array(projectFolder).optional(),
+  branches: z.array(branch).min(1),
+})
+
+export type PrezlProjectParsed = z.infer<typeof prezlProjectSchema>
+
+export type LoadError = {
+  kind: 'parse' | 'validation' | 'io'
+  message: string
+  issues?: { path: string; message: string }[]
+  line?: number
+  column?: number
+}

@@ -2,6 +2,7 @@ import { Presentation } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { BranchSelector } from './BranchSelector'
 import { RunButton } from './RunButton'
+import { OpenFolderButton } from './OpenFolderButton'
 import { WindowControls } from './WindowControls'
 
 export function TopBar() {
@@ -37,6 +38,7 @@ export function TopBar() {
         data-tauri-drag-region
         className="flex flex-1 items-center justify-end gap-2 self-stretch pr-2"
       >
+        <OpenFolderButton />
         <RunButton />
       </div>
       <WindowControls />
