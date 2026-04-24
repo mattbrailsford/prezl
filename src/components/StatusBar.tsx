@@ -2,7 +2,7 @@ import { useAppStore } from '@/state/store'
 
 export function StatusBar() {
   const currentBranchName = useAppStore((s) => s.currentBranchName)
-  const language = useAppStore((s) => s.project?.project.language ?? '—')
+  const language = useAppStore((s) => s.project?.language ?? '—')
   const statusMessage = useAppStore((s) => s.statusMessage)
 
   return (

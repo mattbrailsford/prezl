@@ -62,7 +62,7 @@ export function useOpenProject() {
         }
         setProject(result.project, result.rawFiles)
         try {
-          await rememberRecent(path, result.project.project.name)
+          await rememberRecent(path, result.project.name)
         } catch {
           /* non-fatal */
         }

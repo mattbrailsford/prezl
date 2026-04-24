@@ -1,11 +1,5 @@
 import { z } from 'zod'
 
-const projectMeta = z.object({
-  name: z.string().min(1),
-  language: z.string().optional(),
-  theme: z.enum(['light', 'dark']).optional(),
-})
-
 const projectFolder = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
@@ -56,7 +50,9 @@ const branch = z.object({
 })
 
 export const prezlProjectSchema = z.object({
-  project: projectMeta,
+  name: z.string().min(1),
+  language: z.string().optional(),
+  theme: z.enum(['light', 'dark']).optional(),
   projects: z.array(projectFolder).optional(),
   branches: z.array(branch).min(1),
 })

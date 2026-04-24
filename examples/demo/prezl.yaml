@@ -1,7 +1,6 @@
-project:
-  name: Umbraco Dashboard Demo
-  language: typescript
-  theme: dark
+name: Umbraco Dashboard Demo
+language: typescript
+theme: dark
 
 branches:
   - name: main

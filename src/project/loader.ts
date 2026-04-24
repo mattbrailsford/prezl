@@ -72,7 +72,9 @@ export async function loadProjectFromDisk(
   }
 
   const project: PrezlProject = {
-    project: parsed.data.project,
+    name: parsed.data.name,
+    language: parsed.data.language,
+    theme: parsed.data.theme,
     projects: parsed.data.projects,
     branches: parsed.data.branches.map<Branch>((b) => ({
       name: b.name,

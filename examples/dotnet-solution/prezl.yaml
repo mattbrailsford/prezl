@@ -1,0 +1,36 @@
+name: Contoso Weather Demo
+language: csharp
+theme: dark
+
+projects:
+  - name: Backend
+    path: src/Backend
+    icon: dotnet
+  - name: Frontend
+    path: src/Frontend
+    icon: typescript
+
+branches:
+  - name: main
+    alias: main
+    title: Starting point
+    order: 1
+    open:
+      file: src/Backend/Program.cs
+      line: 1
+
+  - name: feature/weather-api
+    alias: api
+    title: Add Weather API
+    order: 2
+    open:
+      file: src/Backend/Api/WeatherController.cs
+      id: weatherController
+
+  - name: feature/weather-ui
+    alias: ui
+    title: Wire the UI
+    order: 3
+    open:
+      file: src/Frontend/components/Weather.tsx
+      id: weatherComponent

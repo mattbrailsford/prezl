@@ -1,12 +1,6 @@
 // Mirrors spec §10 data model with directive-system adjustments.
 // See docs/prezl_product_spec.draft.md and the plan for rationale.
 
-export type ProjectMeta = {
-  name: string
-  language?: string
-  theme?: 'light' | 'dark'
-}
-
 export type ProjectFolder = {
   name: string
   path: string
@@ -57,7 +51,9 @@ export type Branch = {
 }
 
 export type PrezlProject = {
-  project: ProjectMeta
+  name: string
+  language?: string
+  theme?: 'light' | 'dark'
   projects?: ProjectFolder[]
   branches: Branch[]
   rootPath?: string

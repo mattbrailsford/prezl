@@ -5,7 +5,7 @@ import { RunButton } from './RunButton'
 import { WindowControls } from './WindowControls'
 
 export function TopBar() {
-  const projectName = useAppStore((s) => s.project?.project.name ?? 'Prezl')
+  const projectName = useAppStore((s) => s.project?.name ?? 'Prezl')
   const clearProject = useAppStore((s) => s.clearProject)
 
   return (
