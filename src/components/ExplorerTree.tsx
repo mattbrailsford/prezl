@@ -19,8 +19,148 @@ import {
   type TreeNode,
 } from '@/project/projectTree'
 
+type Palette = {
+  border: string
+  headerBg: string
+  headerHoverBg: string
+  tileBg: string
+  text: string
+}
+
+// Literal Tailwind classes so the JIT scanner picks them up.
+const PROJECT_PALETTE: Record<string, Palette> = {
+  violet: {
+    border: 'border-violet-400',
+    headerBg: 'bg-violet-400/5',
+    headerHoverBg: 'hover:bg-violet-400/10',
+    tileBg: 'bg-violet-400/20',
+    text: 'text-violet-400',
+  },
+  sky: {
+    border: 'border-sky-400',
+    headerBg: 'bg-sky-400/5',
+    headerHoverBg: 'hover:bg-sky-400/10',
+    tileBg: 'bg-sky-400/20',
+    text: 'text-sky-400',
+  },
+  yellow: {
+    border: 'border-yellow-300',
+    headerBg: 'bg-yellow-300/5',
+    headerHoverBg: 'hover:bg-yellow-300/10',
+    tileBg: 'bg-yellow-300/20',
+    text: 'text-yellow-300',
+  },
+  orange: {
+    border: 'border-orange-400',
+    headerBg: 'bg-orange-400/5',
+    headerHoverBg: 'hover:bg-orange-400/10',
+    tileBg: 'bg-orange-400/20',
+    text: 'text-orange-400',
+  },
+  emerald: {
+    border: 'border-emerald-400',
+    headerBg: 'bg-emerald-400/5',
+    headerHoverBg: 'hover:bg-emerald-400/10',
+    tileBg: 'bg-emerald-400/20',
+    text: 'text-emerald-400',
+  },
+  cyan: {
+    border: 'border-cyan-400',
+    headerBg: 'bg-cyan-400/5',
+    headerHoverBg: 'hover:bg-cyan-400/10',
+    tileBg: 'bg-cyan-400/20',
+    text: 'text-cyan-400',
+  },
+  red: {
+    border: 'border-red-400',
+    headerBg: 'bg-red-400/5',
+    headerHoverBg: 'hover:bg-red-400/10',
+    tileBg: 'bg-red-400/20',
+    text: 'text-red-400',
+  },
+  indigo: {
+    border: 'border-indigo-400',
+    headerBg: 'bg-indigo-400/5',
+    headerHoverBg: 'hover:bg-indigo-400/10',
+    tileBg: 'bg-indigo-400/20',
+    text: 'text-indigo-400',
+  },
+  pink: {
+    border: 'border-pink-400',
+    headerBg: 'bg-pink-400/5',
+    headerHoverBg: 'hover:bg-pink-400/10',
+    tileBg: 'bg-pink-400/20',
+    text: 'text-pink-400',
+  },
+  amber: {
+    border: 'border-amber-400',
+    headerBg: 'bg-amber-400/5',
+    headerHoverBg: 'hover:bg-amber-400/10',
+    tileBg: 'bg-amber-400/20',
+    text: 'text-amber-400',
+  },
+  slate: {
+    border: 'border-slate-400',
+    headerBg: 'bg-slate-400/5',
+    headerHoverBg: 'hover:bg-slate-400/10',
+    tileBg: 'bg-slate-400/20',
+    text: 'text-slate-400',
+  },
+}
+
+// Icon → default color family. Explicit `color:` in YAML wins when provided.
+const ICON_TO_COLOR: Record<string, keyof typeof PROJECT_PALETTE> = {
+  dotnet: 'violet',
+  csharp: 'violet',
+  typescript: 'sky',
+  ts: 'sky',
+  javascript: 'yellow',
+  js: 'yellow',
+  rust: 'orange',
+  rs: 'orange',
+  python: 'emerald',
+  py: 'emerald',
+  go: 'cyan',
+  java: 'red',
+  kotlin: 'orange',
+  kt: 'orange',
+  swift: 'orange',
+  ruby: 'red',
+  rb: 'red',
+  php: 'indigo',
+  vue: 'emerald',
+  svelte: 'orange',
+  html: 'orange',
+}
+
+// Fallback palette uses the existing --color-project-accent CSS variable.
+const FALLBACK_PALETTE: Palette = {
+  border: 'border-project-accent',
+  headerBg: 'bg-project-accent/5',
+  headerHoverBg: 'hover:bg-project-accent/10',
+  tileBg: 'bg-project-accent/20',
+  text: 'text-project-accent',
+}
+
+function resolvePalette(
+  iconKey: string | undefined,
+  colorKey: string | undefined,
+): Palette {
+  const explicit = colorKey?.toLowerCase()
+  if (explicit && PROJECT_PALETTE[explicit]) return PROJECT_PALETTE[explicit]
+  const iconFamily = ICON_TO_COLOR[iconKey?.toLowerCase() ?? '']
+  if (iconFamily) return PROJECT_PALETTE[iconFamily]
+  return FALLBACK_PALETTE
+}
+
 /** Tiny icon map for the `projects[].icon` hint. Fallback is a generic box. */
-function ProjectGlyph({ iconKey }: { iconKey: string | undefined }) {
+function ProjectGlyph({
+  iconKey,
+  palette,
+}: {
+  iconKey: string | undefined
+  palette: Palette
+}) {
   const label = (() => {
     switch (iconKey?.toLowerCase()) {
       case 'dotnet':
@@ -46,41 +186,74 @@ function ProjectGlyph({ iconKey }: { iconKey: string | undefined }) {
   })()
   if (label) {
     return (
-      <span className="grid size-5 shrink-0 place-items-center rounded-sm bg-project-accent/20 font-mono text-[0.625rem] font-bold text-project-accent">
+      <span
+        className={`grid size-5 shrink-0 place-items-center rounded-sm ${palette.tileBg} font-mono text-[0.625rem] font-bold ${palette.text}`}
+      >
         {label}
       </span>
     )
   }
-  return <Box className="size-5 shrink-0 text-project-accent" />
+  return <Box className={`size-5 shrink-0 ${palette.text}`} />
+}
+
+// Extension → (is-code, Tailwind color class) lookup. Colors loosely follow
+// IDE file-icon conventions so the tree reads at-a-glance. Unknown types
+// fall through to a muted generic file icon.
+const FILE_STYLES: Record<string, { code: boolean; color: string }> = {
+  // JS/TS
+  ts: { code: true, color: 'text-sky-400' },
+  tsx: { code: true, color: 'text-sky-400' },
+  js: { code: true, color: 'text-yellow-300' },
+  jsx: { code: true, color: 'text-yellow-300' },
+  mjs: { code: true, color: 'text-yellow-300' },
+  cjs: { code: true, color: 'text-yellow-300' },
+  // .NET
+  cs: { code: true, color: 'text-violet-400' },
+  razor: { code: true, color: 'text-violet-300' },
+  cshtml: { code: true, color: 'text-violet-300' },
+  // Rust / Go / systems
+  rs: { code: true, color: 'text-orange-400' },
+  go: { code: true, color: 'text-cyan-400' },
+  c: { code: true, color: 'text-blue-500' },
+  h: { code: true, color: 'text-blue-500' },
+  cpp: { code: true, color: 'text-blue-500' },
+  hpp: { code: true, color: 'text-blue-500' },
+  // JVM / friends
+  java: { code: true, color: 'text-red-400' },
+  kt: { code: true, color: 'text-orange-400' },
+  swift: { code: true, color: 'text-orange-500' },
+  // Script
+  py: { code: true, color: 'text-emerald-400' },
+  rb: { code: true, color: 'text-red-500' },
+  php: { code: true, color: 'text-indigo-400' },
+  sh: { code: true, color: 'text-green-300' },
+  bash: { code: true, color: 'text-green-300' },
+  // Frameworks / UI
+  vue: { code: true, color: 'text-emerald-400' },
+  svelte: { code: true, color: 'text-orange-500' },
+  // Styling
+  css: { code: false, color: 'text-pink-400' },
+  scss: { code: false, color: 'text-pink-500' },
+  sass: { code: false, color: 'text-pink-500' },
+  less: { code: false, color: 'text-pink-400' },
+  // Markup / config
+  html: { code: false, color: 'text-orange-400' },
+  xml: { code: false, color: 'text-orange-300' },
+  json: { code: false, color: 'text-yellow-400' },
+  yaml: { code: false, color: 'text-red-400' },
+  yml: { code: false, color: 'text-red-400' },
+  toml: { code: false, color: 'text-amber-400' },
+  md: { code: false, color: 'text-sky-300' },
+  mdx: { code: false, color: 'text-sky-300' },
+  sql: { code: false, color: 'text-orange-300' },
 }
 
 function FileGlyph({ name }: { name: string }) {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  const codeLike = new Set([
-    'ts',
-    'tsx',
-    'js',
-    'jsx',
-    'cs',
-    'rs',
-    'py',
-    'go',
-    'java',
-    'rb',
-    'php',
-    'swift',
-    'kt',
-    'cpp',
-    'c',
-    'h',
-    'hpp',
-    'razor',
-    'cshtml',
-    'vue',
-    'svelte',
-  ])
-  const Icon = codeLike.has(ext) ? FileCode : File
-  return <Icon className="size-5 shrink-0 text-app-muted" />
+  const style = FILE_STYLES[ext]
+  const Icon = style?.code ? FileCode : File
+  const color = style?.color ?? 'text-app-muted'
+  return <Icon className={`size-5 shrink-0 ${color}`} />
 }
 
 export function ExplorerTree() {
@@ -187,19 +360,22 @@ export function ExplorerTree() {
                   idx > 0 ? 'mt-1 border-t border-app-border/60' : undefined
                 }
               >
-                {group.kind === 'project' ? (
-                  <button
-                    type="button"
-                    onClick={() => toggle(group.key)}
-                    className="flex w-full items-center gap-2 border-l-2 border-project-accent bg-project-accent/5 py-1.5 pl-2 pr-2 text-left hover:bg-project-accent/10"
-                  >
-                    <Chevron className="size-5 shrink-0 text-app-muted" />
-                    <ProjectGlyph iconKey={group.iconKey} />
-                    <span className="truncate font-semibold text-app">
-                      {group.name}
-                    </span>
-                  </button>
-                ) : (
+                {group.kind === 'project' ? (() => {
+                  const palette = resolvePalette(group.iconKey, group.colorKey)
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => toggle(group.key)}
+                      className={`flex w-full items-center gap-2 border-l-2 py-1.5 pl-2 pr-2 text-left ${palette.border} ${palette.headerBg} ${palette.headerHoverBg}`}
+                    >
+                      <Chevron className="size-5 shrink-0 text-app-muted" />
+                      <ProjectGlyph iconKey={group.iconKey} palette={palette} />
+                      <span className="truncate font-semibold text-app">
+                        {group.name}
+                      </span>
+                    </button>
+                  )
+                })() : (
                   <button
                     type="button"
                     onClick={() => toggle(group.key)}

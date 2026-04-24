@@ -5,6 +5,7 @@ export type ProjectFolder = {
   name: string
   path: string
   icon?: string
+  color?: string
 }
 
 export type OpenTarget = {

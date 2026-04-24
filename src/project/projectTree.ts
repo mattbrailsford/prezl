@@ -21,6 +21,7 @@ export type TreeProjectGroup = {
   kind: 'project'
   name: string
   iconKey: string | undefined
+  colorKey: string | undefined
   key: string
   children: TreeNode[]
 }
@@ -80,6 +81,7 @@ export function groupFilesByProject(
       kind: 'project',
       name: projects[i].name,
       iconKey: projects[i].icon,
+      colorKey: projects[i].color,
       key,
       children: buildSubtree(buckets[i], key),
     })

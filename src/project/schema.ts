@@ -4,6 +4,11 @@ const projectFolder = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
   icon: z.string().optional(),
+  /** Color family override. Any key in PROJECT_PALETTE (violet, sky,
+   *  yellow, orange, emerald, cyan, red, indigo, pink, amber, slate).
+   *  Falls back to the icon's default mapping, then to the generic
+   *  --color-project-accent. */
+  color: z.string().optional(),
 })
 
 const openTarget = z.object({

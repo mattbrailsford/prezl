@@ -38,22 +38,28 @@ export function WindowControls() {
           <Maximize2 className="size-4" />
         )}
       </ControlButton>
-      <ControlButton
-        onClick={() => appWindow.minimize()}
-        label="Minimize"
-      >
-        <Minus className="size-4" />
-      </ControlButton>
-      <ControlButton
-        onClick={() => appWindow.toggleMaximize()}
-        label={isMaximized ? 'Restore' : 'Maximize'}
-      >
-        {isMaximized ? (
-          <RestoreIcon className="size-[14px] -scale-x-100" />
-        ) : (
-          <Square className="size-[14px]" />
-        )}
-      </ControlButton>
+      {/* Minimize and Maximize are meaningless in fullscreen — hide them so
+          the titlebar stays focused on just "exit fullscreen" + close. */}
+      {!isFullscreen && (
+        <>
+          <ControlButton
+            onClick={() => appWindow.minimize()}
+            label="Minimize"
+          >
+            <Minus className="size-4" />
+          </ControlButton>
+          <ControlButton
+            onClick={() => appWindow.toggleMaximize()}
+            label={isMaximized ? 'Restore' : 'Maximize'}
+          >
+            {isMaximized ? (
+              <RestoreIcon className="size-[14px] -scale-x-100" />
+            ) : (
+              <Square className="size-[14px]" />
+            )}
+          </ControlButton>
+        </>
+      )}
       <ControlButton
         onClick={() => appWindow.close()}
         label="Close"
