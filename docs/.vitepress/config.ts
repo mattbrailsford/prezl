@@ -17,11 +17,11 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#6366f1' }],
     [
       'link',
-      { rel: 'icon', type: 'image/svg+xml', href: `${base}logo-pretzel.svg` },
+      { rel: 'icon', type: 'image/svg+xml', href: `${base}logo-pretzel2.svg` },
     ],
   ],
   themeConfig: {
-    logo: { src: '/logo-pretzel.svg', width: 28, height: 28 },
+    logo: { src: '/logo-pretzel2.svg', width: 28, height: 28 },
     siteTitle: 'Prezl',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
