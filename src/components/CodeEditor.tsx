@@ -1,6 +1,6 @@
 import Editor, { type OnMount } from '@monaco-editor/react'
 import type * as Monaco from 'monaco-editor'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useAppStore } from '@/state/store'
 import { editorFontSize } from '@/hooks/useUiScale'
 import {
@@ -8,6 +8,7 @@ import {
   useCurrentBranch,
 } from '@/hooks/useRenderedFile'
 import type { RenderedFile } from '@/project/directiveParser'
+import { prezlRegisterFolding, type PrezlMonaco } from '@/project/monacoSetup'
 
 function inferLanguage(path: string | null): string {
   if (!path) return 'plaintext'
@@ -52,6 +53,7 @@ let providersRegistered = false
 function ensureFoldingProvider(monaco: typeof Monaco): void {
   if (providersRegistered) return
   providersRegistered = true
+
   const provider: Monaco.languages.FoldingRangeProvider = {
     provideFoldingRanges(model) {
       const ranges = foldRangesByUri.get(model.uri.toString())
@@ -59,8 +61,13 @@ function ensureFoldingProvider(monaco: typeof Monaco): void {
       return ranges.map((r) => ({ start: r.start, end: r.end }))
     },
   }
+
+  // main.tsx already patched the global registerFoldingRangeProvider to a
+  // no-op, so the TS language service can't add its own. We use the stashed
+  // original to register our provider.
+  const register = prezlRegisterFolding(monaco as PrezlMonaco)
   for (const lang of monaco.languages.getLanguages()) {
-    monaco.languages.registerFoldingRangeProvider(lang.id, provider)
+    register(lang.id, provider)
   }
 }
 
@@ -72,7 +79,18 @@ export function CodeEditor() {
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<typeof Monaco | null>(null)
   const focusDecorationsRef = useRef<string[]>([])
-  const rafRef = useRef<number | null>(null)
+
+  // Derived `ready`: true iff folds have been applied for the current
+  // (file, stage) combination. When activeFile or the branch alias change,
+  // `ready` flips back to false in the same render that feeds Monaco new
+  // content — so visibility: hidden lands before Monaco gets a chance to
+  // paint the expanded content.
+  const fileStageKey = useMemo(
+    () => `${activeFile ?? ''}::${branch?.alias ?? ''}`,
+    [activeFile, branch?.alias],
+  )
+  const [lastFoldedKey, setLastFoldedKey] = useState<string | null>(null)
+  const ready = fileStageKey === lastFoldedKey
 
   const content = rendered?.text ?? ''
   const language = inferLanguage(activeFile)
@@ -127,19 +145,39 @@ export function CodeEditor() {
       newDecorations,
     )
 
-    // Fold ranges + restore cursor. Monaco's folding controller needs a beat
-    // after model content updates before it consults our provider, so we wait
-    // across two animation frames before firing the fold action. The first
-    // rAF lets React commit; the second gives Monaco's async folding compute
-    // a chance to land.
     let cancelled = false
-    const applyFolds = () => {
-      if (cancelled) return
-      for (const range of rendered.foldRanges) {
-        editor.setSelection(new monaco.Range(range.start, 1, range.start, 1))
-        editor.getAction('editor.fold')?.run()
+    const applyFoldsAndScroll = async () => {
+      // Monaco's folding controller exposes an async getFoldingModel() that
+      // resolves once it has consulted our provider and built the region tree
+      // for the current model. Waiting on that is much more reliable than
+      // guessing via requestAnimationFrame.
+      type FoldingRegion = {
+        regionIndex: number
+        startLineNumber: number
+        isCollapsed: boolean
       }
-      // Restore cursor to the file's intended open line.
+      type FoldingModelLike = {
+        getRegionAtLine(line: number): FoldingRegion | null
+        toggleCollapseState(regions: FoldingRegion[]): void
+      }
+      type FoldingControllerLike = {
+        getFoldingModel?: () => Promise<FoldingModelLike | null>
+      }
+      const controller = editor.getContribution(
+        'editor.contrib.folding',
+      ) as unknown as FoldingControllerLike | null
+      const foldingModel = await controller?.getFoldingModel?.()
+      if (cancelled) return
+
+      if (foldingModel) {
+        const toCollapse: FoldingRegion[] = []
+        for (const range of rendered.foldRanges) {
+          const region = foldingModel.getRegionAtLine(range.start)
+          if (region && !region.isCollapsed) toCollapse.push(region)
+        }
+        if (toCollapse.length > 0) foldingModel.toggleCollapseState(toCollapse)
+      }
+
       const openTarget = branch?.open
       if (openTarget?.file === activeFile) {
         let line: number | null = null
@@ -157,17 +195,24 @@ export function CodeEditor() {
       editor.setPosition({ lineNumber: 1, column: 1 })
       editor.revealLine(1)
     }
-    const frame1 = requestAnimationFrame(() => {
-      const frame2 = requestAnimationFrame(applyFolds)
-      // Save so we can cancel if the effect tears down mid-frame.
-      rafRef.current = frame2
-    })
-    rafRef.current = frame1
+
+    applyFoldsAndScroll()
+      .catch(() => {
+        /* non-fatal */
+      })
+      .finally(() => {
+        if (!cancelled) {
+          // One rAF after the fold commit so Monaco paints the collapsed
+          // state in the same frame we reveal the host.
+          requestAnimationFrame(() => {
+            if (!cancelled) setLastFoldedKey(fileStageKey)
+          })
+        }
+      })
     return () => {
       cancelled = true
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [rendered, activeFile, branch])
+  }, [rendered, activeFile, branch, fileStageKey])
 
   if (!activeFile) {
     return (
@@ -178,7 +223,10 @@ export function CodeEditor() {
   }
 
   return (
-    <div className="monaco-host flex-1">
+    <div
+      className="monaco-host relative flex-1"
+      style={{ visibility: ready ? 'visible' : 'hidden' }}
+    >
       <Editor
         height="100%"
         path={activeFile}

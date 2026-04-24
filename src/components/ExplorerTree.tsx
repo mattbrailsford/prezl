@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { useVisibleFiles } from '@/hooks/useRenderedFile'
+import { usePickAndOpenProject } from '@/hooks/useProjectLoader'
 
 type TreeNode =
   | { kind: 'file'; name: string; path: string }
@@ -99,6 +100,7 @@ export function ExplorerTree() {
   const openFile = useAppStore((s) => s.openFile)
   const setPreferences = useAppStore((s) => s.setPreferences)
   const visibleFiles = useVisibleFiles()
+  const pickAndOpen = usePickAndOpenProject()
 
   const tree = useMemo(() => buildTree(visibleFiles), [visibleFiles])
 
@@ -136,15 +138,26 @@ export function ExplorerTree() {
         <span className="text-xs font-semibold uppercase tracking-wider text-app-muted">
           Explorer
         </span>
-        <button
-          type="button"
-          onClick={() => setPreferences({ explorerCollapsed: true })}
-          title="Hide explorer (Ctrl+E)"
-          aria-label="Hide explorer"
-          className="grid size-8 place-items-center rounded text-app-muted hover:bg-app-panel hover:text-app"
-        >
-          <PanelLeftClose className="size-5" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => pickAndOpen()}
+            title="Open project folder"
+            aria-label="Open project folder"
+            className="grid size-8 place-items-center rounded text-app-muted hover:bg-app-panel hover:text-app"
+          >
+            <FolderOpen className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreferences({ explorerCollapsed: true })}
+            title="Hide explorer (Ctrl+E)"
+            aria-label="Hide explorer"
+            className="grid size-8 place-items-center rounded text-app-muted hover:bg-app-panel hover:text-app"
+          >
+            <PanelLeftClose className="size-5" />
+          </button>
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-2">
         <ul>

@@ -70,31 +70,40 @@
     margin-left: 3px;
   }
 
-  /* Replace Monaco's default fold chevrons with bordered +/- squares. */
+  /* Replace Monaco's default fold chevrons with bordered +/- squares.
+     Only the ::before pseudo-element is restyled so Monaco's own layout /
+     positioning of the parent glyph element is preserved. */
+  .monaco-host .codicon-folding-expanded::before,
+  .monaco-host .codicon-folding-collapsed::before {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 13px;
+    height: 13px;
+    border: 1px solid rgb(var(--color-app-muted));
+    border-radius: 3px;
+    font-family: system-ui, 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: rgb(var(--color-text));
+    background-color: rgb(var(--color-app-panel));
+  }
   .monaco-host .codicon-folding-expanded,
   .monaco-host .codicon-folding-collapsed {
-    border: 1px solid rgb(var(--color-app-border)) !important;
-    border-radius: 3px !important;
-    width: 14px !important;
-    height: 14px !important;
-    line-height: 12px !important;
-    text-align: center !important;
-    font-family: system-ui, sans-serif !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    color: rgb(var(--color-app-muted));
-    background-color: rgb(var(--color-app-surface));
-    display: inline-block !important;
-  }
-  .monaco-host .codicon-folding-expanded:hover,
-  .monaco-host .codicon-folding-collapsed:hover {
-    color: rgb(var(--color-text));
-    border-color: rgb(var(--color-app-accent));
+    color: transparent !important;
+    opacity: 1 !important;
   }
   .monaco-host .codicon-folding-expanded::before {
-    content: '−' !important;
+    content: '−';
   }
   .monaco-host .codicon-folding-collapsed::before {
-    content: '+' !important;
+    content: '+';
+  }
+  .monaco-host .codicon-folding-expanded:hover::before,
+  .monaco-host .codicon-folding-collapsed:hover::before {
+    color: rgb(var(--color-app-accent));
+    border-color: rgb(var(--color-app-accent));
   }
 }

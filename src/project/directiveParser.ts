@@ -221,11 +221,14 @@ export function parseDirectives(
       }
 
       case 'collapse': {
+        // Anchor the fold's visible "header" line to the first content line
+        // inside the directive pair. Monaco renders `{...}` pairs inline, so
+        // `type DashboardConfig = { ... }` reads naturally as the summary.
+        const contentStart = renderedLine + 1
         if (dropDepth > 0) {
-          // Still push a frame so the matching close pops cleanly.
           stack.push({
             kind: 'collapse',
-            contentStart: renderedLine + 1,
+            contentStart,
             stages: directive.stages,
             label: directive.label,
             openLine: i + 1,
@@ -235,7 +238,7 @@ export function parseDirectives(
         if (directive.stages !== null) validateStageList(directive.stages, i + 1)
         stack.push({
           kind: 'collapse',
-          contentStart: renderedLine + 1,
+          contentStart,
           stages: directive.stages,
           label: directive.label,
           openLine: i + 1,
@@ -244,10 +247,15 @@ export function parseDirectives(
       }
 
       case 'focus': {
+        // Focus is a whole-line decoration, not a Monaco fold, so it uses the
+        // first *content* line (renderedLine + 1) as its start — we want the
+        // highlight to begin with the first visible code line inside the
+        // directive pair.
+        const contentStart = renderedLine + 1
         if (dropDepth > 0) {
           stack.push({
             kind: 'focus',
-            contentStart: renderedLine + 1,
+            contentStart,
             stages: directive.stages,
             openLine: i + 1,
           })
@@ -256,7 +264,7 @@ export function parseDirectives(
         validateStageList(directive.stages, i + 1)
         stack.push({
           kind: 'focus',
-          contentStart: renderedLine + 1,
+          contentStart,
           stages: directive.stages,
           openLine: i + 1,
         })
