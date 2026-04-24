@@ -51,7 +51,17 @@ export function useActiveRenderedFile(): RenderedFile | null {
     if (!activeFile || !branch) return null
     const source = rawFiles.get(activeFile)
     if (source == null) return null
-    return parseDirectives(source, branch.alias, stageIndex)
+    const result = parseDirectives(source, branch.alias, stageIndex)
+    // eslint-disable-next-line no-console
+    console.log('[prezl parser]', activeFile, 'on', branch.alias, {
+      foldRanges: result.foldRanges,
+      focusRanges: result.focusRanges,
+      marks: result.marks,
+      hiddenForStage: result.hiddenForStage,
+      errors: result.errors,
+      renderedLineCount: result.text.split('\n').length,
+    })
+    return result
   }, [activeFile, rawFiles, branch, stageIndex])
 }
 

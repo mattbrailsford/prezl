@@ -140,6 +140,44 @@ Ctrl+Space) with `{ capture: true }` so they fire before Monaco can
 swallow them — required for Ctrl+MouseWheel to zoom while hovering the
 editor.
 
+**Folding provider must fire onDidChange on updates.** Monaco's
+FoldingController caches its computed FoldingModel per editor instance
+and only invalidates it on model-content events. When we mutate
+`foldRangesByUri` in place (same file, new stage), the cache survives
+and Monaco keeps serving stale ranges — you'll see fold toggles from a
+previous stage. The registered `FoldingRangeProvider` exposes a custom
+`onDidChange` event (see `foldChangeEmitter` in `CodeEditor.tsx`) and
+fires it after every `foldRangesByUri.set(...)` so Monaco flushes and
+re-queries us.
+
+**Always hide + re-fold on every (file, stage) change.** Tab switches
+re-initialise Monaco's FoldingController, losing collapse state. We go
+through the full hide → fold → reveal cycle on every change. `ready` is
+derived from `fileStageKey === lastFoldedKey` so `visibility: hidden`
+flips in the same render that feeds Monaco new content — preventing the
+expanded-content flash before the collapse lands. We previously tried
+to skip re-fold on return visits, but Monaco drops the fold state on
+model switch even within the same branch, so the optimisation broke
+auto-collapse.
+
+**Debugging the parser.** Both `useRenderedFile` (parser output) and
+the folding provider (what Monaco sees) log to the console on every
+run. If fold ranges look wrong, expand the `[prezl parser]` Object and
+compare against the `[prezl fold]` Array(N) — any mismatch means Monaco
+has stale ranges and `onDidChange` isn't firing.
+
+For parser-only questions, the Vitest suite covers the pure logic
+directly (no React/Monaco in the way):
+
+- `src/project/stageList.test.ts` — range grammar
+- `src/project/directiveParser.test.ts` — full directive parsing
+- `src/project/visibleFiles.test.ts` — file-level gate filter
+- `src/state/branchReducer.test.ts` — tab reconciliation
+
+Add a failing case to the relevant `.test.ts` file and run
+`pnpm test` (one-shot) or `pnpm test:watch` (TDD loop). Prefer this
+over ad-hoc debug scripts.
+
 ## Preferences storage
 
 Currently in `localStorage` under `prezl.preferences.v1`. Planned to

@@ -50,17 +50,44 @@ function inferLanguage(path: string | null): string {
 const foldRangesByUri = new Map<string, RenderedFile['foldRanges']>()
 let providersRegistered = false
 
+// Monaco's FoldingController caches the last-computed FoldingModel and only
+// invalidates on model content change. When we mutate foldRangesByUri in
+// place (stage change without a URI change), Monaco otherwise serves stale
+// ranges. Firing this emitter tells it our provider's output has changed.
+type FoldingListener = (provider: Monaco.languages.FoldingRangeProvider) => void
+class FoldingChangeEmitter {
+  private listeners = new Set<FoldingListener>()
+  event = (
+    listener: FoldingListener,
+  ): { dispose: () => void } => {
+    this.listeners.add(listener)
+    return { dispose: () => this.listeners.delete(listener) }
+  }
+  fire = (provider: Monaco.languages.FoldingRangeProvider) => {
+    for (const l of this.listeners) l(provider)
+  }
+}
+const foldChangeEmitter = new FoldingChangeEmitter()
+let registeredProviderInstance: Monaco.languages.FoldingRangeProvider | null =
+  null
+
 function ensureFoldingProvider(monaco: typeof Monaco): void {
   if (providersRegistered) return
   providersRegistered = true
 
   const provider: Monaco.languages.FoldingRangeProvider = {
+    onDidChange: foldChangeEmitter.event as Monaco.IEvent<
+      Monaco.languages.FoldingRangeProvider
+    >,
     provideFoldingRanges(model) {
       const ranges = foldRangesByUri.get(model.uri.toString())
       if (!ranges) return []
+      // eslint-disable-next-line no-console
+      console.log('[prezl fold] provider returning', model.uri.toString(), ranges)
       return ranges.map((r) => ({ start: r.start, end: r.end }))
     },
   }
+  registeredProviderInstance = provider
 
   // main.tsx already patched the global registerFoldingRangeProvider to a
   // no-op, so the TS language service can't add its own. We use the stashed
@@ -122,6 +149,7 @@ export function CodeEditor() {
   // Apply fold ranges + focus decorations + mark scrolling when the rendered
   // file or active file changes.
   useEffect(() => {
+    if (!editorReady) return
     const editor = editorRef.current
     const monaco = monacoRef.current
     if (!editor || !monaco || !rendered || !activeFile) {
@@ -133,6 +161,9 @@ export function CodeEditor() {
 
     const uri = model.uri.toString()
     foldRangesByUri.set(uri, rendered.foldRanges)
+    // Tell Monaco our provider has new output so it invalidates its cached
+    // FoldingModel and re-queries us.
+    if (registeredProviderInstance) foldChangeEmitter.fire(registeredProviderInstance)
 
     // Focus decorations.
     const newDecorations = rendered.focusRanges.map<Monaco.editor.IModelDeltaDecoration>(
@@ -207,8 +238,6 @@ export function CodeEditor() {
       })
       .finally(() => {
         if (!cancelled) {
-          // One rAF after the fold commit so Monaco paints the collapsed
-          // state in the same frame we reveal the host.
           requestAnimationFrame(() => {
             if (!cancelled) setLastFoldedKey(fileStageKey)
           })
