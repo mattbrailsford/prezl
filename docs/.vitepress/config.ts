@@ -14,9 +14,12 @@ export default defineConfig({
   srcExclude: ['internal/**', 'README.md'],
   lastUpdated: true,
   head: [
-    ['meta', { name: 'theme-color', content: '#1e1e22' }],
+    ['meta', { name: 'theme-color', content: '#6366f1' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/prezl/logo.svg' }],
   ],
   themeConfig: {
+    logo: { src: '/logo.svg', width: 24, height: 24 },
+    siteTitle: 'Prezl',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Reference', link: '/reference/yaml-schema' },

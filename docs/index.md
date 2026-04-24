@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: View on GitHub
       link: https://github.com/mattbrailsford/prezl
+  image:
+    src: /logo.svg
+    alt: Prezl
 features:
   - icon: 🎯
     title: Branches as stages

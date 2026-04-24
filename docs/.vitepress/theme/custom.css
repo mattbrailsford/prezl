@@ -1,0 +1,69 @@
+/* Prezl docs theme overrides. Brand colors track the app's --color-app-accent
+   (indigo 500 family) so the docs feel like an extension of the app. */
+
+:root {
+  /* Brand scale */
+  --vp-c-brand-1: #818cf8;   /* light accent for dark theme */
+  --vp-c-brand-2: #6366f1;   /* primary */
+  --vp-c-brand-3: #4f46e5;   /* darker, for button:active */
+  --vp-c-brand-soft: rgba(129, 140, 248, 0.16);
+
+  --vp-c-tip-1: var(--vp-c-brand-1);
+  --vp-c-tip-2: var(--vp-c-brand-2);
+  --vp-c-tip-3: var(--vp-c-brand-3);
+  --vp-c-tip-soft: var(--vp-c-brand-soft);
+
+  /* Home-hero gradient */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    #a5b4fc 20%,
+    #f472b6
+  );
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    #6366f1 40%,
+    #ec4899 60%
+  );
+  --vp-home-hero-image-filter: blur(56px);
+
+  /* Button colors */
+  --vp-button-brand-bg: var(--vp-c-brand-2);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-1);
+  --vp-button-brand-active-bg: var(--vp-c-brand-3);
+  --vp-button-brand-border: var(--vp-c-brand-2);
+  --vp-button-brand-hover-border: var(--vp-c-brand-1);
+  --vp-button-brand-active-border: var(--vp-c-brand-3);
+
+  /* Monospace font to match the in-app editor */
+  --vp-font-family-mono: 'JetBrains Mono', 'Cascadia Code', Consolas,
+    'SF Mono', Menlo, monospace;
+}
+
+/* Dark mode — slightly warmer code blocks and subtler borders. */
+.dark {
+  --vp-c-bg: #18181b;
+  --vp-c-bg-alt: #1e1e22;
+  --vp-c-bg-elv: #27272a;
+  --vp-c-bg-soft: #1e1e22;
+
+  --vp-code-bg: #1e1e22;
+  --vp-code-block-bg: #1a1a1e;
+}
+
+/* Custom hero — give our PrezlHero component a subtle floating look.
+   The component renders at a fixed aspect so we lock it here. */
+.prezl-hero {
+  aspect-ratio: 4 / 3;
+  width: min(520px, 100%);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 80px -20px rgba(99, 102, 241, 0.35),
+    0 8px 24px -10px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: #18181b;
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
