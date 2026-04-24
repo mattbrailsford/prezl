@@ -46,7 +46,7 @@ function ProjectGlyph({ iconKey }: { iconKey: string | undefined }) {
   })()
   if (label) {
     return (
-      <span className="grid size-5 shrink-0 place-items-center rounded-sm bg-project-accent/20 font-mono text-[10px] font-bold text-project-accent">
+      <span className="grid size-5 shrink-0 place-items-center rounded-sm bg-project-accent/20 font-mono text-[0.625rem] font-bold text-project-accent">
         {label}
       </span>
     )
@@ -191,7 +191,7 @@ export function ExplorerTree() {
                   <button
                     type="button"
                     onClick={() => toggle(group.key)}
-                    className="flex w-full items-center gap-2 border-l-2 border-project-accent bg-project-accent/5 py-1.5 pl-2 pr-2 text-left text-[13px] hover:bg-project-accent/10"
+                    className="flex w-full items-center gap-2 border-l-2 border-project-accent bg-project-accent/5 py-1.5 pl-2 pr-2 text-left hover:bg-project-accent/10"
                   >
                     <Chevron className="size-5 shrink-0 text-app-muted" />
                     <ProjectGlyph iconKey={group.iconKey} />
@@ -203,7 +203,7 @@ export function ExplorerTree() {
                   <button
                     type="button"
                     onClick={() => toggle(group.key)}
-                    className="flex w-full items-center gap-2 border-l-2 border-transparent py-1 pl-2 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-app-muted hover:text-app"
+                    className="flex w-full items-center gap-2 border-l-2 border-transparent py-1 pl-2 pr-2 text-left text-xs font-semibold uppercase tracking-wider text-app-muted hover:text-app"
                   >
                     <Chevron className="size-5 shrink-0" />
                     <Hash className="size-4" />
