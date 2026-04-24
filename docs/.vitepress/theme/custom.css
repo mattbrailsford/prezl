@@ -81,6 +81,19 @@
   display: none;
 }
 
+/* VitePress's default hero pulls the image-container 32 px toward the
+   main column so a small product icon tucks under the text. Our wider
+   IDE mockup wants breathing room instead, so reset the translate and
+   add explicit left padding at the side-by-side breakpoint. */
+@media (min-width: 960px) {
+  .VPHero.has-image .image-container {
+    transform: none;
+  }
+  .VPHero.has-image .image {
+    padding-left: 32px;
+  }
+}
+
 .prezl-hero-inner {
   position: absolute;
   top: 0;
