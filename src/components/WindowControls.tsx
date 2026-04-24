@@ -1,11 +1,13 @@
-import { Minus, Square, Copy, X } from 'lucide-react'
+import { Copy, Maximize2, Minimize2, Minus, Square, X } from 'lucide-react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useEffect, useState } from 'react'
+import { useFullscreen } from '@/hooks/useFullscreen'
 
 const appWindow = getCurrentWindow()
 
 export function WindowControls() {
   const [isMaximized, setIsMaximized] = useState(false)
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
   useEffect(() => {
     let cancelled = false
@@ -26,6 +28,16 @@ export function WindowControls() {
 
   return (
     <div className="flex items-stretch">
+      <ControlButton
+        onClick={toggleFullscreen}
+        label={isFullscreen ? 'Exit fullscreen (F11)' : 'Enter fullscreen (F11)'}
+      >
+        {isFullscreen ? (
+          <Minimize2 className="size-4" />
+        ) : (
+          <Maximize2 className="size-4" />
+        )}
+      </ControlButton>
       <ControlButton
         onClick={() => appWindow.minimize()}
         label="Minimize"
