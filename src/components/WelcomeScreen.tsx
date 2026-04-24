@@ -1,9 +1,10 @@
-import { FolderOpen, Presentation, X } from 'lucide-react'
+import { FolderOpen, X } from 'lucide-react'
 import {
   useOpenProject,
   usePickAndOpenProject,
   useRecentProjects,
 } from '@/hooks/useProjectLoader'
+import { PretzelLogo } from './PretzelLogo'
 import { WindowControls } from './WindowControls'
 
 export function WelcomeScreen() {
@@ -23,7 +24,7 @@ export function WelcomeScreen() {
             aria-hidden
             className="grid size-7 place-items-center rounded bg-app-accent/20 text-app-accent"
           >
-            <Presentation className="pointer-events-none size-5" />
+            <PretzelLogo className="pointer-events-none size-5" />
           </span>
           <span data-tauri-drag-region className="font-semibold text-app">
             Prezl
@@ -36,12 +37,12 @@ export function WelcomeScreen() {
       <div className="flex w-full max-w-xl flex-col gap-8">
         <header className="flex items-center gap-3">
           <span className="grid size-12 place-items-center rounded bg-app-accent/20 text-app-accent">
-            <Presentation className="size-7" />
+            <PretzelLogo className="size-7" />
           </span>
           <div>
             <h1 className="text-2xl font-semibold text-app">Prezl</h1>
             <p className="text-sm text-app-muted">
-              Staged code presentations for speakers and trainers
+              Present code like slides
             </p>
           </div>
         </header>

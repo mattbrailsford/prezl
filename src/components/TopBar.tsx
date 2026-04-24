@@ -1,6 +1,6 @@
-import { Presentation } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { BranchSelector } from './BranchSelector'
+import { PretzelLogo } from './PretzelLogo'
 import { RunButton } from './RunButton'
 import { WindowControls } from './WindowControls'
 
@@ -23,7 +23,7 @@ export function TopBar() {
           aria-hidden
           className="grid size-7 place-items-center rounded bg-app-accent/20 text-app-accent"
         >
-          <Presentation className="pointer-events-none size-5" />
+          <PretzelLogo className="pointer-events-none size-5" />
         </span>
         <span className="font-semibold text-app">{projectName}</span>
       </button>

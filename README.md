@@ -1,6 +1,10 @@
-# Prezl
+<p align="center">
+  <img src="docs/public/logo-pretzel2.svg" alt="Prezl" width="120" />
+</p>
 
-A staged, IDE-like code presentation and exploration tool. Working name; codename for now.
+<h1 align="center">Prezl</h1>
+
+<p align="center"><strong>Present code like slides.</strong></p>
 
 **📖 User docs**: [mattbrailsford.github.io/prezl](https://mattbrailsford.github.io/prezl/)
 
