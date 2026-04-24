@@ -99,9 +99,24 @@ pub fn load_project(
     let canonical = fs::canonicalize(&root)?;
     *state.0.lock().unwrap() = Some(canonical.clone());
     Ok(ProjectLoad {
-        root: canonical.to_string_lossy().into_owned(),
+        root: display_path(&canonical),
         manifest,
     })
+}
+
+/// Render a canonical path in a form the webview / asset protocol can use.
+/// On Windows, `fs::canonicalize` produces `\\?\D:\...` (UNC extended-length
+/// form); strip that prefix so `convertFileSrc` and external tools see a
+/// regular drive path.
+fn display_path(p: &Path) -> String {
+    let s = p.to_string_lossy();
+    #[cfg(windows)]
+    {
+        if let Some(rest) = s.strip_prefix(r"\\?\") {
+            return rest.to_string();
+        }
+    }
+    s.into_owned()
 }
 
 const IGNORED_DIR_NAMES: &[&str] = &[

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { AppShell } from './components/AppShell'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { LoadErrorOverlay } from './components/LoadErrorOverlay'
+import { VideoPreview } from './components/preview/VideoPreview'
 import { useAppStore } from './state/store'
 import { usePreferencesPersistence } from './hooks/usePreferencesPersistence'
 import { useUiScale } from './hooks/useUiScale'
@@ -41,6 +42,7 @@ export function App() {
   return (
     <>
       {project ? <AppShell /> : <WelcomeScreen />}
+      <VideoPreview />
       <LoadErrorOverlay />
     </>
   )

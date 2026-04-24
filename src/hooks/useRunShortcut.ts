@@ -13,6 +13,7 @@ export function useRunShortcut() {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return
       if (e.key !== 'Enter') return
+      if (useAppStore.getState().previewState.kind !== 'closed') return
       e.preventDefault()
       void runPreview()
     }

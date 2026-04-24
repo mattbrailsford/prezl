@@ -15,6 +15,8 @@ export function useBranchShortcuts() {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return
       if (e.code !== 'Space') return
+      // Video preview modal owns input — don't switch branches under it.
+      if (useAppStore.getState().previewState.kind === 'video') return
       e.preventDefault()
       switchBranchRelative(e.shiftKey ? -1 : 1)
     }

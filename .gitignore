@@ -19,6 +19,11 @@ src-tauri/target/
 src-tauri/Cargo.lock
 src-tauri/gen/
 
+# Presenter-supplied media (videos belong in each author's project folder, not git)
+examples/**/videos/*.mp4
+examples/**/videos/*.webm
+examples/**/videos/*.mov
+
 # Build artifacts
 *.log
 *.tsbuildinfo

@@ -10,6 +10,7 @@ export function useExplorerToggle() {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.shiftKey) return
       if (e.key.toLowerCase() !== 'e') return
+      if (useAppStore.getState().previewState.kind === 'video') return
       e.preventDefault()
 
       const state = useAppStore.getState()
