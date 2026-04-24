@@ -5,6 +5,9 @@ import { buildStageIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
 import type { Branch } from '@/types'
 
+export type SymbolTarget = { file: string; line: number }
+export type SymbolTable = Map<string, SymbolTarget>
+
 export function useStageIndex(): Record<string, number> {
   const branches = useAppStore((s) => s.project?.branches)
   return useMemo(() => {
@@ -35,6 +38,35 @@ export function useVisibleFiles(): string[] {
       stageIndex,
     })
   }, [files, rawFiles, branch, stageIndex])
+}
+
+/**
+ * Build a project-wide lookup of marks from the current stage's rendered
+ * files. Collisions silently keep the first id encountered (visibleFiles
+ * order). Re-parsing every file on every stage change is cheap for the
+ * size of project Prezl targets; memoise by inputs to avoid redundant
+ * parses on unrelated re-renders.
+ */
+export function useSymbolTable(): SymbolTable {
+  const rawFiles = useAppStore((s) => s.rawFiles)
+  const branch = useCurrentBranch()
+  const stageIndex = useStageIndex()
+  const files = useVisibleFiles()
+
+  return useMemo(() => {
+    const table: SymbolTable = new Map()
+    if (!branch) return table
+    for (const path of files) {
+      const source = rawFiles.get(path)
+      if (source == null) continue
+      const rendered = parseDirectives(source, branch.alias, stageIndex)
+      for (const [id, line] of Object.entries(rendered.marks)) {
+        if (table.has(id)) continue
+        table.set(id, { file: path, line })
+      }
+    }
+    return table
+  }, [rawFiles, branch, stageIndex, files])
 }
 
 /**

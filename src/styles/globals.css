@@ -70,6 +70,18 @@
     margin-left: 3px;
   }
 
+  /* Symbol decoration: any identifier matching an @prezl id= elsewhere in
+     the project. Dotted accent underline at rest; solid on hover + pointer
+     so it reads as a real link. */
+  .monaco-host .prezl-symbol {
+    text-decoration: underline dotted rgba(var(--color-app-accent) / 0.6);
+    text-underline-offset: 3px;
+  }
+  .monaco-host .prezl-symbol:hover {
+    text-decoration: underline solid rgb(var(--color-app-accent));
+    cursor: pointer;
+  }
+
   /* Replace Monaco's default fold chevrons with bordered +/- squares.
      The glyphs are drawn as inline SVG via background-image so the strokes
      are pixel-perfect centered in the box, independent of font metrics.

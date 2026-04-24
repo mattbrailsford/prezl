@@ -215,10 +215,37 @@ before v1 ships — scope it in when a Rust command for that file lands.
 - M1 — shell ✓
 - M2 — project loading, recents, branch switching ✓
 - M3 — `@prezl:*` directive system ✓
-- M4 — fake build + URL preview (next)
-- M5 — fullscreen video preview with cues
-- M6 — symbol navigation
-- M7 — symbol quick-find (Ctrl+T)
+- M4 — fake build + URL preview ✓
+- M5 — fullscreen video preview with cues ✓
+- M6 — symbol navigation ✓
+- M7 — symbol quick-find (Ctrl+T, next)
+
+## Symbol navigation
+
+Implicit: no `symbols:` section in YAML. Any `@prezl id=<name>` directive
+becomes a named anchor, and `useSymbolTable` builds a project-wide
+`Map<id, { file, line }>` from every visible file's parsed marks on the
+current stage.
+
+`CodeEditor` scans the active file's rendered text for word-boundary,
+case-sensitive occurrences of each id and decorates them with
+`inlineClassName: 'prezl-symbol'` (dotted accent underline; solid +
+pointer on hover). The definition site itself is skipped. A per-decoration
+`symbolHits` array lets the editor's `onMouseDown` resolve a click
+position back to a `{file, line}` without re-scanning.
+
+**Plain click navigates** (Monaco is read-only, so preserving
+click-to-place-cursor has no value; presenter flow wins). Right/middle
+click is left alone. `navigateToFileLine` in the store opens the target
+as a tab, sets `activeFile`, and drops a one-shot `pendingNavigation`
+scroll target that the existing fold+scroll effect consumes before
+falling back to `branch.open`.
+
+Collisions: if two marks share an id, the first one encountered in
+`visibleFiles` order wins. Stale matches on common short words (`config`,
+`i`) are possible but rare for a curated presentation — pick distinctive
+ids. Future escape hatch would be an explicit `linkable=false` attribute,
+not yet needed.
 
 ## Demo fixture
 

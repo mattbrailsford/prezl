@@ -29,6 +29,9 @@ type AppState = {
   preferences: Preferences
   loading: boolean
   loadError: LoadError | null
+  /** One-shot scroll target: after switching activeFile via navigateToFileLine,
+   *  the editor consumes this and then clears it. */
+  pendingNavigation: { file: string; line: number } | null
 }
 
 type AppActions = {
@@ -49,6 +52,8 @@ type AppActions = {
   setLoadError: (err: LoadError | null) => void
   runPreview: () => Promise<void>
   closePreview: () => void
+  navigateToFileLine: (file: string, line: number) => void
+  consumePendingNavigation: () => void
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -62,6 +67,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   preferences: DEFAULT_PREFERENCES,
   loading: false,
   loadError: null,
+  pendingNavigation: null,
 
   setProject: (project, rawFiles, initialBranchName) => {
     const branch =
@@ -224,4 +230,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   closePreview: () =>
     set({ previewState: { kind: 'closed' }, statusMessage: 'Ready' }),
+
+  navigateToFileLine: (file, line) => {
+    set((s) => ({
+      openTabs: s.openTabs.includes(file) ? s.openTabs : [...s.openTabs, file],
+      activeFile: file,
+      pendingNavigation: { file, line },
+    }))
+  },
+
+  consumePendingNavigation: () => set({ pendingNavigation: null }),
 }))

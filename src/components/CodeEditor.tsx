@@ -6,6 +6,8 @@ import { editorFontSize } from '@/hooks/useUiScale'
 import {
   useActiveRenderedFile,
   useCurrentBranch,
+  useSymbolTable,
+  type SymbolTarget,
 } from '@/hooks/useRenderedFile'
 import type { RenderedFile } from '@/project/directiveParser'
 import { prezlRegisterFolding, type PrezlMonaco } from '@/project/monacoSetup'
@@ -103,9 +105,20 @@ export function CodeEditor() {
   const uiScale = useAppStore((s) => s.preferences.uiScale)
   const branch = useCurrentBranch()
   const rendered = useActiveRenderedFile()
+  const symbolTable = useSymbolTable()
+  const navigateToFileLine = useAppStore((s) => s.navigateToFileLine)
+  const pendingNavigation = useAppStore((s) => s.pendingNavigation)
+  const consumePendingNavigation = useAppStore((s) => s.consumePendingNavigation)
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<typeof Monaco | null>(null)
   const focusDecorationsRef = useRef<string[]>([])
+  const symbolDecorationsRef = useRef<string[]>([])
+  // Per-editor-line range -> navigation target. Populated alongside the
+  // symbol decorations so the onMouseDown handler can resolve a click into
+  // a jump without re-scanning text.
+  const symbolHitsRef = useRef<
+    { lineNumber: number; startColumn: number; endColumn: number; target: SymbolTarget }[]
+  >([])
   // Monaco mounts asynchronously via @monaco-editor/react. The fold-applying
   // effect can fire before onMount lands editorRef.current — we flag readiness
   // here so the effect re-runs after mount and actually gets to setLastFoldedKey.
@@ -140,7 +153,27 @@ export function CodeEditor() {
     monaco.editor.setTheme('prezl-dark')
     ensureFoldingProvider(monaco)
     setEditorReady(true)
-  }, [])
+
+    // Click on a decorated symbol navigates to its mark. Plain click rather
+    // than Ctrl+click — Monaco is read-only so placing a cursor does
+    // nothing useful, and a presenter flow benefits from no-modifier jumps.
+    editor.onMouseDown((e) => {
+      // Ignore right clicks / middle clicks — only primary button navigates.
+      if (e.event.rightButton || e.event.middleButton) return
+      const position = e.target.position
+      if (!position) return
+      const hit = symbolHitsRef.current.find(
+        (h) =>
+          h.lineNumber === position.lineNumber &&
+          position.column >= h.startColumn &&
+          position.column <= h.endColumn,
+      )
+      if (!hit) return
+      e.event.preventDefault()
+      e.event.stopPropagation()
+      navigateToFileLine(hit.target.file, hit.target.line)
+    })
+  }, [navigateToFileLine])
 
   useEffect(() => {
     editorRef.current?.updateOptions({ fontSize: editorFontSize(uiScale) })
@@ -181,6 +214,44 @@ export function CodeEditor() {
       newDecorations,
     )
 
+    // Symbol decorations: underline each word-boundary occurrence of an id
+    // in the current file and remember its target so Ctrl+click can jump.
+    const symbolHits: typeof symbolHitsRef.current = []
+    const symbolDecorations: Monaco.editor.IModelDeltaDecoration[] = []
+    const lines = rendered.text.split('\n')
+    for (const [id, target] of symbolTable) {
+      if (id.length === 0) continue
+      const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const pattern = new RegExp(`\\b${escaped}\\b`, 'g')
+      for (let li = 0; li < lines.length; li++) {
+        const lineNumber = li + 1
+        // Skip the definition site itself — clicking it would jump in place.
+        if (target.file === activeFile && target.line === lineNumber) continue
+        const text = lines[li]
+        pattern.lastIndex = 0
+        let m: RegExpExecArray | null
+        while ((m = pattern.exec(text)) !== null) {
+          const startColumn = m.index + 1
+          const endColumn = m.index + id.length + 1
+          symbolHits.push({ lineNumber, startColumn, endColumn, target })
+          symbolDecorations.push({
+            range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn),
+            options: {
+              inlineClassName: 'prezl-symbol',
+              hoverMessage: {
+                value: `Click → ${target.file}:${target.line}`,
+              },
+            },
+          })
+        }
+      }
+    }
+    symbolDecorationsRef.current = editor.deltaDecorations(
+      symbolDecorationsRef.current,
+      symbolDecorations,
+    )
+    symbolHitsRef.current = symbolHits
+
     let cancelled = false
     const applyFoldsAndScroll = async () => {
       // Monaco's folding controller exposes an async getFoldingModel() that
@@ -212,6 +283,14 @@ export function CodeEditor() {
           if (region && !region.isCollapsed) toCollapse.push(region)
         }
         if (toCollapse.length > 0) foldingModel.toggleCollapseState(toCollapse)
+      }
+
+      // One-shot navigation (symbol jump) takes priority over branch.open.
+      if (pendingNavigation && pendingNavigation.file === activeFile) {
+        editor.revealLineInCenter(pendingNavigation.line)
+        editor.setPosition({ lineNumber: pendingNavigation.line, column: 1 })
+        consumePendingNavigation()
+        return
       }
 
       const openTarget = branch?.open
@@ -246,7 +325,16 @@ export function CodeEditor() {
     return () => {
       cancelled = true
     }
-  }, [rendered, activeFile, branch, fileStageKey, editorReady])
+  }, [
+    rendered,
+    activeFile,
+    branch,
+    fileStageKey,
+    editorReady,
+    symbolTable,
+    pendingNavigation,
+    consumePendingNavigation,
+  ])
 
   if (!activeFile) {
     return (
