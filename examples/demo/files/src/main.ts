@@ -1,7 +1,7 @@
 import { bootstrap } from './framework'
-// @prezl:show [shell...]
+// @prezl show=[shell...]
 import { registerDashboard } from './dashboard'
-// @prezl:/show
+// @prezl end
 
 function start(): void {
   const app = bootstrap({
@@ -9,11 +9,9 @@ function start(): void {
     mode: 'presentation',
   })
 
-  // @prezl:show [shell...]
-  // @prezl:focus [shell]
+  // @prezl show=[shell...] focus=[shell]
   registerDashboard(app)
-  // @prezl:/focus
-  // @prezl:/show
+  // @prezl end
 
   app.run()
 }

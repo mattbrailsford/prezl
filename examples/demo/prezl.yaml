@@ -18,7 +18,7 @@ branches:
     order: 2
     open:
       file: src/dashboard.ts
-      mark: registerDashboard
+      id: registerDashboard
 
   - name: feature/dashboard-preview
     alias: preview
@@ -26,7 +26,7 @@ branches:
     order: 3
     open:
       file: src/dashboard.ts
-      mark: registerDashboard
+      id: registerDashboard
     preview:
       type: url
       src: https://example.com/umbraco-demo/dashboard

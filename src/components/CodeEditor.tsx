@@ -181,8 +181,8 @@ export function CodeEditor() {
       const openTarget = branch?.open
       if (openTarget?.file === activeFile) {
         let line: number | null = null
-        if (openTarget.mark && rendered.marks[openTarget.mark]) {
-          line = rendered.marks[openTarget.mark]
+        if (openTarget.id && rendered.marks[openTarget.id]) {
+          line = rendered.marks[openTarget.id]
         } else if (openTarget.line) {
           line = openTarget.line
         }

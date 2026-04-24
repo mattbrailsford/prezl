@@ -11,10 +11,9 @@ export type RenderedFile = {
   focusRanges: FocusRange[]
   /** Name -> 1-based line number in `text`. */
   marks: Record<string, number>
-  /** true if a `@prezl:file` directive opts this file out of the current stage. */
+  /** true if a `file=[stages]` directive opts this file out of the current stage. */
   hiddenForStage: boolean
-  /** Errors encountered while parsing this file (unknown aliases, unmatched
-   *  closes, etc.) — author-facing validation. */
+  /** Errors encountered while parsing this file. */
   errors: DirectiveError[]
   /** Rendered line (1-based) -> original source line (1-based). */
   originalLineMap: number[]
@@ -25,107 +24,170 @@ export type DirectiveError = {
   message: string
 }
 
+type Attributes = {
+  id?: string
+  show?: string
+  focus?: string
+  collapse?: string | true
+  label?: string
+  file?: string
+  end?: string | true
+}
+
 type Directive =
+  | { kind: 'end'; id: string | null }
   | { kind: 'file'; stages: string }
-  | { kind: 'show' | 'focus'; stages: string }
-  | { kind: 'collapse'; stages: string | null; label: string | null }
-  | { kind: 'mark'; name: string }
-  | { kind: 'close'; name: 'show' | 'collapse' | 'focus' }
+  | { kind: 'anchor'; id: string }
+  | {
+      kind: 'region'
+      id: string | null
+      show: string | null
+      focus: string | null
+      collapse: string | true | null
+      label: string | null
+    }
   | { kind: 'invalid'; message: string }
 
-/** `// @prezl:...` on its own line, any indent. Trailing text after the
- *  directive args is captured so we can pull out a collapse label. */
+/** `// @prezl ...` on its own line (any leading indent). Also matches `# ...`,
+ *  `-- ...`, and the block form `/* ... *\/` on a single line. */
 const LINE_RE =
-  /^\s*(?:\/\/|#|--)\s*@(?:prezl|przl):([A-Za-z/]+)(?:\s+([^\r\n]*))?\s*$/
+  /^\s*(?:\/\/|#|--)\s*@(?:prezl|przl)\b\s*([^\r\n]*?)\s*$/
 const BLOCK_RE =
-  /^\s*\/\*\s*@(?:prezl|przl):([A-Za-z/]+)(?:\s+([\s\S]*?))?\s*\*\/\s*$/
+  /^\s*\/\*\s*@(?:prezl|przl)\b\s*([\s\S]*?)\s*\*\/\s*$/
 
 function detectDirective(rawLine: string): Directive | null {
   const match = LINE_RE.exec(rawLine) ?? BLOCK_RE.exec(rawLine)
   if (!match) return null
-  const head = match[1]
-  const rest = (match[2] ?? '').trim()
+  const body = match[1] ?? ''
 
-  if (head === 'file') return parseBracketed('file', rest)
-  if (head === 'show') return parseBracketed('show', rest)
-  if (head === 'focus') return parseBracketed('focus', rest)
-  if (head === 'collapse') return parseCollapseArgs(rest)
-  if (head === 'mark') {
-    if (!/^[A-Za-z_][\w-]*$/.test(rest)) {
-      return { kind: 'invalid', message: `invalid mark name: "${rest}"` }
-    }
-    return { kind: 'mark', name: rest }
-  }
-  if (head === '/show' || head === '/collapse' || head === '/focus') {
-    return { kind: 'close', name: head.slice(1) as 'show' | 'collapse' | 'focus' }
-  }
-  return { kind: 'invalid', message: `unknown directive: @prezl:${head}` }
+  const tokens = tokenizeAttributes(body)
+  if ('error' in tokens) return { kind: 'invalid', message: tokens.error }
+
+  return classify(tokens.attrs)
 }
 
-function parseBracketed(
-  kind: 'file' | 'show' | 'focus',
-  rest: string,
-): Directive {
-  const inner = extractBrackets(rest)
-  if (inner === null) {
-    return { kind: 'invalid', message: `@prezl:${kind} requires [stages]` }
+function tokenizeAttributes(
+  body: string,
+): { attrs: Attributes } | { error: string } {
+  const attrs: Attributes = {}
+  let i = 0
+  const len = body.length
+
+  while (i < len) {
+    while (i < len && /\s/.test(body[i])) i++
+    if (i >= len) break
+
+    // Read key
+    const keyStart = i
+    while (i < len && /[A-Za-z_]/.test(body[i])) i++
+    const key = body.slice(keyStart, i)
+    if (key === '') {
+      return { error: `unexpected character "${body[i]}" at position ${i}` }
+    }
+
+    // Optional `=value`
+    if (i < len && body[i] === '=') {
+      i++
+      if (i >= len) return { error: `missing value for attribute "${key}"` }
+      if (body[i] === '[') {
+        const close = body.indexOf(']', i + 1)
+        if (close < 0) return { error: `unclosed [ in attribute "${key}"` }
+        const value = body.slice(i + 1, close)
+        ;(attrs as Record<string, string | true>)[key] = value
+        i = close + 1
+      } else if (body[i] === '"') {
+        const close = body.indexOf('"', i + 1)
+        if (close < 0)
+          return { error: `unclosed " in attribute "${key}"` }
+        const value = body.slice(i + 1, close)
+        ;(attrs as Record<string, string | true>)[key] = value
+        i = close + 1
+      } else {
+        const valueStart = i
+        while (i < len && !/\s/.test(body[i])) i++
+        const value = body.slice(valueStart, i)
+        ;(attrs as Record<string, string | true>)[key] = value
+      }
+    } else {
+      // Bare flag.
+      ;(attrs as Record<string, string | true>)[key] = true
+    }
   }
-  return { kind, stages: inner.inside }
+  return { attrs }
 }
 
-function parseCollapseArgs(rest: string): Directive {
-  // Forms:
-  //   @prezl:collapse                          -> always fold, no label
-  //   @prezl:collapse Label text               -> always fold, labelled
-  //   @prezl:collapse [stages]                 -> fold on stages
-  //   @prezl:collapse [stages] Label text      -> fold on stages, labelled
-  if (rest === '') return { kind: 'collapse', stages: null, label: null }
-  if (rest.startsWith('[')) {
-    const bracket = extractBrackets(rest)
-    if (bracket === null) {
-      return { kind: 'invalid', message: 'collapse has unbalanced [' }
+function classify(attrs: Attributes): Directive {
+  if ('end' in attrs) {
+    const id = typeof attrs.end === 'string' && attrs.end !== '' ? attrs.end : null
+    // Sanity: end shouldn't carry other attrs.
+    const extra = Object.keys(attrs).filter((k) => k !== 'end')
+    if (extra.length > 0) {
+      return {
+        kind: 'invalid',
+        message: `@prezl end does not accept other attributes: ${extra.join(', ')}`,
+      }
     }
-    const label = bracket.trailing.trim()
+    return { kind: 'end', id }
+  }
+
+  if ('file' in attrs) {
+    if (typeof attrs.file !== 'string') {
+      return { kind: 'invalid', message: 'file= requires a stage list' }
+    }
+    const extra = Object.keys(attrs).filter((k) => k !== 'file')
+    if (extra.length > 0) {
+      return {
+        kind: 'invalid',
+        message: `@prezl file=... does not accept other attributes: ${extra.join(', ')}`,
+      }
+    }
+    return { kind: 'file', stages: attrs.file }
+  }
+
+  const show = typeof attrs.show === 'string' ? attrs.show : null
+  const focus = typeof attrs.focus === 'string' ? attrs.focus : null
+  const collapse =
+    attrs.collapse === true
+      ? true
+      : typeof attrs.collapse === 'string'
+        ? attrs.collapse
+        : null
+  const label = typeof attrs.label === 'string' ? attrs.label : null
+  const id = typeof attrs.id === 'string' ? attrs.id : null
+
+  const hasRegion = show !== null || focus !== null || collapse !== null
+
+  if (!hasRegion) {
+    if (id !== null) return { kind: 'anchor', id }
     return {
-      kind: 'collapse',
-      stages: bracket.inside,
-      label: label === '' ? null : label,
+      kind: 'invalid',
+      message: 'empty @prezl directive (needs id, show, focus, collapse, file, or end)',
     }
   }
-  return { kind: 'collapse', stages: null, label: rest }
-}
 
-function extractBrackets(
-  input: string,
-): { inside: string; trailing: string } | null {
-  if (!input.startsWith('[')) return null
-  const close = input.indexOf(']')
-  if (close < 0) return null
-  return {
-    inside: input.slice(1, close),
-    trailing: input.slice(close + 1),
+  if (label !== null && collapse === null) {
+    return {
+      kind: 'invalid',
+      message: 'label="..." only applies with collapse',
+    }
   }
+
+  return { kind: 'region', id, show, focus, collapse, label }
 }
 
-type Frame =
-  | {
-      kind: 'show'
-      keeping: boolean
-      openLine: number
-    }
-  | {
-      kind: 'collapse'
-      contentStart: number // rendered line (1-based) of first content line
-      stages: string | null
-      label: string | null
-      openLine: number
-    }
-  | {
-      kind: 'focus'
-      contentStart: number
-      stages: string
-      openLine: number
-    }
+type Frame = {
+  id: string | null
+  openLine: number
+  // Whether a `show` kept this region (true) or the region is being dropped
+  // (false) from the rendered output.
+  showKeeping: boolean
+  showActive: boolean // whether a show was declared on the open
+  collapseContentStart: number | null
+  collapseStages: string | null | true
+  collapseLabel: string | null
+  focusContentStart: number | null
+  focusStages: string | null
+}
 
 export function parseDirectives(
   source: string,
@@ -140,19 +202,18 @@ export function parseDirectives(
 
   const lines = source.split(/\r?\n/)
   const out: string[] = []
-  let renderedLine = 0 // last emitted line (1-based)
+  let renderedLine = 0
   const stack: Frame[] = []
-  let dropDepth = 0 // how many enclosing `show` regions are dropping content
+  let dropDepth = 0
   let pendingMark: string | null = null
   let hiddenForStage = false
   let sawAnyContent = false
 
-  const evaluate = (stages: string | null): boolean => {
+  const evaluateMatch = (stages: string): boolean => {
     const result = parseStageList(stages, stageIndex)
-    if (!result.ok) return false
-    return result.matches(currentStageAlias)
+    return result.ok ? result.matches(currentStageAlias) : false
   }
-  const validateStageList = (stages: string | null, line: number): void => {
+  const validateStages = (stages: string, line: number) => {
     const result = parseStageList(stages, stageIndex)
     if (!result.ok) errors.push({ line, message: result.error })
   }
@@ -161,11 +222,9 @@ export function parseDirectives(
     const line = lines[i]
     const directive = detectDirective(line)
     const isLastLine = i === lines.length - 1
-    // Drop empty trailing newline produced by `split`. We'll add one at the end.
 
     if (directive === null) {
       if (dropDepth === 0) {
-        // Skip the trailing empty string from a final newline; keep other blanks.
         if (!(isLastLine && line === '')) {
           out.push(line)
           renderedLine++
@@ -175,7 +234,7 @@ export function parseDirectives(
             if (marks[pendingMark] !== undefined) {
               errors.push({
                 line: i + 1,
-                message: `duplicate mark "${pendingMark}"`,
+                message: `duplicate id "${pendingMark}"`,
               })
             } else {
               marks[pendingMark] = renderedLine
@@ -187,7 +246,7 @@ export function parseDirectives(
       continue
     }
 
-    // Everything below is a directive line — always stripped from output.
+    // Directive lines are always stripped from the output.
     switch (directive.kind) {
       case 'invalid':
         errors.push({ line: i + 1, message: directive.message })
@@ -197,109 +256,118 @@ export function parseDirectives(
         if (sawAnyContent) {
           errors.push({
             line: i + 1,
-            message: '@prezl:file must appear before any code',
+            message: '@prezl file=[...] must appear before any code',
           })
           break
         }
-        validateStageList(directive.stages, i + 1)
-        if (!evaluate(directive.stages)) {
-          hiddenForStage = true
-        }
+        validateStages(directive.stages, i + 1)
+        if (!evaluateMatch(directive.stages)) hiddenForStage = true
         break
       }
 
-      case 'mark':
-        if (dropDepth === 0) pendingMark = directive.name
-        break
-
-      case 'show': {
-        validateStageList(directive.stages, i + 1)
-        const keeping = dropDepth === 0 && evaluate(directive.stages)
-        stack.push({ kind: 'show', keeping, openLine: i + 1 })
-        if (!keeping) dropDepth++
+      case 'anchor': {
+        if (dropDepth > 0) break
+        pendingMark = directive.id
         break
       }
 
-      case 'collapse': {
-        // Anchor the fold's visible "header" line to the first content line
-        // inside the directive pair. Monaco renders `{...}` pairs inline, so
-        // `type DashboardConfig = { ... }` reads naturally as the summary.
-        const contentStart = renderedLine + 1
-        if (dropDepth > 0) {
-          stack.push({
-            kind: 'collapse',
-            contentStart,
-            stages: directive.stages,
-            label: directive.label,
-            openLine: i + 1,
-          })
-          break
-        }
-        if (directive.stages !== null) validateStageList(directive.stages, i + 1)
-        stack.push({
-          kind: 'collapse',
-          contentStart,
-          stages: directive.stages,
-          label: directive.label,
+      case 'region': {
+        if (directive.show !== null) validateStages(directive.show, i + 1)
+        if (directive.focus !== null) validateStages(directive.focus, i + 1)
+        if (typeof directive.collapse === 'string')
+          validateStages(directive.collapse, i + 1)
+
+        const parentDropping = dropDepth > 0
+        const showActive = directive.show !== null
+        const showKeeping =
+          !showActive || (!parentDropping && evaluateMatch(directive.show!))
+
+        const frame: Frame = {
+          id: directive.id,
           openLine: i + 1,
-        })
-        break
-      }
-
-      case 'focus': {
-        // Focus is a whole-line decoration, not a Monaco fold, so it uses the
-        // first *content* line (renderedLine + 1) as its start — we want the
-        // highlight to begin with the first visible code line inside the
-        // directive pair.
-        const contentStart = renderedLine + 1
-        if (dropDepth > 0) {
-          stack.push({
-            kind: 'focus',
-            contentStart,
-            stages: directive.stages,
-            openLine: i + 1,
-          })
-          break
+          showActive,
+          showKeeping,
+          collapseContentStart: null,
+          collapseStages: null,
+          collapseLabel: null,
+          focusContentStart: null,
+          focusStages: null,
         }
-        validateStageList(directive.stages, i + 1)
-        stack.push({
-          kind: 'focus',
-          contentStart,
-          stages: directive.stages,
-          openLine: i + 1,
-        })
+
+        if (directive.collapse !== null && (!parentDropping && showKeeping)) {
+          frame.collapseContentStart = renderedLine + 1
+          frame.collapseStages = directive.collapse
+          frame.collapseLabel = directive.label
+        }
+
+        if (directive.focus !== null && (!parentDropping && showKeeping)) {
+          frame.focusContentStart = renderedLine + 1
+          frame.focusStages = directive.focus
+        }
+
+        stack.push(frame)
+        if (showActive && !showKeeping) dropDepth++
+
+        // An open region with an id acts as an anchor for the first emitted
+        // content line inside it, just like @prezl id=foo on its own.
+        if (directive.id !== null && !parentDropping && showKeeping) {
+          pendingMark = directive.id
+        }
         break
       }
 
-      case 'close': {
+      case 'end': {
         const top = stack.pop()
-        if (!top || top.kind !== directive.name) {
+        if (!top) {
           errors.push({
             line: i + 1,
-            message: `@prezl:/${directive.name} with no matching open`,
+            message: '@prezl end with no matching open',
           })
           break
         }
-        if (top.kind === 'show') {
-          if (!top.keeping) dropDepth = Math.max(0, dropDepth - 1)
+        if (directive.id !== null && directive.id !== top.id) {
+          errors.push({
+            line: i + 1,
+            message: `@prezl end=${directive.id} does not match open id=${
+              top.id ?? '(none)'
+            }`,
+          })
+          // Continue closing the frame anyway to avoid cascading errors.
+        }
+        if (top.showActive && !top.showKeeping) {
+          dropDepth = Math.max(0, dropDepth - 1)
           break
         }
-        if (dropDepth > 0) break // inner frame was dropped along with an outer
-        const end = renderedLine
-        if (top.kind === 'collapse') {
-          const matches =
-            top.stages === null ? true : evaluate(top.stages)
-          if (matches && end >= top.contentStart) {
+        const endLine = renderedLine
+        if (
+          top.collapseContentStart !== null &&
+          endLine >= top.collapseContentStart
+        ) {
+          const stagesMatch =
+            top.collapseStages === true ||
+            top.collapseStages === null ||
+            evaluateMatch(top.collapseStages)
+          if (stagesMatch) {
+            // Fold's visible header is the first content line (e.g. the line
+            // with `{`). Monaco renders `{ ... }` pairs inline so the summary
+            // reads naturally.
             foldRanges.push({
-              start: top.contentStart,
-              end,
-              label: top.label,
+              start: top.collapseContentStart,
+              end: endLine,
+              label: top.collapseLabel,
             })
           }
-        } else if (top.kind === 'focus') {
-          if (evaluate(top.stages) && end >= top.contentStart) {
-            focusRanges.push({ start: top.contentStart, end })
-          }
+        }
+        if (
+          top.focusContentStart !== null &&
+          top.focusStages !== null &&
+          endLine >= top.focusContentStart &&
+          evaluateMatch(top.focusStages)
+        ) {
+          focusRanges.push({
+            start: top.focusContentStart,
+            end: endLine,
+          })
         }
         break
       }
@@ -309,7 +377,9 @@ export function parseDirectives(
   for (const frame of stack) {
     errors.push({
       line: frame.openLine,
-      message: `@prezl:${frame.kind} was never closed`,
+      message: `@prezl open ${
+        frame.id ? `id=${frame.id} ` : ''
+      }was never closed`,
     })
   }
 

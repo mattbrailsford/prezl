@@ -16,13 +16,13 @@ export type ProjectFolder = {
 export type OpenTarget = {
   file: string
   line?: number
-  mark?: string
+  id?: string
 }
 
 export type SymbolTarget = {
   file: string
   line?: number
-  mark?: string
+  id?: string
 }
 
 export type UrlPreview = {

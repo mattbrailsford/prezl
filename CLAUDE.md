@@ -61,21 +61,44 @@ src/
 
 ## Directive system invariants
 
-Comment prefixes accepted: `@prezl:` or `@przl:`. Line comments (`//`,
-`#`, `--`) and single-line block comments (`/* ... */`). Directives are
-always on their own line and always stripped from the rendered text.
+Prefixes accepted: `@prezl` or `@przl`. Line comments (`//`, `#`, `--`)
+and single-line block comments (`/* ... */`). Directives are always on
+their own line and always stripped from the rendered text.
 
-- `@prezl:file [stages]` — must be within the first non-content lines;
-  errors if placed after actual code.
-- `@prezl:show [stages]` / `@prezl:/show` — region is **removed** (line
-  numbers shift) on stages not in the list.
-- `@prezl:collapse [stages?] [label?]` / `@prezl:/collapse` — Monaco fold.
-  `fold.start = renderedLine + 1` (first content line), `end` = last
-  content line. Monaco renders `{ ... }` pairs inline, so the fold's
-  summary is the brace line.
-- `@prezl:focus [stages]` / `@prezl:/focus` — whole-line decoration.
-- `@prezl:mark name` — named anchor for YAML `open.mark`. Resolves to the
-  next emitted line.
+**Attribute-based grammar** — one opening tag can stack behaviours:
+
+```ts
+// @prezl id=<name>?  show=[stages]?  focus=[stages]?  collapse(=[stages])?  label="..."?
+(content)
+// @prezl end                // pops top of stack
+// @prezl end=<name>         // must match open id; error on mismatch
+
+// Pure anchor (no behaviours)
+// @prezl id=registerDashboard
+
+// File-level visibility (must be before any code)
+// @prezl file=[shell...]
+```
+
+Attribute semantics:
+
+- `id=<name>` — optional identifier. Doubles as the mark for YAML
+  `open.id` to target. If the directive also opens a region, the id
+  anchors the first content line inside it.
+- `show=[stages]` — region is **removed** (line numbers shift) on stages
+  not in the list.
+- `focus=[stages]` — whole-line decoration over the region.
+- `collapse` (bare flag) — Monaco fold, always collapsed by default.
+- `collapse=[stages]` — fold only on listed stages.
+- `label="..."` — label text for the collapsed fold's placeholder. Only
+  valid when `collapse` is present.
+- `file=[stages]` — file-level gate; whole file absent from the explorer
+  on non-matching stages. Must appear before any code. Cannot combine
+  with other attributes.
+
+The collapse fold's Monaco `start` is the first content line (so the
+summary reads `type Foo = { ... }` inline), `end` is the last content
+line.
 
 Outer wins: if an outer `show` drops a region, nested `collapse`/`focus`
 never fire.
@@ -142,8 +165,8 @@ behaviour after changes:
 - `shell`: `dashboard.ts` appears; `registerDashboard` is the focus
   highlight.
 - `preview`: `api.ts` appears; `render()` + `fetchDashboardData` focused;
-  `Dashboard config types` and `Chart rendering helpers` are
-  collapsed-by-default.
+  `Dashboard config types` is collapsed-by-default on every stage;
+  `Chart rendering helpers` appears with its own collapsed-by-default fold.
 - `demo`: everything visible, no focus (preview's focus doesn't match).
 
 Switching branches should re-apply folds and never show a flash.

@@ -15,13 +15,13 @@ const projectFolder = z.object({
 const openTarget = z.object({
   file: z.string().min(1),
   line: z.number().int().positive().optional(),
-  mark: z.string().min(1).optional(),
+  id: z.string().min(1).optional(),
 })
 
 const symbolTarget = z.object({
   file: z.string().min(1),
   line: z.number().int().positive().optional(),
-  mark: z.string().min(1).optional(),
+  id: z.string().min(1).optional(),
 })
 
 const urlPreview = z.object({

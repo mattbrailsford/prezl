@@ -1,19 +1,18 @@
-// @prezl:file [shell...]
+// @prezl file=[shell...]
 
 import type { App } from './framework'
-// @prezl:show [preview...]
+// @prezl show=[preview...]
 import { fetchDashboardData } from './api'
-// @prezl:/show
+// @prezl end
 
-// @prezl:collapse Dashboard config types
+// @prezl collapse label="Dashboard config types"
 type DashboardConfig = {
   title: string
   refreshInterval: number
 }
-// @prezl:/collapse
+// @prezl end
 
-// @prezl:mark registerDashboard
-// @prezl:focus [shell]
+// @prezl id=registerDashboard focus=[shell]
 export function registerDashboard(app: App): void {
   const config: DashboardConfig = {
     title: 'Content insights',
@@ -23,21 +22,18 @@ export function registerDashboard(app: App): void {
   app.dashboards.add({
     id: 'content-insights',
     title: config.title,
-    // @prezl:show [preview...]
-    // @prezl:focus [preview]
+    // @prezl show=[preview...] focus=[preview]
     async render(container) {
       container.innerHTML = `<h2>${config.title}</h2>`
       const data = await fetchDashboardData()
       container.appendChild(renderCharts(data))
     },
-    // @prezl:/focus
-    // @prezl:/show
+    // @prezl end
   })
 }
-// @prezl:/focus
+// @prezl end
 
-// @prezl:show [preview...]
-// @prezl:collapse Chart rendering helpers
+// @prezl show=[preview...] collapse label="Chart rendering helpers"
 function renderCharts(data: { label: string; value: number }[]): HTMLElement {
   const list = document.createElement('ul')
   for (const row of data) {
@@ -47,5 +43,4 @@ function renderCharts(data: { label: string; value: number }[]): HTMLElement {
   }
   return list
 }
-// @prezl:/collapse
-// @prezl:/show
+// @prezl end
