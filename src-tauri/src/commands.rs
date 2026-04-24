@@ -47,6 +47,7 @@ pub struct RecentEntry {
 }
 
 const RECENTS_FILE: &str = "recents.json";
+const PREFERENCES_FILE: &str = "preferences.json";
 const MAX_RECENTS: usize = 5;
 
 fn normalise_relative(rel: &str) -> Result<PathBuf, CommandError> {
@@ -252,6 +253,39 @@ pub fn remember_recent(
         .map_err(|e| CommandError::Io(e.to_string()))?;
     fs::write(&file, json)?;
     Ok(entries)
+}
+
+fn preferences_path(app: &AppHandle) -> Result<PathBuf, CommandError> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| CommandError::Io(e.to_string()))?;
+    fs::create_dir_all(&dir)?;
+    Ok(dir.join(PREFERENCES_FILE))
+}
+
+#[tauri::command]
+pub fn read_preferences(app: AppHandle) -> Result<Option<serde_json::Value>, CommandError> {
+    let path = preferences_path(&app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path)?;
+    let value: serde_json::Value = serde_json::from_str(&raw)
+        .map_err(|e| CommandError::Io(format!("failed to parse preferences: {e}")))?;
+    Ok(Some(value))
+}
+
+#[tauri::command]
+pub fn write_preferences(
+    app: AppHandle,
+    preferences: serde_json::Value,
+) -> Result<(), CommandError> {
+    let path = preferences_path(&app)?;
+    let json = serde_json::to_string_pretty(&preferences)
+        .map_err(|e| CommandError::Io(e.to_string()))?;
+    fs::write(&path, json)?;
+    Ok(())
 }
 
 #[tauri::command]

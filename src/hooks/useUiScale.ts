@@ -5,28 +5,9 @@ const MIN = 0.6
 const MAX = 2.5
 const STEP = 0.1
 const BASE_HTML_FONT_PX = 14
-const PREFS_KEY = 'prezl.preferences.v1'
 
 export function clampScale(value: number): number {
   return Math.max(MIN, Math.min(MAX, Math.round(value * 100) / 100))
-}
-
-export function loadPersistedPreferences() {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY)
-    if (!raw) return null
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
-export function persistPreferences(prefs: unknown) {
-  try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
-  } catch {
-    // non-fatal
-  }
 }
 
 /**

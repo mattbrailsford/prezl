@@ -16,6 +16,8 @@ pub fn run() {
             commands::list_recents,
             commands::remember_recent,
             commands::forget_recent,
+            commands::read_preferences,
+            commands::write_preferences,
         ])
         .setup(|_app| Ok(()))
         .run(tauri::generate_context!())

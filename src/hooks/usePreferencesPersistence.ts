@@ -1,31 +1,55 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/state/store'
 import {
-  loadPersistedPreferences,
-  persistPreferences,
-} from './useUiScale'
-import { DEFAULT_PREFERENCES, type Preferences } from '@/types'
+  readPreferences,
+  writePreferences,
+} from '@/project/preferencesIo'
+import { DEFAULT_PREFERENCES } from '@/types'
+
+const WRITE_DEBOUNCE_MS = 300
 
 /**
- * Hydrates preferences from localStorage on mount and writes back on change.
- * M1 uses localStorage; M2 migrates to appConfigDir/preferences.json once
- * the Tauri fs plugin is wired in.
+ * Hydrate preferences from `appConfigDir/preferences.json` on mount, then
+ * write them back (debounced) whenever they change.
+ *
+ * Hydration state is a real boolean state, not a ref — that way the write
+ * effect only fires AFTER the hydrated values have been committed to React
+ * state, which prevents the old bug where the save effect overwrote disk
+ * with DEFAULT_PREFERENCES during the brief window between mount and first
+ * setState commit.
  */
 export function usePreferencesPersistence() {
   const preferences = useAppStore((s) => s.preferences)
   const setPreferences = useAppStore((s) => s.setPreferences)
-  const hydrated = useRef(false)
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    const persisted = loadPersistedPreferences() as Partial<Preferences> | null
-    if (persisted) {
-      setPreferences({ ...DEFAULT_PREFERENCES, ...persisted })
+    let cancelled = false
+    readPreferences()
+      .then((persisted) => {
+        if (cancelled) return
+        if (persisted) {
+          setPreferences({ ...DEFAULT_PREFERENCES, ...persisted })
+        }
+        setHydrated(true)
+      })
+      .catch(() => {
+        // Corrupt / unreadable preferences shouldn't block app startup;
+        // fall through to defaults and start fresh on next write.
+        if (!cancelled) setHydrated(true)
+      })
+    return () => {
+      cancelled = true
     }
-    hydrated.current = true
   }, [setPreferences])
 
   useEffect(() => {
-    if (!hydrated.current) return
-    persistPreferences(preferences)
-  }, [preferences])
+    if (!hydrated) return
+    const id = window.setTimeout(() => {
+      writePreferences(preferences).catch(() => {
+        /* non-fatal; next change will try again */
+      })
+    }, WRITE_DEBOUNCE_MS)
+    return () => window.clearTimeout(id)
+  }, [preferences, hydrated])
 }
