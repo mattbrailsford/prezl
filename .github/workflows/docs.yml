@@ -19,6 +19,12 @@ concurrency:
   group: 'pages'
   cancel-in-progress: false
 
+# Opt into Node.js 24 for all JS-based actions in this workflow.
+# GitHub is deprecating Node 20; this forces the new runtime today so we
+# don't hit warnings and will keep working when Node 20 is removed.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,7 +35,7 @@ jobs:
           version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:build
