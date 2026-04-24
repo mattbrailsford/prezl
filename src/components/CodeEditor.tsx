@@ -10,7 +10,11 @@ import {
   type SymbolTarget,
 } from '@/hooks/useRenderedFile'
 import type { RenderedFile } from '@/project/directiveParser'
-import { prezlRegisterFolding, type PrezlMonaco } from '@/project/monacoSetup'
+import {
+  PREZL_THEME,
+  prezlRegisterFolding,
+  type PrezlMonaco,
+} from '@/project/monacoSetup'
 
 function inferLanguage(path: string | null): string {
   if (!path) return 'plaintext'
@@ -34,13 +38,47 @@ function inferLanguage(path: string | null): string {
       return 'python'
     case 'razor':
     case 'cshtml':
+      return 'razor'
     case 'html':
       return 'html'
     case 'css':
       return 'css'
+    case 'scss':
+      return 'scss'
     case 'yml':
     case 'yaml':
       return 'yaml'
+    case 'toml':
+      return 'toml'
+    case 'java':
+      return 'java'
+    case 'kt':
+      return 'kotlin'
+    case 'swift':
+      return 'swift'
+    case 'rb':
+      return 'ruby'
+    case 'php':
+      return 'php'
+    case 'go':
+      return 'go'
+    case 'c':
+    case 'h':
+      return 'c'
+    case 'cpp':
+    case 'hpp':
+      return 'cpp'
+    case 'sh':
+    case 'bash':
+      return 'shellscript'
+    case 'sql':
+      return 'sql'
+    case 'xml':
+      return 'xml'
+    case 'vue':
+      return 'vue'
+    case 'svelte':
+      return 'svelte'
     default:
       return 'plaintext'
   }
@@ -142,15 +180,8 @@ export function CodeEditor() {
   const onMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor
     monacoRef.current = monaco
-    monaco.editor.defineTheme('prezl-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#1e1e22',
-      },
-    })
-    monaco.editor.setTheme('prezl-dark')
+    // Shiki registered our theme during initMonaco; just set it.
+    monaco.editor.setTheme(PREZL_THEME)
     ensureFoldingProvider(monaco)
 
     // Disable Monaco's built-in shortcuts that collide with Prezl's global
@@ -366,7 +397,7 @@ export function CodeEditor() {
         path={activeFile}
         language={language}
         value={content}
-        theme="prezl-dark"
+        theme={PREZL_THEME}
         onMount={onMount}
         options={{
           readOnly: true,
