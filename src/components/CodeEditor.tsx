@@ -79,6 +79,10 @@ export function CodeEditor() {
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const monacoRef = useRef<typeof Monaco | null>(null)
   const focusDecorationsRef = useRef<string[]>([])
+  // Monaco mounts asynchronously via @monaco-editor/react. The fold-applying
+  // effect can fire before onMount lands editorRef.current — we flag readiness
+  // here so the effect re-runs after mount and actually gets to setLastFoldedKey.
+  const [editorReady, setEditorReady] = useState(false)
 
   // Derived `ready`: true iff folds have been applied for the current
   // (file, stage) combination. When activeFile or the branch alias change,
@@ -108,6 +112,7 @@ export function CodeEditor() {
     })
     monaco.editor.setTheme('prezl-dark')
     ensureFoldingProvider(monaco)
+    setEditorReady(true)
   }, [])
 
   useEffect(() => {
@@ -212,7 +217,7 @@ export function CodeEditor() {
     return () => {
       cancelled = true
     }
-  }, [rendered, activeFile, branch, fileStageKey])
+  }, [rendered, activeFile, branch, fileStageKey, editorReady])
 
   if (!activeFile) {
     return (
