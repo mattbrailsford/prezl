@@ -36,10 +36,28 @@
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
+    /* IDE chrome defaults: no I-beam, no text selection. Monaco and form
+       controls opt back in below. */
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  /* Monaco placeholder while loading */
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+
+  /* Monaco placeholder while loading + selection/cursor re-enabled inside. */
   .monaco-host {
     background-color: rgb(var(--color-app-surface));
+  }
+
+  .monaco-host,
+  .monaco-host * {
+    user-select: text;
+    -webkit-user-select: text;
   }
 }
