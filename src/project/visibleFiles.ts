@@ -28,4 +28,4 @@ export function computeVisibleFiles(input: {
   return visible
 }
 
-const DIRECTIVE_RE = /@(?:prezl|przl):/
+const DIRECTIVE_RE = /@(?:prezl|przl)\b/

@@ -11,8 +11,8 @@ function start(): void {
 
   // @prezl show=[shell...] focus=[shell]
   registerDashboard(app)
+  
   // @prezl end
-
   app.run()
 }
 
