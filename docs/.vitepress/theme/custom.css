@@ -51,9 +51,16 @@
   --vp-code-block-bg: #1a1a1e;
 }
 
-/* Custom hero — give our PrezlHero component a subtle floating look.
-   The component renders at a fixed aspect so we lock it here. */
+/* Custom hero — the PrezlHero component is drawn at a fixed "design" size
+   (520 × 390, 4:3) and then scaled to fit whatever width the VitePress
+   hero slot gives us. That keeps every pixel relationship (gaps, borders,
+   icon sizes) correct regardless of viewport width — no breakpoint
+   churn. Uses CSS container queries (Chromium/WebKit/Firefox 2023+). */
 .prezl-hero {
+  position: relative;
+  /* Sit above VitePress's default .image-bg glow, which is in the same
+     stacking context and would otherwise bleed over the mockup. */
+  z-index: 1;
   aspect-ratio: 4 / 3;
   width: min(520px, 100%);
   border-radius: 14px;
@@ -64,6 +71,24 @@
   border: 1px solid rgba(148, 163, 184, 0.15);
   background: #18181b;
   font-family: var(--vp-font-family-mono);
+  container-type: inline-size;
+}
+
+/* VitePress's default blurred gradient orb is sized for a small 192×192
+   product icon and looks out of place behind our 520×390 IDE mockup — the
+   custom hero already has its own indigo drop-shadow for depth. Hide it. */
+.VPHero .image-bg {
+  display: none;
+}
+
+.prezl-hero-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 520px;
+  height: 390px;
+  transform-origin: top left;
+  transform: scale(calc(100cqi / 520));
   font-size: 12px;
   line-height: 1.5;
 }

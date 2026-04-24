@@ -8,6 +8,7 @@
 
 <template>
   <div class="prezl-hero">
+   <div class="prezl-hero-inner">
     <!-- TopBar -->
     <div class="pz-titlebar">
       <div class="pz-tile">
@@ -102,6 +103,7 @@
       <span class="pz-spacer" />
       <span class="dim">Ready</span>
     </div>
+   </div>
   </div>
 </template>
 
