@@ -27,6 +27,8 @@ examples/**/videos/*.mov
 # Build artifacts
 *.log
 *.tsbuildinfo
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

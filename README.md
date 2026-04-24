@@ -2,6 +2,8 @@
 
 A staged, IDE-like code presentation and exploration tool. Working name; codename for now.
 
+**📖 User docs**: [mattbrailsford.github.io/prezl](https://mattbrailsford.github.io/prezl/)
+
 ## What is it?
 
 Slide decks are bad at showing code that evolves. Live IDE demos are powerful but fragile — one stray keystroke and your talk derails. Prezl sits between those two worlds:

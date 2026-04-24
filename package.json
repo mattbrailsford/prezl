@@ -10,7 +10,10 @@
     "tauri": "tauri",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
@@ -38,6 +41,7 @@
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
+    "vitepress": "^1.6.4",
     "vitest": "^2.1.5"
   },
   "pnpm": {
