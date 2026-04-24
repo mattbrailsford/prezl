@@ -16,7 +16,7 @@ hero:
       text: View on GitHub
       link: https://github.com/mattbrailsford/prezl
   image:
-    src: /logo.svg
+    src: /logo-pretzel.svg
     alt: Prezl
 features:
   - icon:

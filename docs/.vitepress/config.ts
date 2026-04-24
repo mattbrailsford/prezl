@@ -15,10 +15,13 @@ export default defineConfig({
   lastUpdated: true,
   head: [
     ['meta', { name: 'theme-color', content: '#6366f1' }],
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/prezl/logo.svg' }],
+    [
+      'link',
+      { rel: 'icon', type: 'image/svg+xml', href: `${base}logo-pretzel.svg` },
+    ],
   ],
   themeConfig: {
-    logo: { src: '/logo.svg', width: 24, height: 24 },
+    logo: { src: '/logo-pretzel.svg', width: 28, height: 28 },
     siteTitle: 'Prezl',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
