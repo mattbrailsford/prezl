@@ -71,39 +71,37 @@
   }
 
   /* Replace Monaco's default fold chevrons with bordered +/- squares.
-     Only the ::before pseudo-element is restyled so Monaco's own layout /
-     positioning of the parent glyph element is preserved. */
-  .monaco-host .codicon-folding-expanded::before,
-  .monaco-host .codicon-folding-collapsed::before {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    width: 13px;
-    height: 13px;
-    border: 1px solid rgb(var(--color-app-muted));
-    border-radius: 3px;
-    font-family: system-ui, 'Segoe UI', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-    color: rgb(var(--color-text));
-    background-color: rgb(var(--color-app-panel));
-  }
+     The glyphs are drawn as inline SVG via background-image so the strokes
+     are pixel-perfect centered in the box, independent of font metrics.
+     Color is rgb(224 224 231) to match --color-text on dark theme; we can
+     theme this later via CSS custom property + color-mix if needed. */
   .monaco-host .codicon-folding-expanded,
   .monaco-host .codicon-folding-collapsed {
     color: transparent !important;
     opacity: 1 !important;
   }
+  .monaco-host .codicon-folding-expanded::before,
+  .monaco-host .codicon-folding-collapsed::before {
+    content: '';
+    display: inline-block;
+    box-sizing: border-box;
+    width: 13px;
+    height: 13px;
+    border: 1px solid rgb(var(--color-app-muted));
+    border-radius: 3px;
+    background-color: rgb(var(--color-app-panel));
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 11px 11px;
+  }
   .monaco-host .codicon-folding-expanded::before {
-    content: '−';
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 6h6' stroke='%23e4e4e7' stroke-width='1.6' stroke-linecap='round'/></svg>");
   }
   .monaco-host .codicon-folding-collapsed::before {
-    content: '+';
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M6 3v6M3 6h6' stroke='%23e4e4e7' stroke-width='1.6' stroke-linecap='round'/></svg>");
   }
   .monaco-host .codicon-folding-expanded:hover::before,
   .monaco-host .codicon-folding-collapsed:hover::before {
-    color: rgb(var(--color-app-accent));
     border-color: rgb(var(--color-app-accent));
   }
 }
