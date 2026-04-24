@@ -12,10 +12,6 @@ const projectFolder = z.object({
   icon: z.string().optional(),
 })
 
-const branchFile = z.object({
-  path: z.string().min(1),
-})
-
 const openTarget = z.object({
   file: z.string().min(1),
   line: z.number().int().positive().optional(),
@@ -54,7 +50,6 @@ const branch = z.object({
   alias: z.string().min(1).optional(),
   title: z.string().optional(),
   order: z.number().int(),
-  files: z.array(branchFile).min(1),
   open: openTarget.optional(),
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),

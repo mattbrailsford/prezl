@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
 } from 'lucide-react'
 import { useAppStore } from '@/state/store'
+import { useVisibleFiles } from '@/hooks/useRenderedFile'
 
 type TreeNode =
   | { kind: 'file'; name: string; path: string }
@@ -97,8 +98,9 @@ export function ExplorerTree() {
   const activeFile = useAppStore((s) => s.activeFile)
   const openFile = useAppStore((s) => s.openFile)
   const setPreferences = useAppStore((s) => s.setPreferences)
+  const visibleFiles = useVisibleFiles()
 
-  const tree = useMemo(() => buildTree(branch?.files.map((f) => f.path) ?? []), [branch])
+  const tree = useMemo(() => buildTree(visibleFiles), [visibleFiles])
 
   // Default: all folders expanded.
   const [expanded, setExpanded] = useState<Set<string>>(

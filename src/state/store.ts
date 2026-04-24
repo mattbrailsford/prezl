@@ -6,6 +6,8 @@ import {
   type PreviewState,
 } from '@/types'
 import { reconcileBranchSwitch } from './branchReducer'
+import { buildStageIndex } from '@/project/stageList'
+import { computeVisibleFiles } from '@/project/visibleFiles'
 import type { LoadError } from '@/project/schema'
 
 type AppState = {
@@ -55,7 +57,20 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     const branch =
       project.branches.find((b) => b.name === initialBranchName) ??
       [...project.branches].sort((a, b) => a.order - b.order)[0]
-    const firstFile = branch?.open?.file ?? branch?.files[0]?.path ?? null
+    const stageIndex = buildStageIndex(project.branches)
+    const visibleFiles = branch
+      ? computeVisibleFiles({
+          files: project.files,
+          rawFiles,
+          currentStageAlias: branch.alias,
+          stageIndex,
+        })
+      : []
+    const intended = branch?.open?.file
+    const firstFile =
+      intended && visibleFiles.includes(intended)
+        ? intended
+        : (visibleFiles[0] ?? null)
     set({
       project,
       rawFiles,
@@ -87,8 +102,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     if (!target) return
 
     set({ statusMessage: `Checking out ${name}...` })
+    const stageIndex = buildStageIndex(project.branches)
+    const visibleFiles = computeVisibleFiles({
+      files: project.files,
+      rawFiles: state.rawFiles,
+      currentStageAlias: target.alias,
+      stageIndex,
+    })
     const next = reconcileBranchSwitch({
       branch: target,
+      visibleFiles,
       openTabs: state.openTabs,
       activeFile: state.activeFile,
     })

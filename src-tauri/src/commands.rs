@@ -104,6 +104,68 @@ pub fn load_project(
     })
 }
 
+const IGNORED_DIR_NAMES: &[&str] = &[
+    ".git",
+    ".svn",
+    ".hg",
+    "node_modules",
+    "target",
+    "bin",
+    "obj",
+    "dist",
+    ".idea",
+    ".vscode",
+];
+
+/// Walk <project>/files recursively and return every file path relative to it,
+/// using forward slashes. Skips dotfiles and common build-output directories.
+#[tauri::command]
+pub fn list_project_files(state: State<ProjectRoot>) -> Result<Vec<String>, CommandError> {
+    let root = {
+        let guard = state.0.lock().unwrap();
+        guard.clone().ok_or(CommandError::NoActiveProject)?
+    };
+    let files_root = root.join("files");
+    if !files_root.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    let mut results: Vec<String> = Vec::new();
+    walk(&files_root, &files_root, &mut results)?;
+    results.sort();
+    Ok(results)
+}
+
+fn walk(base: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), CommandError> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        // Skip hidden / common noise directories.
+        if name_str.starts_with('.') {
+            continue;
+        }
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            if IGNORED_DIR_NAMES.contains(&name_str.as_ref()) {
+                continue;
+            }
+            walk(base, &entry.path(), out)?;
+        } else if file_type.is_file() {
+            let full = entry.path();
+            let rel = full.strip_prefix(base).map_err(|e| CommandError::Io(e.to_string()))?;
+            let mut parts: Vec<String> = Vec::new();
+            for c in rel.components() {
+                if let Component::Normal(part) = c {
+                    parts.push(part.to_string_lossy().into_owned());
+                }
+            }
+            out.push(parts.join("/"));
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn read_project_file(
     rel_path: String,

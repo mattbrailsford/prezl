@@ -13,10 +13,6 @@ export type ProjectFolder = {
   icon?: string
 }
 
-export type BranchFile = {
-  path: string
-}
-
 export type OpenTarget = {
   file: string
   line?: number
@@ -55,7 +51,6 @@ export type Branch = {
   alias: string
   title?: string
   order: number
-  files: BranchFile[]
   open?: OpenTarget
   symbols?: Record<string, SymbolTarget>
   preview?: Preview
@@ -66,6 +61,8 @@ export type PrezlProject = {
   projects?: ProjectFolder[]
   branches: Branch[]
   rootPath?: string
+  /** All files discovered under <root>/files, forward-slash relative paths. */
+  files: string[]
 }
 
 export type PreviewState =

@@ -64,6 +64,13 @@ export async function loadProjectFromDisk(
     }
   }
 
+  let files: string[]
+  try {
+    files = await invoke<string[]>('list_project_files')
+  } catch (e) {
+    return { error: translateBackendError(e) }
+  }
+
   const project: PrezlProject = {
     project: parsed.data.project,
     projects: parsed.data.projects,
@@ -72,18 +79,16 @@ export async function loadProjectFromDisk(
       alias: b.alias ?? b.name,
       title: b.title,
       order: b.order,
-      files: b.files,
       open: b.open,
       symbols: b.symbols,
       preview: b.preview,
     })),
     rootPath: backend.root,
+    files,
   }
 
   const rawFiles = new Map<string, string>()
-  const uniquePaths = new Set<string>()
-  for (const br of project.branches) for (const f of br.files) uniquePaths.add(f.path)
-  for (const rel of uniquePaths) {
+  for (const rel of files) {
     try {
       const contents = await invoke<string>('read_project_file', { relPath: rel })
       rawFiles.set(rel, contents)

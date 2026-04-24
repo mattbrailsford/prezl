@@ -8,8 +8,6 @@ branches:
     alias: main
     title: Starting point
     order: 1
-    files:
-      - path: src/main.ts
     open:
       file: src/main.ts
       line: 1
@@ -18,24 +16,17 @@ branches:
     alias: shell
     title: Add dashboard shell
     order: 2
-    files:
-      - path: src/main.ts
-      - path: src/dashboard.ts
     open:
       file: src/dashboard.ts
-      line: 1
+      mark: registerDashboard
 
   - name: feature/dashboard-preview
     alias: preview
     title: Preview dashboard
     order: 3
-    files:
-      - path: src/main.ts
-      - path: src/dashboard.ts
-      - path: src/api.ts
     open:
       file: src/dashboard.ts
-      line: 1
+      mark: registerDashboard
     preview:
       type: url
       src: https://example.com/umbraco-demo/dashboard
@@ -45,10 +36,6 @@ branches:
     alias: demo
     title: Recorded backoffice walkthrough
     order: 4
-    files:
-      - path: src/main.ts
-      - path: src/dashboard.ts
-      - path: src/api.ts
     open:
       file: src/api.ts
       line: 1
