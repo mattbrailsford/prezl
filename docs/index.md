@@ -19,35 +19,53 @@ hero:
     src: /logo.svg
     alt: Prezl
 features:
-  - icon: 🎯
+  - icon:
+      src: /icons/git-branch.svg
+      width: 24
+      height: 24
     title: Branches as stages
     details: >-
       Each stage of your talk is a branch. Switch with the dropdown or a
       presenter clicker (PageUp / PageDown). Files and regions reveal
       themselves as the story progresses.
-  - icon: ✍️
+  - icon:
+      src: /icons/message-code.svg
+      width: 24
+      height: 24
     title: Comment-directive reveals
     details: >-
       Mark visibility, folding, and highlights with simple
       <code>@prezl:*</code> comments colocated with the code they affect.
       Refactor-safe, language-agnostic, stripped from what the audience sees.
-  - icon: 🎬
+  - icon:
+      src: /icons/play.svg
+      width: 24
+      height: 24
     title: Preview scenes
     details: >-
       Each stage can trigger a preview — a URL that opens in the default
       browser, or a fullscreen video with pause cues for talking over.
-  - icon: 🔍
+  - icon:
+      src: /icons/search.svg
+      width: 24
+      height: 24
     title: Symbol quick-find
     details: >-
       Ctrl+T fuzzy-finds any named anchor across the project. Click an
       identifier to jump to its definition. No language server needed.
-  - icon: 🧰
+  - icon:
+      src: /icons/layers.svg
+      width: 24
+      height: 24
     title: Multi-project explorer
     details: >-
       Declare a <code>projects:</code> list to present solutions with
       multiple parts (Backend / Frontend / …) as distinct, color-coded
       top-level groups.
-  - icon: 🖥️
+  - icon:
+      src: /icons/monitor.svg
+      width: 24
+      height: 24
     title: Custom chrome
     details: >-
       Decorated-free window, native-looking IDE frame, presentation zoom
