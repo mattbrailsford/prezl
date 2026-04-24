@@ -1,16 +1,35 @@
 <!-- Static visual approximation of the Prezl IDE shell, used as the home-page
      hero image. Not a live editor — just colored spans inside a styled frame
-     so the home page shows the kind of output the reader will get. -->
+     so the home page shows the kind of output the reader will get. Icons are
+     inline SVG copies of the Lucide glyphs the real app uses. -->
+<script setup lang="ts">
+// No script behaviour — the component is purely presentational.
+</script>
+
 <template>
   <div class="prezl-hero">
     <!-- TopBar -->
     <div class="pz-titlebar">
-      <div class="pz-tile">P</div>
+      <div class="pz-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h20"/><path d="M21 3v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3"/><path d="m7 21 5-6 5 6"/><path d="M12 15V3"/>
+        </svg>
+      </div>
       <div class="pz-title">Umbraco Dashboard Demo</div>
       <div class="pz-sep" />
-      <div class="pz-branch">⎇ feature/dashboard-shell</div>
+      <div class="pz-branch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+        </svg>
+        <span>feature/dashboard-shell</span>
+      </div>
       <div class="pz-spacer" />
-      <div class="pz-run">▶ Run</div>
+      <div class="pz-run">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="6 3 20 12 6 21 6 3"/>
+        </svg>
+        <span>Run</span>
+      </div>
       <div class="pz-winbtn" />
       <div class="pz-winbtn" />
       <div class="pz-winbtn close" />
@@ -20,24 +39,42 @@
       <!-- Explorer -->
       <div class="pz-explorer">
         <div class="pz-group-header">
-          <span class="pz-chev">▾</span>
+          <svg class="pz-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           <span class="pz-glyph">TS</span>
           <span class="pz-groupname">Frontend</span>
         </div>
         <ul class="pz-files">
-          <li><span class="pz-chev">▾</span><span class="pz-folder">📁</span> src</li>
-          <li class="indent"><span class="pz-file icon-code-blue">◈</span> main.ts</li>
-          <li class="indent active"><span class="pz-file icon-code-blue">◈</span> dashboard.ts</li>
-          <li class="indent"><span class="pz-file icon-code-blue">◈</span> api.ts</li>
-          <li class="indent"><span class="pz-file icon-code-blue">◈</span> framework.ts</li>
+          <li>
+            <svg class="pz-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg class="pz-icon folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 4H4a2 2 0 0 0-2 2v2"/><path d="M2 10h20"/></svg>
+            <span>src</span>
+          </li>
+          <li class="indent">
+            <svg class="pz-icon code-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-5-5z"/></svg>
+            <span>main.ts</span>
+          </li>
+          <li class="indent active">
+            <svg class="pz-icon code-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-5-5z"/></svg>
+            <span>dashboard.ts</span>
+          </li>
+          <li class="indent">
+            <svg class="pz-icon code-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-5-5z"/></svg>
+            <span>api.ts</span>
+          </li>
         </ul>
       </div>
 
       <!-- Editor -->
       <div class="pz-editor">
         <div class="pz-tabs">
-          <div class="pz-tab active">dashboard.ts</div>
-          <div class="pz-tab">main.ts</div>
+          <div class="pz-tab active">
+            <span>dashboard.ts</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </div>
+          <div class="pz-tab">
+            <span>main.ts</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </div>
         </div>
         <div class="pz-code">
           <div class="pz-line focus"><span class="ln">10</span><span class="kw">export</span> <span class="kw">function</span> <span class="fn">registerDashboard</span>(<span class="var">app</span>: <span class="type">App</span>) <span class="punct">{</span></div>
@@ -45,7 +82,13 @@
           <div class="pz-line focus"><span class="ln">12</span>  <span class="var">dashboard</span>.<span class="fn">register</span>(<span class="var">app</span>)</div>
           <div class="pz-line"><span class="ln">13</span><span class="punct">}</span></div>
           <div class="pz-line"><span class="ln">14</span></div>
-          <div class="pz-line collapsed"><span class="ln">15</span><span class="chev-sq">+</span><span class="dim">…</span></div>
+          <div class="pz-line collapsed">
+            <span class="ln">15</span>
+            <span class="chev-sq">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </span>
+            <span class="dim">…</span>
+          </div>
           <div class="pz-line"><span class="ln">24</span><span class="punct">}</span></div>
         </div>
       </div>
@@ -53,7 +96,8 @@
 
     <!-- StatusBar -->
     <div class="pz-statusbar">
-      <span>⎇ feature/dashboard-shell</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+      <span>feature/dashboard-shell</span>
       <span class="dim">typescript</span>
       <span class="pz-spacer" />
       <span class="dim">Ready</span>
@@ -62,6 +106,14 @@
 </template>
 
 <style scoped>
+/* Every inline SVG defaults to 12x12 stroke-based glyph. Containers override
+   size/color when needed. */
+svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
 .pz-titlebar {
   display: flex;
   align-items: center;
@@ -69,28 +121,30 @@
   background: #1e1e22;
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
   padding: 0 8px;
-  height: 32px;
+  height: 34px;
   font-size: 11px;
 }
 .pz-tile {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 4px;
   background: rgba(99, 102, 241, 0.22);
   color: #a5b4fc;
-  font-weight: 700;
-  font-size: 10px;
 }
+.pz-tile svg { width: 13px; height: 13px; }
 .pz-title { font-weight: 600; color: #e4e4e7; }
 .pz-sep { width: 1px; height: 14px; background: rgba(148, 163, 184, 0.2); margin: 0 2px; }
-.pz-branch { color: #a1a1aa; }
+.pz-branch { display: flex; align-items: center; gap: 5px; color: #a1a1aa; }
 .pz-spacer { flex: 1; }
 .pz-run {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   background: #27272a;
   color: #e4e4e7;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 4px;
   font-size: 10px;
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -98,7 +152,12 @@
 .pz-winbtn { width: 10px; height: 10px; border-radius: 50%; background: #52525b; margin-left: 4px; }
 .pz-winbtn.close { background: #ef4444; }
 
-.pz-body { display: grid; grid-template-columns: 170px 1fr; min-height: 0; height: calc(100% - 32px - 18px); }
+.pz-body {
+  display: grid;
+  grid-template-columns: 185px 1fr;
+  min-height: 0;
+  height: calc(100% - 34px - 20px);
+}
 
 .pz-explorer {
   background: #1e1e22;
@@ -110,11 +169,11 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  padding: 4px 6px;
+  padding: 5px 6px;
   border-left: 2px solid #818cf8;
   background: rgba(129, 140, 248, 0.05);
 }
-.pz-chev { color: #a1a1aa; width: 10px; display: inline-block; text-align: center; font-size: 10px; }
+.pz-chev { color: #a1a1aa; }
 .pz-glyph {
   display: inline-block;
   width: 18px;
@@ -131,30 +190,35 @@
 .pz-files { list-style: none; padding: 2px 0 0; margin: 0; }
 .pz-files li {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
-  padding: 3px 8px;
+  padding: 4px 8px;
   color: #a1a1aa;
   font-size: 11px;
 }
-.pz-files li.indent { padding-left: 22px; }
+.pz-files li.indent { padding-left: 28px; }
 .pz-files li.active { background: rgba(255, 255, 255, 0.04); color: #e4e4e7; }
-.pz-folder { color: #a1a1aa; }
-.pz-file { display: inline-block; width: 12px; }
-.icon-code-blue { color: #60a5fa; }
+
+.pz-icon { color: #a1a1aa; }
+.pz-icon.folder { color: #a1a1aa; }
+.pz-icon.code-blue { color: #60a5fa; }
 
 .pz-editor { display: flex; flex-direction: column; background: #1a1a1e; min-height: 0; }
 .pz-tabs { display: flex; border-bottom: 1px solid rgba(148, 163, 184, 0.08); }
 .pz-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 12px;
   font-size: 11px;
   color: #a1a1aa;
   border-right: 1px solid rgba(148, 163, 184, 0.08);
 }
+.pz-tab svg { color: #71717a; width: 10px; height: 10px; }
 .pz-tab.active { background: #27272a; color: #e4e4e7; }
 
 .pz-code { padding: 6px 0; overflow: hidden; }
-.pz-line { display: flex; padding: 1px 0; color: #e4e4e7; white-space: nowrap; }
+.pz-line { display: flex; align-items: center; padding: 1px 0; color: #e4e4e7; white-space: nowrap; }
 .pz-line .ln {
   display: inline-block;
   width: 28px;
@@ -169,15 +233,16 @@
 .pz-line.collapsed .chev-sq {
   display: inline-grid;
   place-items: center;
-  width: 11px;
-  height: 11px;
+  width: 13px;
+  height: 13px;
   border: 1px solid #52525b;
-  border-radius: 2px;
+  border-radius: 3px;
   margin-right: 8px;
-  font-size: 9px;
-  line-height: 1;
-  color: #71717a;
+  background: #27272a;
+  color: #a1a1aa;
 }
+.pz-line.collapsed .chev-sq svg { width: 8px; height: 8px; }
+
 .dim { color: #71717a; }
 .kw { color: #c084fc; }
 .fn { color: #60a5fa; }
@@ -192,8 +257,9 @@
   background: #1e1e22;
   border-top: 1px solid rgba(148, 163, 184, 0.08);
   padding: 0 8px;
-  height: 18px;
+  height: 20px;
   font-size: 10px;
   color: #a1a1aa;
 }
+.pz-statusbar svg { width: 11px; height: 11px; color: #a1a1aa; }
 </style>
