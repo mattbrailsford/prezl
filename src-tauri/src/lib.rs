@@ -6,6 +6,7 @@ use commands::ProjectRoot;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .manage(ProjectRoot::default())
         .invoke_handler(tauri::generate_handler![
             commands::load_project,

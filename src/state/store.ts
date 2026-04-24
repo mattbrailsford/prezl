@@ -8,7 +8,15 @@ import {
 import { reconcileBranchSwitch } from './branchReducer'
 import { buildStageIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
+import { launchUrlPreview } from '@/project/previewLauncher'
 import type { LoadError } from '@/project/schema'
+
+const BUILD_DELAY_MS = 600
+const LAUNCH_DELAY_MS = 300
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
 
 type AppState = {
   project: PrezlProject | null
@@ -39,6 +47,8 @@ type AppActions = {
   setPreferences: (patch: Partial<Preferences>) => void
   setLoading: (loading: boolean) => void
   setLoadError: (err: LoadError | null) => void
+  runPreview: () => Promise<void>
+  closePreview: () => void
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -161,4 +171,57 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   setLoading: (loading) => set({ loading }),
   setLoadError: (loadError) => set({ loadError }),
+
+  runPreview: async () => {
+    const state = get()
+    const branch = state.project?.branches.find(
+      (b) => b.name === state.currentBranchName,
+    )
+    const preview = branch?.preview
+    if (!preview) {
+      set({ statusMessage: 'No preview configured' })
+      window.setTimeout(() => {
+        if (get().statusMessage === 'No preview configured') {
+          set({ statusMessage: 'Ready' })
+        }
+      }, 1500)
+      return
+    }
+    if (state.previewState.kind !== 'closed') return
+
+    set({
+      previewState: { kind: 'launching', preview },
+      statusMessage: 'Building...',
+    })
+    await sleep(BUILD_DELAY_MS)
+    if (get().previewState.kind !== 'launching') return
+    set({ statusMessage: 'Build succeeded' })
+    await sleep(LAUNCH_DELAY_MS)
+    if (get().previewState.kind !== 'launching') return
+    set({ statusMessage: 'Launching preview...' })
+
+    if (preview.type === 'url') {
+      try {
+        await launchUrlPreview(preview)
+        set({ previewState: { kind: 'closed' }, statusMessage: 'Ready' })
+      } catch (e) {
+        set({
+          previewState: { kind: 'closed' },
+          statusMessage: `Preview failed: ${(e as Error).message}`,
+        })
+      }
+      return
+    }
+
+    // Video preview — M5 will render a modal. Until then, route to the
+    // video preview state so the Run button disables and Ctrl+Enter doesn't
+    // re-trigger.
+    set({
+      previewState: { kind: 'video', preview },
+      statusMessage: 'Ready',
+    })
+  },
+
+  closePreview: () =>
+    set({ previewState: { kind: 'closed' }, statusMessage: 'Ready' }),
 }))

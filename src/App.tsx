@@ -7,6 +7,7 @@ import { usePreferencesPersistence } from './hooks/usePreferencesPersistence'
 import { useUiScale } from './hooks/useUiScale'
 import { useExplorerToggle } from './hooks/useExplorerToggle'
 import { useBranchShortcuts } from './hooks/useBranchShortcuts'
+import { useRunShortcut } from './hooks/useRunShortcut'
 import { useOpenProject } from './hooks/useProjectLoader'
 import { listRecents } from './project/recents'
 
@@ -15,6 +16,7 @@ export function App() {
   useUiScale()
   useExplorerToggle()
   useBranchShortcuts()
+  useRunShortcut()
 
   const project = useAppStore((s) => s.project)
   const openProject = useOpenProject()
