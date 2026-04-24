@@ -1,0 +1,94 @@
+# Prezl
+
+A staged, IDE-like code presentation and exploration tool. Working name; codename for now.
+
+## What is it?
+
+Slide decks are bad at showing code that evolves. Live IDE demos are powerful but fragile — one stray keystroke and your talk derails. Prezl sits between those two worlds:
+
+- It **looks and feels** like a lightweight IDE.
+- It's **controlled** like a presentation.
+- Code is **explorable, but only within curated boundaries**.
+- Progression through the talk is modelled as **branches**, not slides.
+- Each branch can launch a **preview scene** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
+
+The goal is not to build a real IDE. The goal is a believable, deterministic, code-first presentation surface for speakers, trainers, and DevRel.
+
+## Who is it for?
+
+- Conference speakers walking an audience through a codebase that changes over time.
+- Workshop presenters and trainers who want a scripted, reliable demo.
+- Developer advocates who need "real code" credibility without "real code" risk.
+- Technical content creators recording a walkthrough.
+
+## How the stages work
+
+A Prezl project is a folder with a `prezl.yaml` and a `files/` directory. The YAML declares the presentation flow — branches (stages), their order, titles, and optional previews. The code itself lives in `files/` as real source files.
+
+Visibility, folding, and highlights are driven by inline `@prezl:*` comment directives colocated with the code they affect, so refactors don't break the story:
+
+```ts
+// @prezl:file [shell...]         ← file visible from stage 'shell' onwards
+
+export function registerDashboard() {
+  // @prezl:focus [shell]
+  const dashboard = createDashboard()
+  // @prezl:/focus
+
+  // @prezl:collapse Dashboard internals    ← folded by default, click to expand
+  const internals = wireUpEverything()
+  // @prezl:/collapse
+
+  // @prezl:show [preview...]
+  dashboard.preview = createPreview()
+  // @prezl:/show
+}
+```
+
+Directive comments are stripped at render time; the audience never sees them.
+
+## Status
+
+Early development. M1 is done — the fake IDE shell is in place:
+
+- Tauri 2 desktop app with custom window chrome
+- Monaco read-only editor with IDE noise turned off
+- Collapsible, resizable file explorer
+- Branch selector and Run button wired into the titlebar
+- Presentation-friendly UI zoom: `Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`, scales UI chrome and editor together, persists across sessions
+- `Ctrl+E` to hide the explorer for full-screen code focus
+
+Next milestones (see `docs/prezl_product_spec.draft.md` and the plan):
+
+- **M2** — pick a project folder via native dialog; load `prezl.yaml` and real files from disk
+- **M3** — the `@prezl:*` directive system
+- **M4** — fake build + URL preview
+- **M5** — fullscreen video preview with pause cues
+- **M6** — metadata-driven symbol navigation
+- **M7** — Rider-style `Ctrl+T` symbol finder
+
+## Getting started (developers)
+
+Prerequisites:
+
+- Node.js 22+ and [pnpm](https://pnpm.io/)
+- Rust toolchain (`rustup` + `cargo`)
+- Platform build deps for Tauri 2 — see [tauri.app/start/prerequisites](https://tauri.app/start/prerequisites/)
+
+```bash
+pnpm install
+pnpm tauri dev
+```
+
+## Tech stack
+
+- [Tauri 2](https://tauri.app) — desktop shell (Rust + system webview)
+- React 18 + TypeScript + Vite
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) — code rendering
+- [Tailwind CSS](https://tailwindcss.com) — styling
+- [Zustand](https://github.com/pmndrs/zustand) — state
+- [Lucide](https://lucide.dev) — icons
+
+## License
+
+TBD.
