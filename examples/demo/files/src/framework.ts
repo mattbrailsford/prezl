@@ -14,6 +14,7 @@ export type App = {
   }
 }
 
+// @prezl id=bootstrap
 export function bootstrap(_options: BootstrapOptions): App {
   const dashboards: Array<{
     id: string

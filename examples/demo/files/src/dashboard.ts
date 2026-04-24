@@ -34,6 +34,7 @@ export function registerDashboard(app: App): void {
 // @prezl end
 
 // @prezl show=[preview...] collapse label="Chart rendering helpers"
+// @prezl id=renderCharts
 function renderCharts(data: { label: string; value: number }[]): HTMLElement {
   const list = document.createElement('ul')
   for (const row of data) {

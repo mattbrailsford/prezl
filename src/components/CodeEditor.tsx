@@ -152,6 +152,18 @@ export function CodeEditor() {
     })
     monaco.editor.setTheme('prezl-dark')
     ensureFoldingProvider(monaco)
+
+    // Disable Monaco's built-in shortcuts that collide with Prezl's global
+    // bindings — otherwise Monaco's own symbol-picker / command-palette
+    // widgets open under our modals and darken the entire screen.
+    const CtrlCmd = monaco.KeyMod.CtrlCmd
+    const Shift = monaco.KeyMod.Shift
+    monaco.editor.addKeybindingRules([
+      { keybinding: CtrlCmd | Shift | monaco.KeyCode.KeyO, command: null },
+      { keybinding: CtrlCmd | monaco.KeyCode.KeyT, command: null },
+      { keybinding: CtrlCmd | monaco.KeyCode.KeyP, command: null },
+      { keybinding: CtrlCmd | Shift | monaco.KeyCode.KeyP, command: null },
+    ])
     setEditorReady(true)
 
     // Click on a decorated symbol navigates to its mark. Plain click rather

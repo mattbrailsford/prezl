@@ -3,12 +3,14 @@ import { AppShell } from './components/AppShell'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { LoadErrorOverlay } from './components/LoadErrorOverlay'
 import { VideoPreview } from './components/preview/VideoPreview'
+import { SymbolFinder } from './components/SymbolFinder'
 import { useAppStore } from './state/store'
 import { usePreferencesPersistence } from './hooks/usePreferencesPersistence'
 import { useUiScale } from './hooks/useUiScale'
 import { useExplorerToggle } from './hooks/useExplorerToggle'
 import { useBranchShortcuts } from './hooks/useBranchShortcuts'
 import { useRunShortcut } from './hooks/useRunShortcut'
+import { useSymbolFinderShortcut } from './hooks/useSymbolFinderShortcut'
 import { useOpenProject } from './hooks/useProjectLoader'
 import { listRecents } from './project/recents'
 
@@ -18,6 +20,7 @@ export function App() {
   useExplorerToggle()
   useBranchShortcuts()
   useRunShortcut()
+  useSymbolFinderShortcut()
 
   const project = useAppStore((s) => s.project)
   const openProject = useOpenProject()
@@ -43,6 +46,7 @@ export function App() {
     <>
       {project ? <AppShell /> : <WelcomeScreen />}
       <VideoPreview />
+      <SymbolFinder />
       <LoadErrorOverlay />
     </>
   )

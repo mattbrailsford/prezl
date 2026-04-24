@@ -218,7 +218,7 @@ before v1 ships — scope it in when a Rust command for that file lands.
 - M4 — fake build + URL preview ✓
 - M5 — fullscreen video preview with cues ✓
 - M6 — symbol navigation ✓
-- M7 — symbol quick-find (Ctrl+T, next)
+- M7 — symbol quick-find (Ctrl+T) ✓
 
 ## Symbol navigation
 
@@ -246,6 +246,18 @@ Collisions: if two marks share an id, the first one encountered in
 `i`) are possible but rare for a curated presentation — pick distinctive
 ids. Future escape hatch would be an explicit `linkable=false` attribute,
 not yet needed.
+
+`Ctrl+T` opens the **Symbol Finder** modal: fuzzy search over the
+current stage's symbol table, arrow keys cycle results, Enter jumps,
+Esc closes. Monaco's own `Ctrl+T` / `Ctrl+Shift+O` / `Ctrl+P` /
+`Ctrl+Shift+P` bindings are disabled at editor mount so their built-in
+quick-open widgets don't collide.
+
+**Watch for hook-ordering bugs in modal components.** The SymbolFinder
+modal initially returned `null` when closed and then declared another
+`useEffect` below that early return — React saw a different hook count
+across renders and crashed the whole tree, blanking the UI. ALL hooks
+must come before any early return.
 
 ## Demo fixture
 

@@ -32,6 +32,7 @@ type AppState = {
   /** One-shot scroll target: after switching activeFile via navigateToFileLine,
    *  the editor consumes this and then clears it. */
   pendingNavigation: { file: string; line: number } | null
+  symbolFinderOpen: boolean
 }
 
 type AppActions = {
@@ -54,6 +55,8 @@ type AppActions = {
   closePreview: () => void
   navigateToFileLine: (file: string, line: number) => void
   consumePendingNavigation: () => void
+  openSymbolFinder: () => void
+  closeSymbolFinder: () => void
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -68,6 +71,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   loading: false,
   loadError: null,
   pendingNavigation: null,
+  symbolFinderOpen: false,
 
   setProject: (project, rawFiles, initialBranchName) => {
     const branch =
@@ -240,4 +244,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   },
 
   consumePendingNavigation: () => set({ pendingNavigation: null }),
+  openSymbolFinder: () => set({ symbolFinderOpen: true }),
+  closeSymbolFinder: () => set({ symbolFinderOpen: false }),
 }))
