@@ -136,9 +136,35 @@ folds + scroll land.
 
 **Keyboard shortcuts in capture phase.** Monaco installs its own
 keydown/wheel handlers. We register global shortcuts (zoom, Ctrl+E,
-Ctrl+Space) with `{ capture: true }` so they fire before Monaco can
-swallow them — required for Ctrl+MouseWheel to zoom while hovering the
-editor.
+Ctrl+Enter, and the stage-navigation set below) with `{ capture: true }`
+so they fire before Monaco can swallow them — required for
+Ctrl+MouseWheel to zoom while hovering the editor.
+
+**Stage navigation uses presenter-remote conventions.** Because Monaco
+is read-only we don't need to preserve Space/PageDown/PageUp for the
+editor, so the clicker-friendly bindings win:
+
+| | Next stage | Prev stage |
+| --- | --- | --- |
+| Bare | Space | Shift+Space |
+| Clicker | PageDown | PageUp |
+| Legacy | Ctrl+Space | Ctrl+Shift+Space |
+
+`useBranchShortcuts` skips the handler when focus is on a real
+interactive control (button, select, contentEditable, `<input>` /
+`<textarea>` that is NOT inside `.monaco-host`) — keeps Space-activation
+of buttons, dropdowns, etc. working normally.
+
+**Video modal absorbs the clicker too.** While the video preview is
+open, `useBranchShortcuts` explicitly skips (preview.kind === 'video'),
+and the modal's own capture-phase handler intercepts:
+
+- `Space` / `PageDown` → play/pause (or Restart when at `stopAt`)
+- `Escape` / `PageUp` → close preview
+
+So with the same remote, PageDown drives playback inside the video and
+drives stage navigation outside, and PageUp closes the video or walks
+backward a stage.
 
 **Folding provider must fire onDidChange on updates.** Monaco's
 FoldingController caches its computed FoldingModel per editor instance

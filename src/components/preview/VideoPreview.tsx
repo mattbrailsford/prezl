@@ -136,17 +136,22 @@ export function VideoPreview() {
     }
   }, [preview, bumpCursorActivity])
 
-  // Space = toggle play/pause + dismiss overlay. Esc = close.
+  // Keyboard map while the modal is up:
+  //   Escape / PageUp   -> close (back to editor)
+  //   Space / PageDown  -> toggle play/pause, or restart if at end
+  // PageUp / PageDown are here so a presentation clicker that emits those
+  // codes (most wireless remotes do) drives playback instead of leaking
+  // through to the stage-navigation shortcut.
   useEffect(() => {
     if (!preview) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' || e.code === 'PageUp') {
         e.preventDefault()
         e.stopPropagation()
         closePreview()
         return
       }
-      if (e.code === 'Space' || e.key === ' ') {
+      if (e.code === 'Space' || e.key === ' ' || e.code === 'PageDown') {
         e.preventDefault()
         e.stopPropagation()
         const video = videoRef.current
