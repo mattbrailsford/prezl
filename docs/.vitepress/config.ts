@@ -51,6 +51,12 @@ export default defineConfig({
             { text: 'Multi-project layout', link: '/guide/multi-project' },
           ],
         },
+        {
+          text: 'Presenting',
+          items: [
+            { text: 'Slide-deck integration', link: '/guide/slide-deck-integration' },
+          ],
+        },
       ],
       '/reference/': [
         {
@@ -58,6 +64,7 @@ export default defineConfig({
           items: [
             { text: 'prezl.yaml schema', link: '/reference/yaml-schema' },
             { text: 'Directive grammar', link: '/reference/directive-grammar' },
+            { text: 'prezl:// URL scheme', link: '/reference/url-scheme' },
             { text: 'Keyboard shortcuts', link: '/reference/keyboard-shortcuts' },
           ],
         },

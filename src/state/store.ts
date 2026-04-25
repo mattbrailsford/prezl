@@ -36,6 +36,15 @@ type AppState = {
    *  the editor consumes this and then clears it. */
   pendingNavigation: { file: string; line: number } | null
   symbolFinderOpen: boolean
+  /** When true, render BootCurtain over everything else. Used to hide any
+   *  flash between WelcomeScreen / recent auto-open / deep-link routing
+   *  during cold start, and to mask transitions when a runtime deep link
+   *  swaps projects mid-presentation. */
+  isRouting: boolean
+  /** True when the active project was opened by a deep link with
+   *  `hideOnExit=1`. Surfaces the "Back to presentation" button + shortcut.
+   *  Cleared on clearProject. */
+  launchedFromSlide: boolean
 }
 
 type AppActions = {
@@ -64,6 +73,8 @@ type AppActions = {
   consumePendingNavigation: () => void
   openSymbolFinder: () => void
   closeSymbolFinder: () => void
+  setIsRouting: (v: boolean) => void
+  setLaunchedFromSlide: (v: boolean) => void
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -80,6 +91,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   loadError: null,
   pendingNavigation: null,
   symbolFinderOpen: false,
+  isRouting: true,
+  launchedFromSlide: false,
 
   setProject: (project, rawFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
@@ -125,6 +138,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       statusMessage: 'Ready',
       previewState: { kind: 'closed' },
       loadError: null,
+      launchedFromSlide: false,
     }),
 
   switchStage: (alias) => {
@@ -277,6 +291,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   consumePendingNavigation: () => set({ pendingNavigation: null }),
   openSymbolFinder: () => set({ symbolFinderOpen: true }),
   closeSymbolFinder: () => set({ symbolFinderOpen: false }),
+  setIsRouting: (v) => set({ isRouting: v }),
+  setLaunchedFromSlide: (v) => set({ launchedFromSlide: v }),
 }))
 
 function firstScreenOfStage(

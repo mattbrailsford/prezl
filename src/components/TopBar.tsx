@@ -4,6 +4,7 @@ import { StepIndicator } from './StepIndicator'
 import { PretzelLogo } from './PretzelLogo'
 import { RunButton } from './RunButton'
 import { WindowControls } from './WindowControls'
+import { BackToPresentationButton } from './BackToPresentationButton'
 
 export function TopBar() {
   const projectName = useAppStore((s) => s.project?.name ?? 'Prezl')
@@ -40,6 +41,7 @@ export function TopBar() {
         className="flex flex-1 items-center justify-end gap-2 self-stretch pr-2"
       >
         <RunButton />
+        <BackToPresentationButton />
       </div>
       <WindowControls />
     </header>

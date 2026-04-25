@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_deep_link::DeepLinkExt;
 use thiserror::Error;
 
 #[derive(Default)]
@@ -218,6 +219,114 @@ fn portable_data_dir() -> Option<PathBuf> {
         return None;
     }
     Some(exe.parent()?.join("data"))
+}
+
+/// True when the running binary is the portable build (filename contains
+/// "portable"). The frontend uses this to decide whether to expose the
+/// register/unregister protocol toggle — installed builds get scheme
+/// registration from the bundler at install time, so the toggle is hidden.
+#[tauri::command]
+pub fn is_portable_mode() -> bool {
+    portable_data_dir().is_some()
+}
+
+const DEEP_LINK_SCHEME: &str = "prezl";
+
+#[tauri::command]
+pub fn register_protocol(app: AppHandle) -> Result<(), CommandError> {
+    app.deep_link()
+        .register(DEEP_LINK_SCHEME)
+        .map_err(|e| CommandError::Io(e.to_string()))
+}
+
+#[tauri::command]
+pub fn unregister_protocol(app: AppHandle) -> Result<(), CommandError> {
+    app.deep_link()
+        .unregister(DEEP_LINK_SCHEME)
+        .map_err(|e| CommandError::Io(e.to_string()))
+}
+
+#[tauri::command]
+pub fn is_protocol_registered(app: AppHandle) -> Result<bool, CommandError> {
+    app.deep_link()
+        .is_registered(DEEP_LINK_SCHEME)
+        .map_err(|e| CommandError::Io(e.to_string()))
+}
+
+/// Write a clickable shortcut file containing a `prezl://` URL. Used by
+/// the status-bar "Save as shortcut" action so presenters can drop the
+/// link into tools (WPS, web slides) that hijack hyperlinks instead of
+/// using `ShellExecute`. Format is picked from the target path's
+/// extension so the JS side can open a platform-appropriate save dialog
+/// (`.url` on Windows, `.webloc` on macOS, `.desktop` on Linux).
+#[tauri::command]
+pub fn save_deck_link_file(
+    target_path: String,
+    url: String,
+    title: Option<String>,
+) -> Result<(), CommandError> {
+    let path = PathBuf::from(&target_path);
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let display = title.unwrap_or_else(|| "Open in Prezl".to_string());
+    let content = match ext.as_str() {
+        "url" => format!("[InternetShortcut]\r\nURL={url}\r\n"),
+        "webloc" => format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n\
+             <plist version=\"1.0\">\n\
+             <dict>\n\
+             \t<key>URL</key>\n\
+             \t<string>{}</string>\n\
+             </dict>\n\
+             </plist>\n",
+            xml_escape(&url),
+        ),
+        "desktop" => format!(
+            "[Desktop Entry]\nType=Link\nName={}\nURL={}\nIcon=text-x-generic\n",
+            display, url,
+        ),
+        _ => {
+            return Err(CommandError::Io(format!(
+                "unsupported shortcut extension: {ext}"
+            )))
+        }
+    };
+    fs::write(&path, content)?;
+    Ok(())
+}
+
+fn xml_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Hand focus back to whatever launched Prezl (typically a slide deck).
+/// Windows / Linux: minimize the window — Z-order returns focus to the
+/// presentation behind it. macOS: hide the app, which jumps back to the
+/// previous Space (better behaviour when Keynote is in fullscreen
+/// presenter mode on its own Space). Exits fullscreen first either way.
+#[tauri::command]
+pub fn return_to_presentation(
+    window: tauri::Window,
+    #[allow(unused_variables)] app: AppHandle,
+) -> Result<(), CommandError> {
+    if window.is_fullscreen().unwrap_or(false) {
+        let _ = window.set_fullscreen(false);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app.hide();
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = window.minimize();
+    }
+    Ok(())
 }
 
 fn config_dir(app: &AppHandle) -> Result<PathBuf, CommandError> {

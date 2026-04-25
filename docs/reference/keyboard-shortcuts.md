@@ -48,6 +48,15 @@ Inside the symbol finder modal:
 | `Enter` | Jump to selected symbol |
 | `Esc` | Close finder |
 
+## Slide-deck integration
+
+| Shortcut | Action |
+| --- | --- |
+| `Shift+Esc` | Hand focus back to the slide deck (hidden when Prezl wasn't launched with `hideOnExit=1`) |
+
+See [Slide-deck integration](../guide/slide-deck-integration) for the
+full launch flow and the [`prezl://` URL scheme](./url-scheme).
+
 ## Presentation chrome
 
 | Shortcut | Action |

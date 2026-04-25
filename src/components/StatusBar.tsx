@@ -1,6 +1,7 @@
 import { inferLanguage, languageDisplayName } from '@/project/shikiSetup'
 import { useAppStore } from '@/state/store'
 import { useCurrentStage } from '@/hooks/useRenderedFile'
+import { StatusBarLinkControls } from './StatusBarLinkControls'
 
 export function StatusBar() {
   const stage = useCurrentStage()
@@ -16,7 +17,10 @@ export function StatusBar() {
         <span>⎇ {stageLabel}</span>
         <span>{language}</span>
       </div>
-      <div>{statusMessage}</div>
+      <div className="flex items-center gap-3">
+        <span>{statusMessage}</span>
+        <StatusBarLinkControls />
+      </div>
     </footer>
   )
 }

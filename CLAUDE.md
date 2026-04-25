@@ -270,6 +270,57 @@ Hydrated on mount and debounced-written on change by
 `DEFAULT_PREFERENCES` in `src/types.ts` (uiScale, explorerCollapsed,
 explorerWidth, autoRevealActiveFile, explorerHintShown).
 
+## Slide-deck integration
+
+`prezl://open?path=…&screen=…&fullscreen=1&hideOnExit=1` deep links
+launch (or focus) the app, switch to a screen, and optionally surface a
+"Back to presentation" affordance. End-to-end pieces:
+
+- **Plugins.** `tauri-plugin-deep-link` (URL scheme) +
+  `tauri-plugin-single-instance` with the `deep-link` feature so a
+  second invocation forwards URLs to the running window. Single-
+  instance must be the FIRST plugin registered (Tauri docs).
+- **Rust commands.** `register_protocol` / `unregister_protocol` /
+  `is_protocol_registered` wrap `DeepLinkExt`. Windows writes
+  `HKCU\Software\Classes\prezl` with the absolute exe path embedded —
+  per-user, no UAC. `is_portable_mode` exposes the existing filename
+  detection. `return_to_presentation` exits fullscreen, then
+  minimizes (Win/Linux) or `app.hide()`s (macOS — better for Keynote
+  on its own Space). `save_deck_link_file` writes a clickable
+  shortcut in the right format per OS (`.url` / `.webloc` /
+  `.desktop`).
+- **Capabilities.** `deep-link:default` only grants `get_current` —
+  `register` / `unregister` / `is-registered` need their own allow
+  permissions. Easy to miss; the failure mode is a generic toast.
+- **Frontend.** `useDeepLink` owns boot routing: it checks the
+  cold-start URL via `getCurrent()`, falls back to recent auto-open
+  if none, and listens for runtime URLs via the
+  `prezl://deep-link` event our setup hook emits. `BootCurtain`
+  renders over everything while `isRouting` is true (default-true at
+  startup, dropped after the boot useEffect resolves + 1 rAF). This
+  hides every flash between Welcome / wrong-recent / correct project.
+- **Status bar.** `StatusBarLinkControls` shows two icons: the
+  register/unregister toggle and the share icon. Toggle visibility
+  rule is `portable || !registered` — installed builds with the
+  bundler-time registration intact get no toggle; everything else
+  does. Plain click on share copies a link to the current screen with
+  fullscreen+hideOnExit defaults; alt-click / right-click opens an
+  options popover with target picker + Save shortcut button. If
+  `linkBlocked` (portable + unregistered), copy refuses and toasts
+  rather than putting a non-functional URL on the clipboard.
+- **Top bar.** `BackToPresentationButton` mounts only when
+  `launchedFromSlide` (set by the `hideOnExit=1` flag). Square icon-
+  only button matched to RunButton's height; Shift+Esc keybinding is
+  bound in the same component.
+- **Tests.** `src/project/deepLink.test.ts` covers the URL
+  parser/builder. The runtime piece isn't unit-tested — manual
+  verification through Run dialog is unreliable on Windows (Run
+  doesn't resolve custom schemes); use PowerShell `Start-Process
+  "prezl://..."` or click a link in Edge instead.
+
+User-facing docs live at `docs/guide/slide-deck-integration.md` and
+`docs/reference/url-scheme.md`.
+
 ## Milestone status
 
 - M1 — shell ✓
@@ -280,6 +331,7 @@ explorerWidth, autoRevealActiveFile, explorerHintShown).
 - M6 — symbol navigation ✓
 - M7 — symbol quick-find (Ctrl+T) ✓
 - M8 — intra-stage steps (build-style sub-navigation) ✓
+- M9 — slide-deck deep links + back-to-presentation ✓
 
 ## Symbol navigation
 

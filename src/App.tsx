@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
 import { AppShell } from './components/AppShell'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { LoadErrorOverlay } from './components/LoadErrorOverlay'
+import { BootCurtain } from './components/BootCurtain'
 import { VideoPreview } from './components/preview/VideoPreview'
 import { SymbolFinder } from './components/SymbolFinder'
 import { useAppStore } from './state/store'
@@ -11,8 +11,7 @@ import { useExplorerToggle } from './hooks/useExplorerToggle'
 import { useStageShortcuts } from './hooks/useStageShortcuts'
 import { useRunShortcut } from './hooks/useRunShortcut'
 import { useSymbolFinderShortcut } from './hooks/useSymbolFinderShortcut'
-import { useOpenProject } from './hooks/useProjectLoader'
-import { listRecents } from './project/recents'
+import { useDeepLink } from './hooks/useDeepLink'
 
 export function App() {
   usePreferencesPersistence()
@@ -21,26 +20,10 @@ export function App() {
   useStageShortcuts()
   useRunShortcut()
   useSymbolFinderShortcut()
+  useDeepLink()
 
   const project = useAppStore((s) => s.project)
-  const openProject = useOpenProject()
-  const autoOpenAttempted = useRef(false)
-
-  useEffect(() => {
-    if (autoOpenAttempted.current) return
-    autoOpenAttempted.current = true
-    ;(async () => {
-      try {
-        const recents = await listRecents()
-        const latest = recents[0]
-        if (!latest) return
-        // Silently drop the entry if the folder moved / no longer has prezl.yaml.
-        await openProject(latest.path, { silentFailure: true })
-      } catch {
-        /* non-fatal */
-      }
-    })()
-  }, [openProject])
+  const isRouting = useAppStore((s) => s.isRouting)
 
   return (
     <>
@@ -48,6 +31,7 @@ export function App() {
       <VideoPreview />
       <SymbolFinder />
       <LoadErrorOverlay />
+      {isRouting && <BootCurtain />}
     </>
   )
 }
