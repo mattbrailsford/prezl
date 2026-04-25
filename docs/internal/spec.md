@@ -1,5 +1,24 @@
 # Prezl — Product & Technical Spec
 
+> **⚠️ Historical draft.** This document is the original scoping spec
+> from before the codebase landed. It captured the intent for v1 but
+> has **not** been kept in sync with the current implementation —
+> notable divergences include the schema (now `stages:` with optional
+> `steps:`, not `branches:` with `BranchFile.ranges`), the directive
+> system (`@prezl` comments instead of `BranchFile.ranges` /
+> `focus.range` blocks), the editor (static Shiki-driven HTML, not
+> Monaco), and the addition of intra-stage steps (build-style
+> sub-navigation).
+>
+> For current behaviour, refer to:
+> - [`../guide/`](../guide) — user-facing guide (stages, directives, previews, etc.)
+> - [`../reference/`](../reference) — YAML schema and directive grammar reference
+> - `CLAUDE.md` at the repo root — architecture pointers and invariants
+>
+> The §21 minimum-viable demo scenario has been superseded by
+> `examples/demo/`, which now also exercises the steps feature inside
+> the `preview` stage.
+
 ## 1. Working name
 
 **Prezl**

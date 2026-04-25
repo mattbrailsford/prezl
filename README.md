@@ -20,7 +20,8 @@ Slide decks are bad at showing code that evolves. Live IDE demos are powerful bu
 - It's **controlled** like a presentation.
 - Code is **explorable, but only within curated boundaries**.
 - Progression through the talk is modelled as **stages** (often visualised as git branches), not slides.
-- Each stage can launch a **preview scene** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
+- Each stage can optionally declare **steps** — build-style sub-navigation within a stage, the same way a slide can fade in bullet points one at a time.
+- Each stage (or step) can launch a **preview scene** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
 
 The goal is not to build a real IDE. The goal is a believable, deterministic, code-first presentation surface for speakers, trainers, and DevRel.
 
@@ -50,7 +51,7 @@ Pre-1.0; all the v1 milestones from the original spec are landed:
 - Static, read-only code viewer (Shiki for tokens — no editor library)
 - Collapsible, resizable, project-grouped file explorer
 - Stage selector + Run button wired into the titlebar
-- `@prezl` directive system: `id`, `show`, `focus`, `collapse`, `file` — colocated with code, refactor-safe
+- `@prezl` directive system: `id`, `show`, `focus`, `collapse`, `file` — colocated with code, refactor-safe; selectors target stages or `stage.step` ids
 - Fake build + URL preview (opens in default browser)
 - Fullscreen video preview with pause cues for talking-over
 - Click-to-jump symbol navigation

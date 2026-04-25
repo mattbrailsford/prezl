@@ -17,9 +17,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open:
-      file: src/main.ts
-      line: 1
+    open: src/main.ts
 ```
 
 - **`alias`** *(required)* — short handle used inside
@@ -31,36 +29,80 @@ stages:
   when no `title` is set.
 - **`title`** *(optional)* — display label in the stage dropdown.
 - **`open`** *(optional)* — what to show when this stage becomes
-  active. `file` is required; scroll target is either `line: 42` or
-  `id: someMarkName` (see [Symbol navigation](./symbol-navigation)).
+  active. Either a bare path string (shorthand for "open at line 1")
+  or `{ file: …, line: 42 }` / `{ file: …, id: someMark }`. See
+  [Symbol navigation](./symbol-navigation) for `id:` targets.
 
 The forward/backward sequence (Space / PageDown) follows the order in
-which entries appear in the `stages:` list — to reorder, move the block.
+which stages — and steps inside them — appear in the manifest. To
+reorder, move the block.
 
-## Walking between stages
+## Walking between screens
 
 | Shortcut | Action |
 | --- | --- |
-| `Space` / `PageDown` | Next stage |
-| `Shift+Space` / `PageUp` | Previous stage |
-| Stage dropdown (titlebar) | Jump to any stage |
+| `Space` / `PageDown` | Next screen (next step within stage, or first step of next stage) |
+| `Shift+Space` / `PageUp` | Previous screen |
+| Stage dropdown (titlebar) | Jump to any stage (lands on its first step) |
 
 Prezl's keyboard handlers fire in capture phase so any focused control
 can't claim the keystroke first, and they're suppressed while the video
 preview modal is open (so Space/Esc belong to playback there).
 
-## Stage-aware visibility
+The dropdown intentionally lists stages only — steps are internal to a
+stage, the same way builds are internal to a slide in Keynote. Jumping
+to a stage from the dropdown always lands on its first step. A small
+`n / N` indicator in the titlebar shows progress through a multi-step
+stage; it's hidden for stages with no steps, so simple decks look
+unchanged.
 
-The directive grammar uses stage aliases in a small range syntax:
+## Steps within a stage
 
-- `[shell]` — just that stage
-- `[shell, preview]` — explicit list
-- `[shell...preview]` — range, resolved by stage order
-- `[shell...]` — shell onwards
-- `[...preview]` — up to preview
+A stage can optionally declare an ordered list of `steps:` — the
+build-style sub-navigation that fires inside what the audience perceives
+as a single slide. Each step is a **screen** the presenter advances
+through with Space, and each screen can override the stage's `open` and
+`preview` to swap files or change the Run target mid-build.
 
-Example: a file that only exists from the `shell` stage onwards, with a
-focused region on `shell` and an additional import starting at `preview`:
+```yaml
+- alias: preview
+  open: { file: src/dashboard.ts, id: registerDashboard }
+  preview:
+    type: url
+    src: https://example.com/demo
+  steps:
+    - intro                          # bare-string shorthand
+    - alias: fetchImpl
+      open: { file: src/api.ts, id: fetchDashboardData }
+    - alias: chartHelpers
+      open: src/dashboard.ts
+```
+
+Each step is either a bare alias string (no overrides) or the full
+object form with `alias`, optional `title`, `open`, and `preview`.
+Step values inherit **sticky-forward**: missing `open` / `preview` falls
+through to the previous step's resolved value, with the stage's
+defaults seeding step 1. Once a step swaps files, subsequent empty
+steps stay there until the next explicit override.
+
+Each screen has the id `<stageAlias>.<stepAlias>` — `preview.intro`,
+`preview.fetchImpl`, etc. — and that's what directive selectors target.
+A stage with no `steps:` has one implicit screen whose id is just the
+bare alias.
+
+## Screen-aware visibility
+
+The directive grammar accepts both bare stage aliases and dotted screen
+ids inside its selector brackets:
+
+- `[shell]` — every screen of the shell stage
+- `[shell.intro]` — exactly one screen
+- `[shell.intro...preview.fetch]` — closed range, crosses stages
+- `[shell, preview.intro]` — explicit list, mix bare and dotted
+- `[shell...]` — from shell's first screen onwards
+
+Example: a file that only exists from `shell` onwards, with focus that
+follows the build inside `preview`:
 
 ```ts
 // @prezl file=[shell...]
@@ -73,14 +115,20 @@ import { fetchDashboardData } from './api'
 // @prezl focus=[shell]
 export function registerDashboard(app: App) { … }
 // @prezl end
+
+// @prezl show=[preview...] focus=[preview.intro]
+async function render(container) { … }
+// @prezl end
 ```
 
 See [Directives](./directives) for the full grammar.
 
-## Previews per stage
+## Previews per stage (and per step)
 
 Any stage may declare a `preview:` — a URL or a video — that the Run
-button triggers. See [Previews](./previews).
+button triggers. Steps can override the preview the same way they
+override `open`, with sticky-forward inheritance. See
+[Previews](./previews).
 
 ## Full example
 
@@ -91,7 +139,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open: { file: src/main.ts, line: 1 }
+    open: src/main.ts
 
   - alias: shell
     branch: feature/dashboard-shell
@@ -106,11 +154,17 @@ stages:
       type: url
       src: https://example.com/demo/dashboard
       mode: external
+    steps:
+      - intro
+      - alias: fetchImpl
+        open: { file: src/api.ts, id: fetchDashboardData }
+      - alias: chartHelpers
+        open: { file: src/dashboard.ts, id: renderCharts }
 
   - alias: demo
     branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
-    open: { file: src/api.ts, line: 1 }
+    open: src/api.ts
     preview:
       type: video
       src: ./videos/backoffice-demo.mp4

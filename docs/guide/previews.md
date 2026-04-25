@@ -1,8 +1,8 @@
 # Previews
 
 Each stage can declare a **preview** — a URL or a fullscreen video that
-fires when you hit Run. The Run button is disabled on stages without a
-preview; stages with one light it up.
+fires when you hit Run. The Run button is disabled on screens without a
+preview; screens with one light it up.
 
 ## The Run flow
 
@@ -59,6 +59,40 @@ preview:
   cue fires once per session. Use them to pause over beats that need
   narration.
 
+## Per-step preview overrides
+
+A `preview:` declared on a step overrides the stage's preview for that
+screen — useful when one mid-build moment needs to launch a different
+URL or video:
+
+```yaml
+- alias: shell
+  open: src/dashboard.ts
+  preview:
+    type: url
+    src: https://example.com/dashboard
+  steps:
+    - intro
+    - alias: showApi
+      open: { file: src/api.ts, id: fetchDashboardData }
+    - alias: liveDemo
+      preview:
+        type: video
+        src: ./videos/walkthrough.mp4
+```
+
+Inheritance is **sticky-forward**: a step with no `preview:` inherits
+the previous step's resolved preview (with the stage's preview seeding
+step 1). So in the example above, `shell.intro` and `shell.showApi`
+share the URL preview; `shell.liveDemo` swaps it for the video.
+Subsequent steps after `liveDemo`, if any, would continue with the
+video unless they re-state a preview themselves.
+
+To swap previews mid-stage, re-state the one you want — there's no
+"clear back to stage default" syntax, since the audience-facing
+experience is "you stay in this preview context until the presenter
+deliberately changes it."
+
 ### Controls while the video is up
 
 | Input | Action |
@@ -69,8 +103,8 @@ preview:
 | `Esc` / `PageUp` / × button | Close the preview |
 
 The clicker mapping is intentional — a presenter remote typically
-emits PageUp / PageDown, so the same button that advances stages on the
-editor surface also drives playback inside the video.
+emits PageUp / PageDown, so the same button that advances screens on
+the editor surface also drives playback inside the video.
 
 ### Aspect ratio
 

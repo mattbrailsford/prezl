@@ -37,7 +37,7 @@ At least one entry. Each entry is one stage of the presentation —
 typically modelled as one git branch, but the stage is the abstraction
 and the branch name is just the human-readable label that travels with
 it. Stage order follows the order entries appear in the list — the first
-entry is the starting stage, and stage-range directives like
+entry is the starting stage, and screen-range directives like
 `[shell...demo]` resolve against this order.
 
 ```yaml
@@ -49,6 +49,7 @@ entry is the starting stage, and stage-range directives like
     file: src/dashboard.ts   #   required if `open:` is present
     line: 1                  #   scroll target; line OR id, not both
     id: registerDashboard    #   resolves to a `@prezl id=<name>` anchor
+  steps: [ … ]               # optional — see Steps below
   symbols: {}                # reserved, not currently consumed
   preview:                   # optional — see Previews guide
     type: url | video
@@ -57,6 +58,58 @@ entry is the starting stage, and stage-range directives like
 
 The dropdown label cascades `title` → `branch` → `alias`, so a stage
 with just an alias still shows up sensibly.
+
+#### `open:` shorthand
+
+When you only need "open this file at line 1," pass the path as a string:
+
+```yaml
+open: src/dashboard.ts       # equivalent to { file: src/dashboard.ts, line: 1 }
+```
+
+The full object form is only needed when you want to jump to a specific
+`line:` or symbol `id:`.
+
+#### Stage `steps:` — sub-navigation within a stage
+
+Optional ordered list of intra-stage screens — the build-style reveals
+that fire as the presenter advances within a single "slide." Steps don't
+appear in the stage dropdown; <kbd>Space</kbd> / <kbd>PageDown</kbd>
+walks them linearly and then carries forward into the next stage's first
+step.
+
+```yaml
+- alias: preview
+  open: { file: src/dashboard.ts, id: registerDashboard }
+  preview:
+    type: url
+    src: https://example.com/demo
+  steps:
+    - intro                          # bare-string shorthand
+    - alias: fetchImpl
+      open: { file: src/api.ts, id: fetchDashboardData }
+    - alias: chartHelpers
+      open: src/dashboard.ts         # `open:` shorthand also works here
+      title: Chart helpers           # optional — currently unused in UI
+```
+
+Each step entry is either:
+
+- a **bare string** — shorthand for `{ alias: <string> }`, no overrides
+- the **object form** with `alias` (required), `title?`, `open?`, `preview?`
+
+Each screen's id is `<stageAlias>.<stepAlias>`, e.g. `preview.intro`,
+`preview.fetchImpl`. A stage with no `steps:` has one implicit screen
+whose id is just the bare alias (e.g. `shell`).
+
+**Inheritance.** Step `open` and `preview` fall through with sticky
+carry-forward: missing values inherit the **previous step's resolved
+value**, with the stage's defaults seeding step 1. Once a step changes
+the file or preview, subsequent empty steps stay there until the next
+explicit override — matching how a presenter actually moves rather than
+snapping back to defaults on every empty step.
+
+**Aliases must be unique within a stage.** The schema rejects duplicates.
 
 #### Stage `preview:` — URL
 
