@@ -45,7 +45,22 @@ If the tree is dirty, ask the user what to do — don't auto-stash or auto-commi
 
 Read `package.json` to confirm the current version, so the user can see the bump being proposed (e.g. `0.1.0 → 0.1.0-beta.1`).
 
-### 3. Bump all three files + lockfile
+### 3. Draft release notes
+
+Write `RELEASE_NOTES.md` at the repo root **before** bumping versions — that way the notes are part of the same commit the tag points at, and the workflow's "Prepare release body" step will pick them up automatically and use them as the GitHub Release body.
+
+Pull the commits to summarise:
+
+```bash
+# Commits since the previous tag (or every commit if this is the first release)
+git log --oneline $(git describe --tags --abbrev=0 2>/dev/null)..HEAD
+```
+
+Group user-facing changes under `## Highlights` / `## Fixes` / `## Internal`. Keep it user-readable, not a raw shortlog. For pre-releases, lead with a note that builds are unsigned (Windows SmartScreen / macOS Gatekeeper warnings) until signing is wired up. The file gets clobbered each release — GitHub Releases is the canonical history of past notes.
+
+If the file is missing when the workflow runs, it falls back to a generic placeholder body, but you'll then have to edit the draft on GitHub before publishing. Writing notes locally is cheaper.
+
+### 4. Bump all three files + lockfile
 
 Run the bundled script:
 
@@ -59,7 +74,7 @@ It edits `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`
 pnpm install
 ```
 
-### 4. Verify locally
+### 5. Verify locally
 
 ```bash
 pnpm typecheck
@@ -70,7 +85,7 @@ Both must pass. The build runs in CI too, but catching a typecheck/test failure 
 
 (Optional but recommended for the first beta: also run `pnpm tauri build` locally on the dev machine — slow, but proves the bundler works end-to-end with the new version metadata.)
 
-### 5. Commit the bump
+### 6. Commit the bump
 
 Match the repo's commit style — sentence-case imperative, concise. Examples from `git log`: "Update X", "Polish Y", "Refresh Z". A bump commit reads:
 
@@ -78,15 +93,17 @@ Match the repo's commit style — sentence-case imperative, concise. Examples fr
 Bump to 0.1.0-beta.1
 ```
 
-Do NOT pile unrelated changes into the bump commit — keep it surgical so the tag points at a clean, isolated version change.
+Stage the four release files together — version trio plus the notes — so the tag points at one self-contained release commit:
 
 ```bash
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pnpm-lock.yaml
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml pnpm-lock.yaml RELEASE_NOTES.md
 git commit -m "Bump to 0.1.0-beta.1"
 git push
 ```
 
-### 6. Tag and push the tag
+Don't pile unrelated changes into the bump commit — keep it surgical.
+
+### 7. Tag and push the tag
 
 ```bash
 git tag v0.1.0-beta.1
@@ -95,7 +112,7 @@ git push origin v0.1.0-beta.1
 
 Pushing the tag is what triggers `.github/workflows/release.yml`. From this point the user can watch progress at `https://github.com/mattbrailsford/prezl/actions`.
 
-### 7. Watch the build
+### 8. Watch the build
 
 If `gh` is available, surface the run for the user:
 
@@ -104,22 +121,17 @@ gh run list --workflow=release.yml --limit 3
 gh run watch        # then pick the latest run, or pass its id
 ```
 
-The matrix has three jobs (windows-latest, macos-latest, ubuntu-22.04). All three must succeed for a complete release.
+The matrix has three jobs (windows-latest, macos-latest, ubuntu-24.04). All three must succeed for a complete release.
 
-### 8. Edit and publish the draft
+### 9. Publish the draft
 
-When the workflow finishes green, a **draft** release exists at `https://github.com/mattbrailsford/prezl/releases`. The user needs to:
+When the workflow finishes green, a **draft** release exists at `https://github.com/mattbrailsford/prezl/releases` with `RELEASE_NOTES.md` already populated as the body. The user just needs to:
 
 1. Open the draft.
-2. Replace the placeholder body with real release notes.
+2. Spot-check the notes and assets.
 3. Click **Publish release**.
 
-Offer to draft notes for them — pull recent commits since the previous tag (or since project start for the first release) and group them under headings like `## Highlights`, `## Fixes`, `## Internal`. Keep it user-facing, not a changelog dump.
-
-```bash
-# Commits since previous tag (or all commits if first release)
-git log --oneline $(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")..HEAD
-```
+If `RELEASE_NOTES.md` was missing for this release, the body will be the generic placeholder — replace it before publishing.
 
 ## Recovery scenarios
 

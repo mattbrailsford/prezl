@@ -21,31 +21,43 @@ Tags containing `-` (e.g. `v0.1.0-beta.1`) are marked as pre-releases.
 | --- | --- |
 | `windows-latest` | `.msi`, `.exe` (NSIS) |
 | `macos-latest` | `.dmg`, `.app.tar.gz` (universal: arm64 + x86_64) |
-| `ubuntu-22.04` | `.AppImage`, `.deb`, `.rpm` |
+| `ubuntu-24.04` | `.AppImage`, `.deb`, `.rpm` |
 
-Ubuntu 22.04 is intentional — it links against an older glibc than
-24.04, so the AppImage runs on a wider range of user systems.
+The Linux runner uses Tauri 2's canonical dependency set
+(`libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, etc.) — see
+the workflow file for the exact list.
 
 ## Cutting a release
 
 1. Pick the new version. Pre-releases use semver pre-release suffixes
    (`0.1.0-beta.1`, `0.1.0-beta.2`, …).
-2. Bump the version in **all three** files — they must agree:
+2. Write `RELEASE_NOTES.md` at the repo root summarising what's in this
+   release. The workflow's "Prepare release body" step picks this file
+   up and uses it as the GitHub Release body. If the file is missing,
+   a generic placeholder is used and you'll have to edit the draft on
+   GitHub before publishing.
+3. Bump the version in **all three** files — they must agree:
    - `package.json` → `version`
    - `src-tauri/tauri.conf.json` → `version`
    - `src-tauri/Cargo.toml` → `[package].version`
-3. Run `pnpm install` so `pnpm-lock.yaml` picks up the new
-   `prezl@<version>` entry, then `pnpm typecheck` and `pnpm test`.
-4. Commit (e.g. `Bump to 0.1.0-beta.1`) and push to `dev` (or `main`).
-5. Tag and push:
+
+   The bundled script keeps them in sync:
+   ```bash
+   node .claude/skills/release/scripts/bump-version.mjs 0.1.0-beta.1
+   ```
+4. Run `pnpm install` to refresh `pnpm-lock.yaml`, then `pnpm typecheck`
+   and `pnpm test`.
+5. Commit the four release files together (e.g. `Bump to 0.1.0-beta.1`)
+   and push to `dev` (or `main`).
+6. Tag and push:
    ```bash
    git tag v0.1.0-beta.1
    git push origin v0.1.0-beta.1
    ```
-6. Watch the workflow on GitHub Actions. On success, a draft release
-   appears under
-   <https://github.com/mattbrailsford/prezl/releases>.
-7. Edit the draft: write release notes, then **Publish**.
+7. Watch the workflow on GitHub Actions. On success, a draft release
+   appears under <https://github.com/mattbrailsford/prezl/releases>
+   with `RELEASE_NOTES.md` already populated as the body.
+8. Spot-check the draft and click **Publish**.
 
 If the workflow fails partway through, fix the cause, delete the
 partial draft release on GitHub, delete the tag locally and remotely
