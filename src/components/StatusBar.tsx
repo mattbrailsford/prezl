@@ -11,7 +11,7 @@ export function StatusBar() {
   const statusMessage = useAppStore((s) => s.statusMessage)
 
   return (
-    <footer className="flex h-6 items-center justify-between border-t border-app-border bg-app-surface px-3 text-[11px] text-app-muted">
+    <footer className="flex h-6 items-center justify-between border-t border-app-border bg-app-surface px-3 text-xs text-app-muted">
       <div className="flex items-center gap-3">
         <span>⎇ {stageLabel}</span>
         <span>{language}</span>

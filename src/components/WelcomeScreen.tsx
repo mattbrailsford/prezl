@@ -95,7 +95,7 @@ export function WelcomeScreen() {
 
         <p className="text-xs text-app-muted">
           A project folder is any directory containing a{' '}
-          <code className="rounded bg-app-panel px-1 py-0.5 text-[11px]">prezl.yaml</code>{' '}
+          <code className="rounded bg-app-panel px-1 py-0.5 text-xs">prezl.yaml</code>{' '}
           manifest.
         </p>
       </div>

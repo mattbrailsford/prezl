@@ -41,7 +41,7 @@ export function LoadErrorOverlay() {
         {loadError.issues && loadError.issues.length > 0 && (
           <ul className="flex flex-col gap-1 rounded border border-app-border bg-app-panel p-3 text-sm">
             {loadError.issues.map((i, idx) => (
-              <li key={idx} className="font-mono text-[13px] text-app">
+              <li key={idx} className="font-mono text-sm text-app">
                 <span className="text-app-muted">{i.path || '(root)'}</span>
                 {' — '}
                 <span>{i.message}</span>

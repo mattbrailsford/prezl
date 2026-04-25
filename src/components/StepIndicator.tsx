@@ -13,7 +13,7 @@ export function StepIndicator() {
   if (idx < 0) return null
   return (
     <span
-      className="rounded bg-app-panel px-2 py-0.5 text-xs tabular-nums text-app-muted"
+      className="rounded bg-app-panel px-2 py-0.5 text-sm tabular-nums text-app-muted"
       title={`Step ${idx + 1} of ${stageScreens.length}: ${screen.stepAlias ?? ''}`}
     >
       {idx + 1} / {stageScreens.length}
