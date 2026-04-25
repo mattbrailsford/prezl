@@ -58,8 +58,6 @@ export type Stage = {
 
 export type PrezlProject = {
   name: string
-  language?: string
-  theme?: 'light' | 'dark'
   projects?: ProjectFolder[]
   stages: Stage[]
   rootPath?: string

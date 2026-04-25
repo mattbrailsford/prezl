@@ -7,8 +7,6 @@ structure](../guide/project-structure) for a higher-level overview.
 
 ```yaml
 name: My Project            # required — shown in the Prezl titlebar
-language: typescript        # optional — hint only
-theme: dark                 # optional — "dark" (default) or "light"
 
 projects:                   # optional — see Multi-project layout
   - { name: …, path: …, icon: …, color: … }
@@ -20,15 +18,6 @@ stages:                     # required — at least one
 ### `name` (required, string)
 
 Displayed in the titlebar.
-
-### `language` (optional, string)
-
-Display hint only. Prezl infers each file's language from its extension
-and tokenizes via Shiki; this key is not used for highlighting.
-
-### `theme` (optional, `"dark"` | `"light"`)
-
-Reserved. Dark is the only theme currently implemented.
 
 ### `projects` (optional, array)
 
@@ -47,14 +36,15 @@ Declares a multi-project layout. See the
 At least one entry. Each entry is one stage of the presentation —
 typically modelled as one git branch, but the stage is the abstraction
 and the branch name is just the human-readable label that travels with
-it.
+it. Stage order follows the order entries appear in the list — the first
+entry is the starting stage, and stage-range directives like
+`[shell...demo]` resolve against this order.
 
 ```yaml
 - alias: shell               # required — canonical stage id, referenced
                              #            by directives like [shell...]
   branch: feature/dashboard  # optional — label only (e.g. git branch name)
   title: Add dashboard       # optional — dropdown label
-  order: 2                   # required — integer, unique
   open:                      # optional — initial scroll target
     file: src/dashboard.ts   #   required if `open:` is present
     line: 1                  #   scroll target; line OR id, not both

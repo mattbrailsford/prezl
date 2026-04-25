@@ -131,3 +131,39 @@ export function inferLanguage(path: string | null): string {
       return 'plaintext'
   }
 }
+
+const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
+  typescript: 'TypeScript',
+  javascript: 'JavaScript',
+  jsx: 'JSX',
+  tsx: 'TSX',
+  csharp: 'C#',
+  razor: 'Razor',
+  rust: 'Rust',
+  go: 'Go',
+  python: 'Python',
+  java: 'Java',
+  kotlin: 'Kotlin',
+  swift: 'Swift',
+  ruby: 'Ruby',
+  php: 'PHP',
+  c: 'C',
+  cpp: 'C++',
+  shellscript: 'Shell',
+  sql: 'SQL',
+  html: 'HTML',
+  css: 'CSS',
+  scss: 'SCSS',
+  json: 'JSON',
+  yaml: 'YAML',
+  toml: 'TOML',
+  markdown: 'Markdown',
+  vue: 'Vue',
+  svelte: 'Svelte',
+  xml: 'XML',
+  plaintext: 'Plain Text',
+}
+
+export function languageDisplayName(lang: string): string {
+  return LANGUAGE_DISPLAY_NAMES[lang] ?? lang
+}

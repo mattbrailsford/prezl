@@ -357,13 +357,10 @@ prezl-demo/
 ```yaml
 project:
   name: Umbraco Dashboard Demo
-  language: typescript
-  theme: dark
 
 branches:
   - name: main
     title: Starting point
-    order: 1
     files:
       - path: src/main.ts
         ranges:
@@ -377,7 +374,6 @@ branches:
 
   - name: feature/dashboard-shell
     title: Add dashboard shell
-    order: 2
     files:
       - path: src/main.ts
         ranges:
@@ -398,7 +394,6 @@ branches:
 
   - name: feature/dashboard-preview
     title: Preview dashboard
-    order: 3
     files:
       - path: src/main.ts
         ranges:
@@ -422,7 +417,6 @@ branches:
 
   - name: feature/recorded-demo
     title: Recorded backoffice walkthrough
-    order: 4
     files:
       - path: src/main.ts
         ranges:
@@ -459,14 +453,11 @@ type PrezlProject = {
 
 type ProjectMeta = {
   name: string
-  language?: string
-  theme?: 'light' | 'dark'
 }
 
 type Branch = {
   name: string
   title?: string
-  order: number
   files: BranchFile[]
   open?: OpenTarget
   focus?: FocusTarget

@@ -17,7 +17,6 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    order: 1
     open:
       file: src/main.ts
       line: 1
@@ -31,17 +30,18 @@ stages:
   touches git. Shown in the status bar and used as a dropdown fallback
   when no `title` is set.
 - **`title`** *(optional)* — display label in the stage dropdown.
-- **`order`** *(required)* — integer. Controls the forward/backward
-  sequence when stepping through with Space / PageDown. Must be unique.
 - **`open`** *(optional)* — what to show when this stage becomes
   active. `file` is required; scroll target is either `line: 42` or
   `id: someMarkName` (see [Symbol navigation](./symbol-navigation)).
+
+The forward/backward sequence (Space / PageDown) follows the order in
+which entries appear in the `stages:` list — to reorder, move the block.
 
 ## Walking between stages
 
 | Shortcut | Action |
 | --- | --- |
-| `Space` / `PageDown` | Next stage (by `order`) |
+| `Space` / `PageDown` | Next stage |
 | `Shift+Space` / `PageUp` | Previous stage |
 | Stage dropdown (titlebar) | Jump to any stage |
 
@@ -55,7 +55,7 @@ The directive grammar uses stage aliases in a small range syntax:
 
 - `[shell]` — just that stage
 - `[shell, preview]` — explicit list
-- `[shell...preview]` — range, resolved by `order`
+- `[shell...preview]` — range, resolved by stage order
 - `[shell...]` — shell onwards
 - `[...preview]` — up to preview
 
@@ -86,26 +86,21 @@ button triggers. See [Previews](./previews).
 
 ```yaml
 name: Umbraco Dashboard Demo
-language: typescript
-theme: dark
 
 stages:
   - alias: main
     branch: main
     title: Starting point
-    order: 1
     open: { file: src/main.ts, line: 1 }
 
   - alias: shell
     branch: feature/dashboard-shell
     title: Add dashboard shell
-    order: 2
     open: { file: src/dashboard.ts, id: registerDashboard }
 
   - alias: preview
     branch: feature/dashboard-preview
     title: Preview dashboard
-    order: 3
     open: { file: src/dashboard.ts, id: registerDashboard }
     preview:
       type: url
@@ -115,7 +110,6 @@ stages:
   - alias: demo
     branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
-    order: 4
     open: { file: src/api.ts, line: 1 }
     preview:
       type: video

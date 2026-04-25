@@ -17,7 +17,7 @@ my-talk/
     demo.mp4
 ```
 
-- **`prezl.yaml`** declares the presentation flow: name, theme, projects
+- **`prezl.yaml`** declares the presentation flow: name, projects
   (optional), stages, previews.
 - **`files/`** is the root the Prezl editor shows. Paths in YAML (like
   `open.file`) and directives (`@prezl:file=[...]`) are relative to this
@@ -33,23 +33,17 @@ referenced from `prezl.yaml`.
 
 ```yaml
 name: My first demo
-language: typescript
-theme: dark
 
 stages:
   - alias: main
     branch: main
     title: Starting point
-    order: 1
     open:
       file: src/main.ts
       line: 1
 ```
 
 - `name` — shown in the Prezl titlebar.
-- `language` — hint only; Prezl infers the editor language from each file's
-  extension.
-- `theme` — `dark` (default) or `light`.
 - `stages` — one entry per stage. See [Stages](./stages) for the full
   shape.
 
@@ -76,7 +70,7 @@ resolution.
 
 | Thing | Lives in |
 | --- | --- |
-| Project metadata (name, theme) | Top-level keys of `prezl.yaml` |
+| Project metadata (name) | Top-level keys of `prezl.yaml` |
 | Stages | `stages:` in `prezl.yaml` |
 | Preview actions (URL / video) | On each stage, under `preview:` |
 | Which files are visible on which stage | `@prezl:file=[...]` directives in each file |

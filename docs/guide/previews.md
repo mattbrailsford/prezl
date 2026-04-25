@@ -21,7 +21,6 @@ preview; stages with one light it up.
 stages:
   - alias: preview
     branch: feature/dashboard-preview
-    order: 3
     open: { file: src/dashboard.ts, id: registerDashboard }
     preview:
       type: url

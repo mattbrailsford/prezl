@@ -1,12 +1,9 @@
 name: Umbraco Dashboard Demo
-language: typescript
-theme: dark
 
 stages:
   - alias: main
     branch: main
     title: Starting point
-    order: 1
     open:
       file: src/main.ts
       line: 1
@@ -14,7 +11,6 @@ stages:
   - alias: shell
     branch: feature/dashboard-shell
     title: Add dashboard shell
-    order: 2
     open:
       file: src/dashboard.ts
       id: registerDashboard
@@ -22,7 +18,6 @@ stages:
   - alias: preview
     branch: feature/dashboard-preview
     title: Preview dashboard
-    order: 3
     open:
       file: src/dashboard.ts
       id: registerDashboard
@@ -34,7 +29,6 @@ stages:
   - alias: demo
     branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
-    order: 4
     open:
       file: src/api.ts
       line: 1

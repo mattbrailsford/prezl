@@ -48,7 +48,6 @@ const stage = z.object({
   alias: z.string().min(1),
   branch: z.string().min(1).optional(),
   title: z.string().optional(),
-  order: z.number().int(),
   open: openTarget.optional(),
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),
@@ -56,8 +55,6 @@ const stage = z.object({
 
 export const prezlProjectSchema = z.object({
   name: z.string().min(1),
-  language: z.string().optional(),
-  theme: z.enum(['light', 'dark']).optional(),
   projects: z.array(projectFolder).optional(),
   stages: z.array(stage).min(1),
 })

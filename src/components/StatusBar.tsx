@@ -1,3 +1,4 @@
+import { inferLanguage, languageDisplayName } from '@/project/shikiSetup'
 import { useAppStore } from '@/state/store'
 
 export function StatusBar() {
@@ -6,7 +7,9 @@ export function StatusBar() {
     const stage = s.project.stages.find((x) => x.alias === s.currentStageAlias)
     return stage?.branch ?? stage?.alias ?? '—'
   })
-  const language = useAppStore((s) => s.project?.language ?? '—')
+  const language = useAppStore((s) =>
+    s.activeFile ? languageDisplayName(inferLanguage(s.activeFile)) : '—'
+  )
   const statusMessage = useAppStore((s) => s.statusMessage)
 
   return (

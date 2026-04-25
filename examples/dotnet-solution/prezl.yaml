@@ -1,6 +1,4 @@
 name: Contoso Weather Demo
-language: csharp
-theme: dark
 
 projects:
   - name: Backend
@@ -14,7 +12,6 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    order: 1
     open:
       file: src/Backend/Program.cs
       line: 1
@@ -22,7 +19,6 @@ stages:
   - alias: api
     branch: feature/weather-api
     title: Add Weather API
-    order: 2
     open:
       file: src/Backend/Api/WeatherController.cs
       id: weatherController
@@ -30,7 +26,6 @@ stages:
   - alias: ui
     branch: feature/weather-ui
     title: Wire the UI
-    order: 3
     open:
       file: src/Frontend/components/Weather.tsx
       id: weatherComponent
