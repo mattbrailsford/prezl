@@ -47,7 +47,9 @@ feel snappier than stage switches.
 ```
 src-tauri/          Rust shell (Tauri 2)
   src/commands.rs     load_project, read_project_file (scoped to <root>/files),
-                      list_project_files, recents CRUD in appConfigDir.
+                      list_project_files, recents/preferences CRUD via
+                      config_dir() (appConfigDir, or <exe-dir>/data/ when
+                      a prezl-portable sentinel is present).
   src/lib.rs          plugin registration + invoke_handler wiring.
   capabilities/       Explicit window permissions (start-dragging, minimize,
                       toggle-maximize, close, is-maximized, dialog:open).
@@ -255,8 +257,13 @@ over ad-hoc debug scripts.
 
 ## Preferences storage
 
-Persisted to `appConfigDir/preferences.json` via the `read_preferences` /
+Persisted to `<config-dir>/preferences.json` via the `read_preferences` /
 `write_preferences` Tauri commands (see `src-tauri/src/commands.rs`).
+`config_dir()` resolves to `appConfigDir` by default, but switches to
+`<exe-dir>/data/` if a `prezl-portable` sentinel file sits next to the
+executable — that's how the Windows portable zip ships state-with-binary.
+Recents (`recents.json`) use the same resolver.
+
 Hydrated on mount and debounced-written on change by
 `usePreferencesPersistence`; the shape lives in `Preferences` /
 `DEFAULT_PREFERENCES` in `src/types.ts` (uiScale, explorerCollapsed,

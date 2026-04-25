@@ -205,13 +205,35 @@ pub fn close_project(state: State<ProjectRoot>) {
     *state.0.lock().unwrap() = None;
 }
 
-fn recents_path(app: &AppHandle) -> Result<PathBuf, CommandError> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| CommandError::Io(e.to_string()))?;
+/// If a `prezl-portable` marker file sits next to the executable, return the
+/// `data/` subdirectory that should hold preferences and recents. This lets
+/// users carry the whole app on a USB stick / network share with state that
+/// travels with the binary, rather than scattered into the host's AppData /
+/// XDG config dir.
+fn portable_data_dir() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let exe_dir = exe.parent()?;
+    if exe_dir.join("prezl-portable").exists() {
+        Some(exe_dir.join("data"))
+    } else {
+        None
+    }
+}
+
+fn config_dir(app: &AppHandle) -> Result<PathBuf, CommandError> {
+    let dir = if let Some(portable) = portable_data_dir() {
+        portable
+    } else {
+        app.path()
+            .app_config_dir()
+            .map_err(|e| CommandError::Io(e.to_string()))?
+    };
     fs::create_dir_all(&dir)?;
-    Ok(dir.join(RECENTS_FILE))
+    Ok(dir)
+}
+
+fn recents_path(app: &AppHandle) -> Result<PathBuf, CommandError> {
+    Ok(config_dir(app)?.join(RECENTS_FILE))
 }
 
 #[tauri::command]
@@ -256,12 +278,7 @@ pub fn remember_recent(
 }
 
 fn preferences_path(app: &AppHandle) -> Result<PathBuf, CommandError> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| CommandError::Io(e.to_string()))?;
-    fs::create_dir_all(&dir)?;
-    Ok(dir.join(PREFERENCES_FILE))
+    Ok(config_dir(app)?.join(PREFERENCES_FILE))
 }
 
 #[tauri::command]

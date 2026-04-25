@@ -19,9 +19,20 @@ Tags containing `-` (e.g. `v0.1.0-beta.1`) are marked as pre-releases.
 
 | Runner | Artifacts |
 | --- | --- |
-| `windows-latest` | `.msi`, `.exe` (NSIS) |
+| `windows-latest` | `.exe` (NSIS) and a portable `.zip` |
 | `macos-latest` | `.dmg`, `.app.tar.gz` (universal: arm64 + x86_64) |
 | `ubuntu-24.04` | `.AppImage`, `.deb`, `.rpm` |
+
+MSI is intentionally skipped on Windows — Windows Installer's version
+field can't carry semver pre-release identifiers like `-beta.1`. NSIS
+handles them fine and is the format most end users want.
+
+The portable zip bundles the unbundled `prezl.exe` plus a
+`prezl-portable` sentinel file. At runtime, if Prezl finds that file
+next to its executable, it stores preferences/recents in
+`<exe-dir>/data/` instead of `appConfigDir`, so the whole folder is
+self-contained and movable. Linux already has portable distribution
+via the AppImage; macOS .app bundles are inherently relocatable.
 
 The Linux runner uses Tauri 2's canonical dependency set
 (`libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, etc.) — see
