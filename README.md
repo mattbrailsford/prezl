@@ -6,6 +6,10 @@
 
 <p align="center"><strong>Present code like slides.</strong></p>
 
+<p align="center">
+  <img src="assets/screenshot.png" alt="Prezl showing the Contoso Weather demo mid-stage" width="900" />
+</p>
+
 **📖 User docs**: [mattbrailsford.github.io/prezl](https://mattbrailsford.github.io/prezl/)
 
 ## What is it?
