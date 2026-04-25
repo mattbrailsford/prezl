@@ -12,7 +12,7 @@ export function TopBar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex h-12 shrink-0 items-center gap-3 border-b border-app-border bg-app-surface pl-3"
+      className="flex h-12 shrink-0 items-center gap-3 border-b border-app-border bg-app-surface pl-2"
     >
       <button
         type="button"
