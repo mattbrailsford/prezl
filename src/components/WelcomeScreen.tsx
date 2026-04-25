@@ -42,7 +42,7 @@ export function WelcomeScreen() {
           <div>
             <h1 className="text-2xl font-semibold text-app">Prezl</h1>
             <p className="text-sm text-app-muted">
-              Present code like slides
+              The clarity of slides. The context of real code.
             </p>
           </div>
         </header>
