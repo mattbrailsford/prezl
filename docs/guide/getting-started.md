@@ -59,8 +59,9 @@ export function registerDashboard(app) {
 ```
 
 At presentation time, Prezl parses the directives for the current stage,
-strips them, and renders the result in a Monaco editor with proper syntax
-highlighting (Shiki / VS Code grammars).
+strips them, and renders the result with VS Code-grade syntax highlighting
+(Shiki / TextMate grammars) in a static, read-only viewer styled to feel
+like an IDE.
 
 ## Installing Prezl
 

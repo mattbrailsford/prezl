@@ -45,9 +45,9 @@ stages:
 | `Shift+Space` / `PageUp` | Previous stage |
 | Stage dropdown (titlebar) | Jump to any stage |
 
-Prezl's keyboard handlers fire in capture phase so Monaco can't swallow
-them, and they're suppressed while the video preview modal is open (so
-Space/Esc belong to playback there).
+Prezl's keyboard handlers fire in capture phase so any focused control
+can't claim the keystroke first, and they're suppressed while the video
+preview modal is open (so Space/Esc belong to playback there).
 
 ## Stage-aware visibility
 

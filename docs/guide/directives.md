@@ -25,7 +25,7 @@ The five attributes:
 | `id=<name>` | identifier | Mark a named anchor. Referenced from YAML (`open.id`) and from the Ctrl+T symbol finder. |
 | `show=[stages]` | range open/close | Region exists on listed stages; **removed** on others (line numbers shift). |
 | `focus=[stages]` | range open/close | Region is highlighted on listed stages. |
-| `collapse` or `collapse=[stages]` | range open/close | Region is Monaco-folded by default (always, or on listed stages). Combine with `label="…"`. |
+| `collapse` or `collapse=[stages]` | range open/close | Region is folded by default (always, or on listed stages). Combine with `label="…"`. |
 | `file=[stages]` | single-line, top of file | Whole file is visible only on listed stages. |
 
 Close tags:

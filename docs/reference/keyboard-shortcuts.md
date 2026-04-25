@@ -10,11 +10,12 @@ Every shortcut registered by Prezl, grouped by what it drives.
 | `Shift+Space` / `PageUp` | Previous stage |
 | `Ctrl+Space` / `Ctrl+Shift+Space` | Legacy aliases — same as above |
 
-Suppressed when focus is on a real form control (button, `<select>`,
-`<input>`/`<textarea>` outside Monaco, `contentEditable`), and while
-the video preview modal is active. Monaco's hidden input area is **not**
-treated as interactive — Space advances the stage even when the editor
-has focus, which is the main presentation case.
+Suppressed only while a text-typing surface owns focus
+(`<input>` / `<textarea>` / `contentEditable`) and while the video
+preview modal is active. Buttons and the stage-selector dropdown
+deliberately fall through — Space always advances the stage in
+Prezl, even right after clicking an explorer item, so the presenter
+clicker never gets stuck on the previous interaction.
 
 ## Preview
 
@@ -58,18 +59,6 @@ Inside the symbol finder modal:
 | `Ctrl+0` | Reset zoom |
 | `Ctrl+MouseWheel` | Continuous zoom |
 
-Zoom scales both UI chrome (rem-based Tailwind) and the Monaco editor
-font together. The current zoom percentage flashes briefly in the status
-bar.
-
-## Monaco-owned bindings we disable
-
-Prezl disables a handful of Monaco built-ins that would otherwise
-conflict with our global shortcuts:
-
-- `Ctrl+T` / `Cmd+T` — Monaco's Go-to-Symbol
-- `Ctrl+Shift+O` — Monaco's Go-to-Symbol in Editor
-- `Ctrl+P` / `Ctrl+Shift+P` — Monaco's Quick Open / Command Palette
-
-This is transparent to authors; you just get Prezl's finder instead of
-Monaco's symbol picker.
+Zoom scales both UI chrome (rem-based Tailwind) and the code viewer's
+font together. The current zoom percentage flashes briefly in the
+status bar.

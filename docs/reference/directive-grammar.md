@@ -49,7 +49,7 @@ ranges (`a...b` where `a.order > b.order`) are load-time errors.
 | `id` | bare identifier | Any opening directive or a single-line anchor |
 | `show` | stage list | Open/close; removes region on non-matching stages |
 | `focus` | stage list | Open/close; highlights region on listed stages |
-| `collapse` | bare flag, or stage list | Open/close; Monaco-folds region by default |
+| `collapse` | bare flag, or stage list | Open/close; folds region by default |
 | `label` | quoted string | Companion to `collapse` — used as the folded placeholder |
 | `file` | stage list | Single-line, must be before any code |
 | `end` | bare flag, or bare id | Close tag |

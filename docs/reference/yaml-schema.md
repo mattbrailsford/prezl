@@ -23,8 +23,8 @@ Displayed in the titlebar.
 
 ### `language` (optional, string)
 
-Display hint only. Prezl infers the actual Monaco language per file from
-each file's extension; this key is not used for tokenization.
+Display hint only. Prezl infers each file's language from its extension
+and tokenizes via Shiki; this key is not used for highlighting.
 
 ### `theme` (optional, `"dark"` | `"light"`)
 

@@ -55,23 +55,18 @@ Directive comments are stripped at render time; the audience never sees them.
 
 ## Status
 
-Early development. M1 is done — the fake IDE shell is in place:
+Pre-1.0; all the v1 milestones from the original spec are landed:
 
 - Tauri 2 desktop app with custom window chrome
-- Monaco read-only editor with IDE noise turned off
-- Collapsible, resizable file explorer
-- Branch selector and Run button wired into the titlebar
-- Presentation-friendly UI zoom: `Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`, scales UI chrome and editor together, persists across sessions
-- `Ctrl+E` to hide the explorer for full-screen code focus
-
-Next milestones (see `docs/prezl_product_spec.draft.md` and the plan):
-
-- **M2** — pick a project folder via native dialog; load `prezl.yaml` and real files from disk
-- **M3** — the `@prezl:*` directive system
-- **M4** — fake build + URL preview
-- **M5** — fullscreen video preview with pause cues
-- **M6** — metadata-driven symbol navigation
-- **M7** — Rider-style `Ctrl+T` symbol finder
+- Static, read-only code viewer (Shiki for tokens — no editor library)
+- Collapsible, resizable, project-grouped file explorer
+- Stage selector + Run button wired into the titlebar
+- `@prezl` directive system: `id`, `show`, `focus`, `collapse`, `file` — colocated with code, refactor-safe
+- Fake build + URL preview (opens in default browser)
+- Fullscreen video preview with pause cues for talking-over
+- Click-to-jump symbol navigation
+- Rider-style `Ctrl+T` fuzzy symbol finder
+- Presentation-friendly UI zoom (`Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`), `Ctrl+E` to hide explorer, `F11` for fullscreen — all persisted across sessions
 
 ## Getting started (developers)
 
@@ -90,11 +85,11 @@ pnpm tauri dev
 
 - [Tauri 2](https://tauri.app) — desktop shell (Rust + system webview)
 - React 18 + TypeScript + Vite
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) — code rendering
+- [Shiki](https://shiki.style) — VS Code-grade syntax highlighting via TextMate grammars (no editor library — Prezl renders the result as static HTML)
 - [Tailwind CSS](https://tailwindcss.com) — styling
 - [Zustand](https://github.com/pmndrs/zustand) — state
 - [Lucide](https://lucide.dev) — icons
 
 ## License
 
-TBD.
+[ISC](./LICENSE) © Matt Brailsford
