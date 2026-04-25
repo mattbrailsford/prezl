@@ -111,42 +111,25 @@ jobs:
           prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
           args: ${{ matrix.args }}
 
-      # Tauri's Windows targets (msi, nsis) are both installers. Bolt on a
-      # portable zip that bundles just the unbundled exe plus the
-      # `prezl-portable` sentinel file the binary uses to redirect config to
-      # an exe-adjacent data/ folder. Lets users run Prezl from a USB stick
-      # without touching the host machine's AppData.
-      - name: Build Windows portable zip
+      # Ship a portable Windows build alongside the NSIS installer: a single
+      # renamed copy of the unbundled exe. Prezl detects "portable" in its
+      # own filename at runtime and stores config in an exe-adjacent data/
+      # folder, so dropping this one file anywhere — USB stick, conference
+      # laptop — is enough.
+      - name: Stage Windows portable exe
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $tag = "${{ github.event.inputs.tag || github.ref_name }}"
           $version = $tag.TrimStart('v')
-          $stagingDir = "Prezl-$version-portable"
-          New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
-          Copy-Item src-tauri/target/release/prezl.exe (Join-Path $stagingDir 'Prezl.exe')
-          # Sentinel marker — its presence next to the exe switches Prezl into
-          # portable mode at runtime.
-          New-Item -ItemType File -Path (Join-Path $stagingDir 'prezl-portable') -Force | Out-Null
-          @"
-          Prezl - portable build
-
-          This folder is self-contained. Run Prezl.exe directly - no install
-          needed. The data/ subfolder will be created on first run and will
-          hold your preferences and recents. Move the whole folder
-          (including data/) to keep your state.
-
-          To uninstall, delete the folder.
-          "@ | Out-File -FilePath (Join-Path $stagingDir 'README.txt') -Encoding utf8
-
-          $zipName = "Prezl_${version}_x64-portable.zip"
-          Compress-Archive -Path $stagingDir -DestinationPath $zipName -Force
-          "PORTABLE_ZIP=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $portableExe = "Prezl_${version}_x64-portable.exe"
+          Copy-Item src-tauri/target/release/prezl.exe $portableExe
+          "PORTABLE_EXE=$portableExe" | Out-File -FilePath $env:GITHUB_ENV -Append
           "RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Attach portable zip to release
+      - name: Attach portable exe to release
         if: matrix.platform == 'windows-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
-        run: gh release upload $env:RELEASE_TAG $env:PORTABLE_ZIP --clobber
+        run: gh release upload $env:RELEASE_TAG $env:PORTABLE_EXE --clobber

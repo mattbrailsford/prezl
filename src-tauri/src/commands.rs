@@ -205,19 +205,19 @@ pub fn close_project(state: State<ProjectRoot>) {
     *state.0.lock().unwrap() = None;
 }
 
-/// If a `prezl-portable` marker file sits next to the executable, return the
-/// `data/` subdirectory that should hold preferences and recents. This lets
-/// users carry the whole app on a USB stick / network share with state that
-/// travels with the binary, rather than scattered into the host's AppData /
-/// XDG config dir.
+/// Filename-based portable detection: if the executable's name contains
+/// "portable" (case-insensitive), store config + recents in a `data/` folder
+/// next to the binary instead of the host's AppData / XDG config dir. The
+/// portable Windows release ships as `Prezl-portable.exe`, so dropping that
+/// one file anywhere — USB stick, borrowed laptop — is enough to run with
+/// state that travels with it.
 fn portable_data_dir() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
-    let exe_dir = exe.parent()?;
-    if exe_dir.join("prezl-portable").exists() {
-        Some(exe_dir.join("data"))
-    } else {
-        None
+    let stem = exe.file_stem()?.to_string_lossy().to_lowercase();
+    if !stem.contains("portable") {
+        return None;
     }
+    Some(exe.parent()?.join("data"))
 }
 
 fn config_dir(app: &AppHandle) -> Result<PathBuf, CommandError> {

@@ -49,7 +49,7 @@ src-tauri/          Rust shell (Tauri 2)
   src/commands.rs     load_project, read_project_file (scoped to <root>/files),
                       list_project_files, recents/preferences CRUD via
                       config_dir() (appConfigDir, or <exe-dir>/data/ when
-                      a prezl-portable sentinel is present).
+                      the exe filename contains "portable").
   src/lib.rs          plugin registration + invoke_handler wiring.
   capabilities/       Explicit window permissions (start-dragging, minimize,
                       toggle-maximize, close, is-maximized, dialog:open).
@@ -260,9 +260,10 @@ over ad-hoc debug scripts.
 Persisted to `<config-dir>/preferences.json` via the `read_preferences` /
 `write_preferences` Tauri commands (see `src-tauri/src/commands.rs`).
 `config_dir()` resolves to `appConfigDir` by default, but switches to
-`<exe-dir>/data/` if a `prezl-portable` sentinel file sits next to the
-executable — that's how the Windows portable zip ships state-with-binary.
-Recents (`recents.json`) use the same resolver.
+`<exe-dir>/data/` when the executable's filename contains "portable"
+(case-insensitive) — that's how the single-file Windows portable build
+(`Prezl_<version>_x64-portable.exe`) ships state-with-binary. Recents
+(`recents.json`) use the same resolver.
 
 Hydrated on mount and debounced-written on change by
 `usePreferencesPersistence`; the shape lives in `Preferences` /

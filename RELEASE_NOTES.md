@@ -18,12 +18,12 @@ This is the first public beta of Prezl — a fake-IDE desktop app for code prese
 | Platform | Asset | Notes |
 | --- | --- | --- |
 | Windows | `Prezl_0.1.0-beta.1_x64-setup.exe` | NSIS installer |
-| Windows (portable) | `Prezl_0.1.0-beta.1_x64-portable.zip` | Self-contained — extract and run, state lives in a `data/` folder next to the exe |
+| Windows (portable) | `Prezl_0.1.0-beta.1_x64-portable.exe` | Single self-contained exe — drop it anywhere and run, state lives in a `data/` folder next to it |
 | macOS | `Prezl_0.1.0-beta.1_universal.dmg` | Universal binary (arm64 + x86_64) |
 | Linux | `Prezl_0.1.0-beta.1_amd64.AppImage` | Portable, no install required |
 | Linux | `Prezl_0.1.0-beta.1_amd64.deb` / `.rpm` | Distro packages |
 
-The portable Windows zip and the Linux AppImage are the right choice if you want to demo Prezl on someone else's machine (a conference laptop, a borrowed workstation) without leaving anything behind — both run from any folder and need no admin rights.
+The portable Windows exe and the Linux AppImage are the right choice if you want to demo Prezl on someone else's machine (a conference laptop, a borrowed workstation) without leaving anything behind — both run from any folder and need no admin rights. The portable Windows build keys off its filename: keep "portable" in the name and state stays next to the exe; rename it to `Prezl.exe` and it falls back to `%APPDATA%`.
 
 ## Known limitations
 
