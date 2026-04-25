@@ -3,10 +3,10 @@
 Fake-IDE desktop app for code presentations. Branches-as-stages with
 optional intra-stage steps (build-style sub-navigation), inline
 `@prezl:*` comment directives for visibility / folding / highlighting,
-no real build or git. See `docs/internal/spec.md` for the original
-draft spec (significantly out of date — current behaviour lives in
-`docs/guide` and `docs/reference`) and `README.md` for a user-facing
-overview.
+no real build or git. See `docs/guide` / `docs/reference` for current
+behaviour, `docs/internal/design-principles.md` for the framing
+(controlled illusion, code-first, presentation-safe defaults), and
+`README.md` for a user-facing overview.
 
 ## Dev commands
 

@@ -1,5 +1,6 @@
-// Mirrors spec §10 data model with directive-system adjustments.
-// See docs/prezl_product_spec.draft.md and the plan for rationale.
+// Runtime data model — see docs/reference/yaml-schema.md for the
+// authoring-side shape and docs/internal/design-principles.md for
+// the framing.
 
 export type ProjectFolder = {
   name: string
