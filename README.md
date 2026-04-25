@@ -31,33 +31,16 @@ The goal is not to build a real IDE. The goal is a believable, deterministic, co
 - Developer advocates who need "real code" credibility without "real code" risk.
 - Technical content creators recording a walkthrough.
 
-## How the stages work
+## How it works
 
-A Prezl project is a folder with a `prezl.yaml` and a `files/` directory. The YAML declares the presentation flow — stages, their titles, and optional previews. The code itself lives in `files/` as real source files.
+A Prezl project is a folder with a `prezl.yaml` and a `files/` directory.
+The YAML declares the stages of the presentation; visibility, folding,
+and highlights come from inline `@prezl` comment directives colocated
+with the code.
 
-Visibility, folding, and highlights are driven by inline `@prezl` comment directives colocated with the code they affect, so refactors don't break the story:
-
-```ts
-// @prezl file=[shell...]                ← file visible from stage 'shell' onwards
-
-export function registerDashboard() {
-  // @prezl focus=[shell]
-  const dashboard = createDashboard()
-  // @prezl end
-
-  // @prezl collapse label="Dashboard internals"   ← folded by default
-  const internals = wireUpEverything()
-  // @prezl end
-
-  // @prezl show=[preview...]
-  dashboard.preview = createPreview()
-  // @prezl end
-}
-```
-
-Attributes can also be stacked — `id=…  show=…  focus=…  collapse  label="…"`
-on a single open tag — and the audience never sees any of it: directive
-comments are stripped at render time.
+See the [user docs](https://mattbrailsford.github.io/prezl/) for the
+full guide — project structure, stages, directives, previews, and the
+YAML schema.
 
 ## Status
 
