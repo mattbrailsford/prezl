@@ -13,19 +13,9 @@
   --vp-c-tip-3: var(--vp-c-brand-3);
   --vp-c-tip-soft: var(--vp-c-brand-soft);
 
-  /* Home-hero gradient */
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(
-    120deg,
-    #a5b4fc 20%,
-    #f472b6
-  );
-  --vp-home-hero-image-background-image: linear-gradient(
-    -45deg,
-    #6366f1 40%,
-    #ec4899 60%
-  );
-  --vp-home-hero-image-filter: blur(56px);
+  /* Home-hero — solid brand indigo (matches the app's --color-app-accent
+     and the logo) instead of an indigo→pink gradient. */
+  --vp-home-hero-name-color: var(--vp-c-brand-1);
 
   /* Button colors */
   --vp-button-brand-bg: var(--vp-c-brand-2);
@@ -49,6 +39,15 @@
 
   --vp-code-bg: #1e1e22;
   --vp-code-block-bg: #1a1a1e;
+}
+
+/* The hero strapline is two short sentences joined by <br>. VitePress's
+   default ~56px size at the side-by-side breakpoint causes each sentence
+   to wrap, breaking the intended 2-line shape. Scale it down (and tighten
+   line-height) so each sentence stays on one line across viewports. */
+.VPHero .text {
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.2;
 }
 
 /* Custom hero — the PrezlHero component is drawn at a fixed "design" size
@@ -91,6 +90,18 @@
   }
   .VPHero.has-image .image {
     padding-left: 32px;
+  }
+}
+
+/* Mobile/tablet: VitePress gives .image a negative top margin (-76px on
+   <640px, -108px on 640-960px) to tuck a small product icon up under the
+   heading. Our PrezlHero is a 4:3 IDE mockup, so that pull drags it into
+   the fixed top nav. Zero the top margin below the side-by-side
+   breakpoint; keep the negative side+bottom margins so the mockup still
+   bleeds to the viewport edges. */
+@media (max-width: 959px) {
+  .VPHero.has-image .image {
+    margin-top: 0;
   }
 }
 

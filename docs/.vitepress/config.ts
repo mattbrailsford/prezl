@@ -13,6 +13,7 @@ export default defineConfig({
   cleanUrls: true,
   srcExclude: ['internal/**', 'README.md'],
   lastUpdated: true,
+  appearance: 'force-dark',
   head: [
     ['meta', { name: 'theme-color', content: '#6366f1' }],
     [
