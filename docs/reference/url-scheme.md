@@ -9,7 +9,7 @@ templating across many decks.
 
 ```
 prezl://open?path=<urlencoded-absolute-path>
-            [&screen=<id>]
+            [&screen=<alias>]
             [&fullscreen=1]
             [&hideOnExit=1]
 ```
@@ -22,7 +22,7 @@ required parameter.
 | Param | Required | Value | Effect |
 | --- | --- | --- | --- |
 | `path` | yes | URL-encoded absolute folder path | The Prezl project folder to open. Must contain `prezl.yaml`. |
-| `screen` | no | Stage alias or `<stage>.<step>` | Switches to this screen after the project loads. Unknown ids are ignored (project still opens). |
+| `screen` | no | Stage alias or `<stage>.<step>` | Switches to this screen after the project loads. Unknown aliases are ignored (project still opens). |
 | `fullscreen` | no | `1` | Enters fullscreen on launch. |
 | `hideOnExit` | no | `1` | Surfaces the "Back to presentation" button + <kbd>Shift</kbd>+<kbd>Esc</kbd> binding inside Prezl. |
 
@@ -66,9 +66,8 @@ prezl://open?path=D%3A%5CTalks%5Cdemo&screen=preview.fetchImpl&fullscreen=1
 ## Behaviour
 
 - **Cold start.** If Prezl isn't running, the registered handler
-  launches the exe with the URL as `argv[1]`. The
-  [boot curtain](../guide/slide-deck-integration#enabling-the-link-handler)
-  hides any flicker until routing settles.
+  launches the exe with the URL as `argv[1]`. A boot curtain hides any
+  flicker until routing settles.
 - **Already running.** A second invocation is collapsed by the
   single-instance plugin: the running window is unminimized + focused,
   and the URL is delivered to it. The current project is replaced if

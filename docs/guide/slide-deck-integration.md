@@ -57,7 +57,7 @@ The share icon next to the toggle is the primary action.
   defaults (`fullscreen=1`, `hideOnExit=1`). A short toast confirms.
 - **Alt-click or right-click** — opens an options popover. Pick a
   different target (whole project, current screen, or any specific
-  screen by id), toggle fullscreen / hide-on-exit, then **Copy link**.
+  screen by alias), toggle fullscreen / hide-on-exit, then **Copy link**.
 
 If you click the share icon while the protocol isn't registered, the
 copy is refused — you'd just be putting a non-functional URL on the
