@@ -2,7 +2,7 @@
 
 Fake-IDE desktop app for code presentations. Branches-as-stages with
 optional intra-stage steps (build-style sub-navigation), inline
-`@prezl:*` comment directives for visibility / folding / highlighting,
+`@prezl` comment directives for visibility / folding / highlighting,
 no real build or git. See `docs/guide` / `docs/reference` for current
 behaviour, `docs/internal/design-principles.md` for the framing
 (controlled illusion, code-first, presentation-safe defaults), and
@@ -88,7 +88,7 @@ src/
     directiveParser.ts  per-screen parse: text + foldRanges + focusRanges +
                         marks + hiddenForStage + errors. Takes a
                         currentScreenId + ScreenIndex.
-    visibleFiles.ts     file-level @prezl:file filter for the explorer,
+    visibleFiles.ts     file-level `@prezl file=` filter for the explorer,
                         evaluated against the current screen.
     shikiSetup.ts       singleton highlighter + inferLanguage.
   state/
@@ -266,7 +266,7 @@ explorerWidth, autoRevealActiveFile, explorerHintShown).
 
 - M1 — shell ✓
 - M2 — project loading, recents, branch switching ✓
-- M3 — `@prezl:*` directive system ✓
+- M3 — `@prezl` directive system ✓
 - M4 — fake build + URL preview ✓
 - M5 — fullscreen video preview with cues ✓
 - M6 — symbol navigation ✓

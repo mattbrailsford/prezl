@@ -14,7 +14,7 @@ export type ScreenSwitchOutput = {
 
 /**
  * Pure reducer for the tab reconciliation side of a screen switch.
- * `visibleFiles` is the per-screen result of applying @prezl:file directives
+ * `visibleFiles` is the per-screen result of applying `@prezl file=` directives
  * to the project's file list; any file not listed is treated as absent on
  * this screen.
  *

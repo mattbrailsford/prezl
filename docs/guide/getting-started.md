@@ -1,19 +1,17 @@
 # What is Prezl?
 
-**Prezl is a code-first presentation environment disguised as a lightweight
-IDE.** You structure a talk as a series of stages — typically modelled as
-git branches — each with its own visible files, highlighted regions, and
-optional preview (a URL or a video). Switching stages walks the audience
-through the codebase while keeping the presenter firmly on rails.
+**Prezl is a presentation tool that looks and feels like a real code
+editor.** Step through your codebase one moment at a time — reveal files,
+focus regions, and trigger previews exactly when you need them. The
+clarity of slides, the context of real code, none of the fragility of a
+live demo.
 
-Prezl sits between two unsatisfying options:
-
-- **Slide decks** can't show how code evolves across files.
-- **Live IDE demos** are fragile, noisy, and easy to derail.
-
-Prezl looks and feels like a lightweight IDE, but it's **scripted**: code is
-explorable *inside curated boundaries*, navigation is deterministic, and
-nothing builds or runs for real.
+A talk is structured as a series of **stages** — curated states of the
+codebase, typically (but not necessarily) modelled as git branches.
+Switching stages walks the audience through how the code evolves while
+keeping the presenter firmly on rails: code is explorable inside curated
+boundaries, navigation is deterministic, and nothing builds or runs for
+real.
 
 ## Why another tool?
 
@@ -39,13 +37,13 @@ my-talk/
   prezl.yaml         ← the manifest: stages, previews, metadata
   files/
     src/
-      main.ts        ← ordinary source files, marked up with @prezl:* comments
+      main.ts        ← ordinary source files, marked up with @prezl comments
       dashboard.ts
   videos/
     demo.mp4         ← optional: video previews referenced from prezl.yaml
 ```
 
-The YAML declares stages. The source files carry inline `@prezl:*` comments
+The YAML declares stages. The source files carry inline `@prezl` comments
 that control what's visible, folded, or highlighted on each stage:
 
 ```ts
@@ -84,6 +82,6 @@ That's it. Keep reading for:
 - [Project structure](./project-structure) — what goes in `prezl.yaml` and
   `files/`
 - [Stages](./stages) — how stages drive the presentation flow
-- [Directives](./directives) — the `@prezl:*` comment grammar
+- [Directives](./directives) — the `@prezl` comment grammar
 - [Previews](./previews) — URL and video scenes
 - [Symbol navigation](./symbol-navigation) — clickable jumps and `Ctrl+T`

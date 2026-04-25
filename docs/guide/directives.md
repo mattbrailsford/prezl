@@ -103,7 +103,7 @@ jump (see [Symbol navigation](./symbol-navigation)).
 ## Nesting
 
 Directives nest and follow an **outer-wins** rule. If an outer
-`@prezl:show` excludes the current screen, everything inside — including
+`show` excludes the current screen, everything inside — including
 nested `collapse`/`focus`/`id` — is dropped before being evaluated.
 
 ```ts

@@ -2,7 +2,7 @@ import { parseDirectives } from './directiveParser'
 import type { ScreenIndex } from './stageList'
 
 /**
- * For each project file, decide whether a `@prezl:file [stages]` directive
+ * For each project file, decide whether a `@prezl file=[stages]` directive
  * (if present at the top) gates it out of the current screen. Files with no
  * such directive are always visible.
  */

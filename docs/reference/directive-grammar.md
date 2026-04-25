@@ -1,6 +1,6 @@
 # Directive grammar
 
-Formal rules for the `@prezl:*` comment language. See [Directives](../guide/directives)
+Formal rules for the `@prezl` comment language. See [Directives](../guide/directives)
 for a friendlier introduction.
 
 ## Prefix + comment syntax

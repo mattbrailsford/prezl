@@ -1,5 +1,5 @@
 /**
- * Screen index + selector grammar used inside `@prezl:*` directives.
+ * Screen index + selector grammar used inside `@prezl` directives.
  *
  * A "screen" is the addressable unit the presenter advances through: either
  * a stage with no `steps:` (one implicit screen whose id is the bare stage
