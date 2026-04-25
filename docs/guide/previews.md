@@ -18,9 +18,9 @@ preview; stages with one light it up.
 ## URL preview
 
 ```yaml
-branches:
-  - name: feature/dashboard-preview
-    alias: preview
+stages:
+  - alias: preview
+    branch: feature/dashboard-preview
     order: 3
     open: { file: src/dashboard.ts, id: registerDashboard }
     preview:

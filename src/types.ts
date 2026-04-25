@@ -41,9 +41,14 @@ export type VideoPreview = {
 
 export type Preview = UrlPreview | VideoPreview
 
-export type Branch = {
-  name: string
+export type Stage = {
+  /** Canonical stage identifier — referenced by directives and the symbol
+   *  table. Required. */
   alias: string
+  /** Optional git branch name for display only ("feature/dashboard-shell").
+   *  Stages don't actually map to git branches at runtime; this is just the
+   *  human-readable label that travels with the stage. */
+  branch?: string
   title?: string
   order: number
   open?: OpenTarget
@@ -56,7 +61,7 @@ export type PrezlProject = {
   language?: string
   theme?: 'light' | 'dark'
   projects?: ProjectFolder[]
-  branches: Branch[]
+  stages: Stage[]
   rootPath?: string
   /** All files discovered under <root>/files, forward-slash relative paths. */
   files: string[]

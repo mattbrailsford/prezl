@@ -32,7 +32,7 @@ describe('stageList grammar', () => {
     expect(match('shell, preview, demo', 'shell')).toBe(true)
   })
 
-  it('resolves closed ranges by branch order', () => {
+  it('resolves closed ranges by stage order', () => {
     expect(match('shell...preview', 'shell')).toBe(true)
     expect(match('shell...preview', 'preview')).toBe(true)
     expect(match('shell...preview', 'demo')).toBe(false)

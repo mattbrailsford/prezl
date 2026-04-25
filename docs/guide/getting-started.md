@@ -1,10 +1,10 @@
 # What is Prezl?
 
 **Prezl is a code-first presentation environment disguised as a lightweight
-IDE.** You structure a talk as a series of stages — each stage is a branch
-with its own visible files, highlighted regions, and optional preview (a URL
-or a video). Switching stages walks the audience through the codebase while
-keeping the presenter firmly on rails.
+IDE.** You structure a talk as a series of stages — typically modelled as
+git branches — each with its own visible files, highlighted regions, and
+optional preview (a URL or a video). Switching stages walks the audience
+through the codebase while keeping the presenter firmly on rails.
 
 Prezl sits between two unsatisfying options:
 
@@ -75,14 +75,14 @@ Once Prezl is running:
 1. Click **Open project folder** on the welcome screen.
 2. Pick any directory that contains a `prezl.yaml`. The bundled example at
    `examples/demo/` works out of the box.
-3. Use the branch dropdown or press **Space / PageDown** to step through
+3. Use the stage dropdown or press **Space / PageDown** to step through
    stages. **Shift+Space / PageUp** goes back.
 
 That's it. Keep reading for:
 
 - [Project structure](./project-structure) — what goes in `prezl.yaml` and
   `files/`
-- [Stages](./stages) — how branches drive the presentation flow
+- [Stages](./stages) — how stages drive the presentation flow
 - [Directives](./directives) — the `@prezl:*` comment grammar
 - [Previews](./previews) — URL and video scenes
 - [Symbol navigation](./symbol-navigation) — clickable jumps and `Ctrl+T`

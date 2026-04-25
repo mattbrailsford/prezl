@@ -1,16 +1,21 @@
-# Stages (branches)
+# Stages
 
-A Prezl presentation is a sequence of **stages**, declared as `branches:` in
-`prezl.yaml`. Each stage represents a moment in the story — typically a
-point where new code has appeared, been highlighted, or a preview should
-fire.
+A Prezl presentation is a sequence of **stages**, declared in
+`prezl.yaml` under `stages:`. Each stage represents a moment in the
+story — typically a point where new code has appeared, been
+highlighted, or a preview should fire.
+
+Stages are the abstraction; **branches are just the way we visualise
+them**. Each stage has a short `alias` (the canonical id) and may
+optionally carry a `branch:` label (e.g. a git branch name) for
+display in the dropdown and status bar.
 
 ## Declaring a stage
 
 ```yaml
-branches:
-  - name: main
-    alias: main
+stages:
+  - alias: main
+    branch: main
     title: Starting point
     order: 1
     open:
@@ -18,17 +23,19 @@ branches:
       line: 1
 ```
 
-- **`name`** — the full branch name (think git-style, e.g.
-  `feature/dashboard`). Free-form identifier.
-- **`alias`** — a short handle used inside
-  [`@prezl:*` directives](./directives). Required if this stage is
-  referenced by any directive. Defaults to `name` if omitted.
-- **`title`** — display label in the branch dropdown.
-- **`order`** — integer. Controls the forward/backward sequence when
-  stepping through with Space / PageDown. Must be unique.
-- **`open`** — what to show when this stage becomes active. `file` is
-  required; scroll target is either `line: 42` or `id: someMarkName` (see
-  [Symbol navigation](./symbol-navigation)).
+- **`alias`** *(required)* — short handle used inside
+  [`@prezl` directives](./directives) (e.g. `[shell...]`). Must be
+  unique within the project.
+- **`branch`** *(optional)* — label only. Conventionally the git
+  branch name where the code for this stage lives, but Prezl never
+  touches git. Shown in the status bar and used as a dropdown fallback
+  when no `title` is set.
+- **`title`** *(optional)* — display label in the stage dropdown.
+- **`order`** *(required)* — integer. Controls the forward/backward
+  sequence when stepping through with Space / PageDown. Must be unique.
+- **`open`** *(optional)* — what to show when this stage becomes
+  active. `file` is required; scroll target is either `line: 42` or
+  `id: someMarkName` (see [Symbol navigation](./symbol-navigation)).
 
 ## Walking between stages
 
@@ -36,7 +43,7 @@ branches:
 | --- | --- |
 | `Space` / `PageDown` | Next stage (by `order`) |
 | `Shift+Space` / `PageUp` | Previous stage |
-| Branch dropdown (titlebar) | Jump to any stage |
+| Stage dropdown (titlebar) | Jump to any stage |
 
 Prezl's keyboard handlers fire in capture phase so Monaco can't swallow
 them, and they're suppressed while the video preview modal is open (so
@@ -72,8 +79,8 @@ See [Directives](./directives) for the full grammar.
 
 ## Previews per stage
 
-Any stage may declare a `preview:` — a URL or a video — that the Run button
-triggers. See [Previews](./previews).
+Any stage may declare a `preview:` — a URL or a video — that the Run
+button triggers. See [Previews](./previews).
 
 ## Full example
 
@@ -82,21 +89,21 @@ name: Umbraco Dashboard Demo
 language: typescript
 theme: dark
 
-branches:
-  - name: main
-    alias: main
+stages:
+  - alias: main
+    branch: main
     title: Starting point
     order: 1
     open: { file: src/main.ts, line: 1 }
 
-  - name: feature/dashboard-shell
-    alias: shell
+  - alias: shell
+    branch: feature/dashboard-shell
     title: Add dashboard shell
     order: 2
     open: { file: src/dashboard.ts, id: registerDashboard }
 
-  - name: feature/dashboard-preview
-    alias: preview
+  - alias: preview
+    branch: feature/dashboard-preview
     title: Preview dashboard
     order: 3
     open: { file: src/dashboard.ts, id: registerDashboard }
@@ -105,8 +112,8 @@ branches:
       src: https://example.com/demo/dashboard
       mode: external
 
-  - name: feature/recorded-demo
-    alias: demo
+  - alias: demo
+    branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
     order: 4
     open: { file: src/api.ts, line: 1 }

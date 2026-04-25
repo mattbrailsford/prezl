@@ -8,7 +8,7 @@ import { useAppStore } from './state/store'
 import { usePreferencesPersistence } from './hooks/usePreferencesPersistence'
 import { useUiScale } from './hooks/useUiScale'
 import { useExplorerToggle } from './hooks/useExplorerToggle'
-import { useBranchShortcuts } from './hooks/useBranchShortcuts'
+import { useStageShortcuts } from './hooks/useStageShortcuts'
 import { useRunShortcut } from './hooks/useRunShortcut'
 import { useSymbolFinderShortcut } from './hooks/useSymbolFinderShortcut'
 import { useOpenProject } from './hooks/useProjectLoader'
@@ -18,7 +18,7 @@ export function App() {
   usePreferencesPersistence()
   useUiScale()
   useExplorerToggle()
-  useBranchShortcuts()
+  useStageShortcuts()
   useRunShortcut()
   useSymbolFinderShortcut()
 

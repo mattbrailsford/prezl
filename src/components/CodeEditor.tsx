@@ -5,7 +5,7 @@ import { useAppStore } from '@/state/store'
 import { editorFontSize } from '@/hooks/useUiScale'
 import {
   useActiveRenderedFile,
-  useCurrentBranch,
+  useCurrentStage,
   useSymbolTable,
   type SymbolTarget,
 } from '@/hooks/useRenderedFile'
@@ -141,7 +141,7 @@ function ensureFoldingProvider(monaco: typeof Monaco): void {
 export function CodeEditor() {
   const activeFile = useAppStore((s) => s.activeFile)
   const uiScale = useAppStore((s) => s.preferences.uiScale)
-  const branch = useCurrentBranch()
+  const stage = useCurrentStage()
   const rendered = useActiveRenderedFile()
   const symbolTable = useSymbolTable()
   const navigateToFileLine = useAppStore((s) => s.navigateToFileLine)
@@ -163,13 +163,13 @@ export function CodeEditor() {
   const [editorReady, setEditorReady] = useState(false)
 
   // Derived `ready`: true iff folds have been applied for the current
-  // (file, stage) combination. When activeFile or the branch alias change,
+  // (file, stage) combination. When activeFile or the stage alias change,
   // `ready` flips back to false in the same render that feeds Monaco new
   // content — so visibility: hidden lands before Monaco gets a chance to
   // paint the expanded content.
   const fileStageKey = useMemo(
-    () => `${activeFile ?? ''}::${branch?.alias ?? ''}`,
-    [activeFile, branch?.alias],
+    () => `${activeFile ?? ''}::${stage?.alias ?? ''}`,
+    [activeFile, stage?.alias],
   )
   const [lastFoldedKey, setLastFoldedKey] = useState<string | null>(null)
   const ready = fileStageKey === lastFoldedKey
@@ -328,7 +328,7 @@ export function CodeEditor() {
         if (toCollapse.length > 0) foldingModel.toggleCollapseState(toCollapse)
       }
 
-      // One-shot navigation (symbol jump) takes priority over branch.open.
+      // One-shot navigation (symbol jump) takes priority over stage.open.
       if (pendingNavigation && pendingNavigation.file === activeFile) {
         editor.revealLineInCenter(pendingNavigation.line)
         editor.setPosition({ lineNumber: pendingNavigation.line, column: 1 })
@@ -336,7 +336,7 @@ export function CodeEditor() {
         return
       }
 
-      const openTarget = branch?.open
+      const openTarget = stage?.open
       if (openTarget?.file === activeFile) {
         let line: number | null = null
         if (openTarget.id && rendered.marks[openTarget.id]) {
@@ -371,7 +371,7 @@ export function CodeEditor() {
   }, [
     rendered,
     activeFile,
-    branch,
+    stage,
     fileStageKey,
     editorReady,
     symbolTable,

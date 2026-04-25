@@ -3,41 +3,41 @@ import { useAppStore } from '@/state/store'
 import { parseDirectives, type RenderedFile } from '@/project/directiveParser'
 import { buildStageIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
-import type { Branch } from '@/types'
+import type { Stage } from '@/types'
 
 export type SymbolTarget = { file: string; line: number }
 export type SymbolTable = Map<string, SymbolTarget>
 
 export function useStageIndex(): Record<string, number> {
-  const branches = useAppStore((s) => s.project?.branches)
+  const stages = useAppStore((s) => s.project?.stages)
   return useMemo(() => {
-    if (!branches) return {}
-    return buildStageIndex(branches)
-  }, [branches])
+    if (!stages) return {}
+    return buildStageIndex(stages)
+  }, [stages])
 }
 
-export function useCurrentBranch(): Branch | null {
+export function useCurrentStage(): Stage | null {
   return useAppStore((s) => {
-    if (!s.project || !s.currentBranchName) return null
-    return s.project.branches.find((b) => b.name === s.currentBranchName) ?? null
+    if (!s.project || !s.currentStageAlias) return null
+    return s.project.stages.find((x) => x.alias === s.currentStageAlias) ?? null
   })
 }
 
 export function useVisibleFiles(): string[] {
   const files = useAppStore((s) => s.project?.files ?? EMPTY_ARRAY)
   const rawFiles = useAppStore((s) => s.rawFiles)
-  const branch = useCurrentBranch()
+  const stage = useCurrentStage()
   const stageIndex = useStageIndex()
 
   return useMemo(() => {
-    if (!branch) return []
+    if (!stage) return []
     return computeVisibleFiles({
       files,
       rawFiles,
-      currentStageAlias: branch.alias,
+      currentStageAlias: stage.alias,
       stageIndex,
     })
-  }, [files, rawFiles, branch, stageIndex])
+  }, [files, rawFiles, stage, stageIndex])
 }
 
 /**
@@ -49,24 +49,24 @@ export function useVisibleFiles(): string[] {
  */
 export function useSymbolTable(): SymbolTable {
   const rawFiles = useAppStore((s) => s.rawFiles)
-  const branch = useCurrentBranch()
+  const stage = useCurrentStage()
   const stageIndex = useStageIndex()
   const files = useVisibleFiles()
 
   return useMemo(() => {
     const table: SymbolTable = new Map()
-    if (!branch) return table
+    if (!stage) return table
     for (const path of files) {
       const source = rawFiles.get(path)
       if (source == null) continue
-      const rendered = parseDirectives(source, branch.alias, stageIndex)
+      const rendered = parseDirectives(source, stage.alias, stageIndex)
       for (const [id, line] of Object.entries(rendered.marks)) {
         if (table.has(id)) continue
         table.set(id, { file: path, line })
       }
     }
     return table
-  }, [rawFiles, branch, stageIndex, files])
+  }, [rawFiles, stage, stageIndex, files])
 }
 
 /**
@@ -76,16 +76,16 @@ export function useSymbolTable(): SymbolTable {
 export function useActiveRenderedFile(): RenderedFile | null {
   const activeFile = useAppStore((s) => s.activeFile)
   const rawFiles = useAppStore((s) => s.rawFiles)
-  const branch = useCurrentBranch()
+  const stage = useCurrentStage()
   const stageIndex = useStageIndex()
 
   return useMemo(() => {
-    if (!activeFile || !branch) return null
+    if (!activeFile || !stage) return null
     const source = rawFiles.get(activeFile)
     if (source == null) return null
-    const result = parseDirectives(source, branch.alias, stageIndex)
+    const result = parseDirectives(source, stage.alias, stageIndex)
     // eslint-disable-next-line no-console
-    console.log('[prezl parser]', activeFile, 'on', branch.alias, {
+    console.log('[prezl parser]', activeFile, 'on', stage.alias, {
       foldRanges: result.foldRanges,
       focusRanges: result.focusRanges,
       marks: result.marks,
@@ -94,7 +94,7 @@ export function useActiveRenderedFile(): RenderedFile | null {
       renderedLineCount: result.text.split('\n').length,
     })
     return result
-  }, [activeFile, rawFiles, branch, stageIndex])
+  }, [activeFile, rawFiles, stage, stageIndex])
 }
 
 const EMPTY_ARRAY: string[] = []

@@ -5,8 +5,8 @@ import { useAppStore } from '@/state/store'
  * Stage navigation — matches common presenter-remote conventions since
  * Monaco is read-only and doesn't need Space/PageDown for itself.
  *
- *   Space        / PageDown / Ctrl+Space        -> next branch
- *   Shift+Space  / PageUp   / Ctrl+Shift+Space  -> previous branch
+ *   Space        / PageDown / Ctrl+Space        -> next stage
+ *   Shift+Space  / PageUp   / Ctrl+Shift+Space  -> previous stage
  *
  * Registered in capture phase so Monaco's internal keybindings can't swallow
  * them when focus is inside the editor. Suppressed when:
@@ -14,8 +14,8 @@ import { useAppStore } from '@/state/store'
  *   - focus is on a real form control or button (outside Monaco's hidden
  *     input) — keeps Space button activation, select dropdowns, etc. working
  */
-export function useBranchShortcuts() {
-  const switchBranchRelative = useAppStore((s) => s.switchBranchRelative)
+export function useStageShortcuts() {
+  const switchStageRelative = useAppStore((s) => s.switchStageRelative)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,14 +26,14 @@ export function useBranchShortcuts() {
       if (direction === 0) return
       e.preventDefault()
       e.stopPropagation()
-      switchBranchRelative(direction)
+      switchStageRelative(direction)
     }
     window.addEventListener('keydown', onKey, { capture: true })
     return () =>
       window.removeEventListener('keydown', onKey, {
         capture: true,
       } as EventListenerOptions)
-  }, [switchBranchRelative])
+  }, [switchStageRelative])
 }
 
 function directionFromEvent(e: KeyboardEvent): 1 | -1 | 0 {

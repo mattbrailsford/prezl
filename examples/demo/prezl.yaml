@@ -2,25 +2,25 @@ name: Umbraco Dashboard Demo
 language: typescript
 theme: dark
 
-branches:
-  - name: main
-    alias: main
+stages:
+  - alias: main
+    branch: main
     title: Starting point
     order: 1
     open:
       file: src/main.ts
       line: 1
 
-  - name: feature/dashboard-shell
-    alias: shell
+  - alias: shell
+    branch: feature/dashboard-shell
     title: Add dashboard shell
     order: 2
     open:
       file: src/dashboard.ts
       id: registerDashboard
 
-  - name: feature/dashboard-preview
-    alias: preview
+  - alias: preview
+    branch: feature/dashboard-preview
     title: Preview dashboard
     order: 3
     open:
@@ -31,8 +31,8 @@ branches:
       src: https://example.com/umbraco-demo/dashboard
       mode: external
 
-  - name: feature/recorded-demo
-    alias: demo
+  - alias: demo
+    branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
     order: 4
     open:

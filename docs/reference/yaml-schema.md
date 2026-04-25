@@ -13,7 +13,7 @@ theme: dark                 # optional — "dark" (default) or "light"
 projects:                   # optional — see Multi-project layout
   - { name: …, path: …, icon: …, color: … }
 
-branches:                   # required — stages, at least one
+stages:                     # required — at least one
   - { … }
 ```
 
@@ -42,26 +42,33 @@ Declares a multi-project layout. See the
   color: violet              # optional — overrides icon's default color
 ```
 
-### `branches` (required, array)
+### `stages` (required, array)
 
-At least one entry. Each entry is a stage of the presentation.
+At least one entry. Each entry is one stage of the presentation —
+typically modelled as one git branch, but the stage is the abstraction
+and the branch name is just the human-readable label that travels with
+it.
 
 ```yaml
-- name: feature/dashboard    # required
-  alias: shell                # optional — short handle for directives
-  title: Add dashboard        # optional — dropdown label
-  order: 2                    # required — integer, unique
-  open:                       # optional — initial scroll target
-    file: src/dashboard.ts    #   required if `open:` is present
-    line: 1                   #   scroll target; line OR id, not both
-    id: registerDashboard     #   resolves to a `@prezl id=<name>` anchor
-  symbols: {}                 # reserved, not currently consumed
-  preview:                    # optional — see Previews guide
+- alias: shell               # required — canonical stage id, referenced
+                             #            by directives like [shell...]
+  branch: feature/dashboard  # optional — label only (e.g. git branch name)
+  title: Add dashboard       # optional — dropdown label
+  order: 2                   # required — integer, unique
+  open:                      # optional — initial scroll target
+    file: src/dashboard.ts   #   required if `open:` is present
+    line: 1                  #   scroll target; line OR id, not both
+    id: registerDashboard    #   resolves to a `@prezl id=<name>` anchor
+  symbols: {}                # reserved, not currently consumed
+  preview:                   # optional — see Previews guide
     type: url | video
     …
 ```
 
-#### Branch `preview:` — URL
+The dropdown label cascades `title` → `branch` → `alias`, so a stage
+with just an alias still shows up sensibly.
+
+#### Stage `preview:` — URL
 
 ```yaml
 preview:
@@ -73,7 +80,7 @@ preview:
 `src` must be `http://` or `https://`. Only `external` mode is supported
 today (opens in the OS default browser).
 
-#### Branch `preview:` — video
+#### Stage `preview:` — video
 
 ```yaml
 preview:

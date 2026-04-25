@@ -1,5 +1,5 @@
 import { useAppStore } from '@/state/store'
-import { BranchSelector } from './BranchSelector'
+import { StageSelector } from './StageSelector'
 import { PretzelLogo } from './PretzelLogo'
 import { RunButton } from './RunButton'
 import { WindowControls } from './WindowControls'
@@ -32,7 +32,7 @@ export function TopBar() {
         className="h-6 w-px bg-app-border"
         aria-hidden
       />
-      <BranchSelector />
+      <StageSelector />
       <div
         data-tauri-drag-region
         className="flex flex-1 items-center justify-end gap-2 self-stretch pr-2"

@@ -2,7 +2,7 @@ import { parse as parseYaml, YAMLParseError } from 'yaml'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { prezlProjectSchema, type LoadError } from './schema'
-import type { Branch, PrezlProject } from '@/types'
+import type { Stage, PrezlProject } from '@/types'
 
 type BackendProjectLoad = {
   root: string
@@ -76,14 +76,14 @@ export async function loadProjectFromDisk(
     language: parsed.data.language,
     theme: parsed.data.theme,
     projects: parsed.data.projects,
-    branches: parsed.data.branches.map<Branch>((b) => ({
-      name: b.name,
-      alias: b.alias ?? b.name,
-      title: b.title,
-      order: b.order,
-      open: b.open,
-      symbols: b.symbols,
-      preview: b.preview,
+    stages: parsed.data.stages.map<Stage>((s) => ({
+      alias: s.alias,
+      branch: s.branch,
+      title: s.title,
+      order: s.order,
+      open: s.open,
+      symbols: s.symbols,
+      preview: s.preview,
     })),
     rootPath: backend.root,
     files,

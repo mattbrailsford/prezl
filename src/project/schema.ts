@@ -44,9 +44,9 @@ const videoPreview = z.object({
 
 const preview = z.discriminatedUnion('type', [urlPreview, videoPreview])
 
-const branch = z.object({
-  name: z.string().min(1),
-  alias: z.string().min(1).optional(),
+const stage = z.object({
+  alias: z.string().min(1),
+  branch: z.string().min(1).optional(),
   title: z.string().optional(),
   order: z.number().int(),
   open: openTarget.optional(),
@@ -59,7 +59,7 @@ export const prezlProjectSchema = z.object({
   language: z.string().optional(),
   theme: z.enum(['light', 'dark']).optional(),
   projects: z.array(projectFolder).optional(),
-  branches: z.array(branch).min(1),
+  stages: z.array(stage).min(1),
 })
 
 export type PrezlProjectParsed = z.infer<typeof prezlProjectSchema>

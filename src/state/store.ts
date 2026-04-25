@@ -5,7 +5,7 @@ import {
   type PrezlProject,
   type PreviewState,
 } from '@/types'
-import { reconcileBranchSwitch } from './branchReducer'
+import { reconcileStageSwitch } from './stageReducer'
 import { buildStageIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
 import { launchUrlPreview } from '@/project/previewLauncher'
@@ -21,7 +21,7 @@ function sleep(ms: number): Promise<void> {
 type AppState = {
   project: PrezlProject | null
   rawFiles: Map<string, string>
-  currentBranchName: string | null
+  currentStageAlias: string | null
   openTabs: string[]
   activeFile: string | null
   statusMessage: string
@@ -39,11 +39,11 @@ type AppActions = {
   setProject: (
     project: PrezlProject,
     rawFiles: Map<string, string>,
-    initialBranchName?: string,
+    initialStageAlias?: string,
   ) => void
   clearProject: () => void
-  switchBranch: (name: string) => void
-  switchBranchRelative: (delta: 1 | -1) => void
+  switchStage: (alias: string) => void
+  switchStageRelative: (delta: 1 | -1) => void
   openFile: (path: string) => void
   closeTab: (path: string) => void
   setActiveFile: (path: string | null) => void
@@ -62,7 +62,7 @@ type AppActions = {
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
   project: null,
   rawFiles: new Map(),
-  currentBranchName: null,
+  currentStageAlias: null,
   openTabs: [],
   activeFile: null,
   statusMessage: 'Ready',
@@ -73,20 +73,20 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   pendingNavigation: null,
   symbolFinderOpen: false,
 
-  setProject: (project, rawFiles, initialBranchName) => {
-    const branch =
-      project.branches.find((b) => b.name === initialBranchName) ??
-      [...project.branches].sort((a, b) => a.order - b.order)[0]
-    const stageIndex = buildStageIndex(project.branches)
-    const visibleFiles = branch
+  setProject: (project, rawFiles, initialStageAlias) => {
+    const stage =
+      project.stages.find((s) => s.alias === initialStageAlias) ??
+      [...project.stages].sort((a, b) => a.order - b.order)[0]
+    const stageIndex = buildStageIndex(project.stages)
+    const visibleFiles = stage
       ? computeVisibleFiles({
           files: project.files,
           rawFiles,
-          currentStageAlias: branch.alias,
+          currentStageAlias: stage.alias,
           stageIndex,
         })
       : []
-    const intended = branch?.open?.file
+    const intended = stage?.open?.file
     const firstFile =
       intended && visibleFiles.includes(intended)
         ? intended
@@ -94,7 +94,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     set({
       project,
       rawFiles,
-      currentBranchName: branch?.name ?? null,
+      currentStageAlias: stage?.alias ?? null,
       openTabs: firstFile ? [firstFile] : [],
       activeFile: firstFile,
       statusMessage: 'Ready',
@@ -106,7 +106,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     set({
       project: null,
       rawFiles: new Map(),
-      currentBranchName: null,
+      currentStageAlias: null,
       openTabs: [],
       activeFile: null,
       statusMessage: 'Ready',
@@ -114,48 +114,49 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       loadError: null,
     }),
 
-  switchBranch: (name) => {
+  switchStage: (alias) => {
     const state = get()
     const project = state.project
     if (!project) return
-    const target = project.branches.find((b) => b.name === name)
+    const target = project.stages.find((s) => s.alias === alias)
     if (!target) return
 
-    set({ statusMessage: `Checking out ${name}...` })
-    const stageIndex = buildStageIndex(project.branches)
+    const label = target.branch ?? target.title ?? target.alias
+    set({ statusMessage: `Switching to ${label}...` })
+    const stageIndex = buildStageIndex(project.stages)
     const visibleFiles = computeVisibleFiles({
       files: project.files,
       rawFiles: state.rawFiles,
       currentStageAlias: target.alias,
       stageIndex,
     })
-    const next = reconcileBranchSwitch({
-      branch: target,
+    const next = reconcileStageSwitch({
+      stage: target,
       visibleFiles,
       openTabs: state.openTabs,
       activeFile: state.activeFile,
     })
     set({
-      currentBranchName: target.name,
+      currentStageAlias: target.alias,
       openTabs: next.openTabs,
       activeFile: next.activeFile,
     })
     window.setTimeout(() => {
-      if (get().currentBranchName === target.name) {
+      if (get().currentStageAlias === target.alias) {
         set({ statusMessage: 'Ready' })
       }
     }, 400)
   },
 
-  switchBranchRelative: (delta) => {
+  switchStageRelative: (delta) => {
     const state = get()
     if (!state.project) return
-    const ordered = [...state.project.branches].sort((a, b) => a.order - b.order)
-    const idx = ordered.findIndex((b) => b.name === state.currentBranchName)
+    const ordered = [...state.project.stages].sort((a, b) => a.order - b.order)
+    const idx = ordered.findIndex((s) => s.alias === state.currentStageAlias)
     if (idx < 0) return
     const next = ordered[idx + delta]
     if (!next) return
-    get().switchBranch(next.name)
+    get().switchStage(next.alias)
   },
 
   openFile: (path) =>
@@ -184,10 +185,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   runPreview: async () => {
     const state = get()
-    const branch = state.project?.branches.find(
-      (b) => b.name === state.currentBranchName,
+    const stage = state.project?.stages.find(
+      (s) => s.alias === state.currentStageAlias,
     )
-    const preview = branch?.preview
+    const preview = stage?.preview
     if (!preview) {
       set({ statusMessage: 'No preview configured' })
       window.setTimeout(() => {
@@ -223,9 +224,6 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       return
     }
 
-    // Video preview — M5 will render a modal. Until then, route to the
-    // video preview state so the Run button disables and Ctrl+Enter doesn't
-    // re-trigger.
     set({
       previewState: { kind: 'video', preview },
       statusMessage: 'Ready',

@@ -3,14 +3,14 @@
  *
  *   [shell]                        -- single stage
  *   [shell, preview, demo]         -- explicit list
- *   [shell...demo]                 -- closed range by branch order (inclusive)
+ *   [shell...demo]                 -- closed range by stage order (inclusive)
  *   [shell...]                     -- shell onwards
  *   [...demo]                      -- through demo
  *   [shell...preview, demo]        -- mixed ranges + explicit items
  *
- * Whitespace is insignificant. Aliases (not branch names) are referenced;
- * unknown aliases or inverted ranges produce structured errors callers can
- * surface with file + line context.
+ * Whitespace is insignificant. Stage aliases are referenced; unknown
+ * aliases or inverted ranges produce structured errors callers can surface
+ * with file + line context.
  */
 
 export type StageIndex = Record<string, number>
@@ -19,12 +19,12 @@ export type StageListResult =
   | { ok: true; aliases: string[]; matches: (stageAlias: string) => boolean }
   | { ok: false; error: string }
 
-/** Build a name -> order index from a list of branches. */
+/** Build an alias -> order index from a list of stages. */
 export function buildStageIndex(
-  branches: { alias: string; order: number }[],
+  stages: { alias: string; order: number }[],
 ): StageIndex {
   const index: StageIndex = {}
-  for (const b of branches) index[b.alias] = b.order
+  for (const s of stages) index[s.alias] = s.order
   return index
 }
 

@@ -2,13 +2,13 @@ import { Loader2, Play, Square } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 
 export function RunButton() {
-  const currentBranch = useAppStore((s) =>
-    s.project?.branches.find((b) => b.name === s.currentBranchName) ?? null,
+  const currentStage = useAppStore((s) =>
+    s.project?.stages.find((x) => x.alias === s.currentStageAlias) ?? null,
   )
   const previewKind = useAppStore((s) => s.previewState.kind)
   const runPreview = useAppStore((s) => s.runPreview)
   const closePreview = useAppStore((s) => s.closePreview)
-  const hasPreview = Boolean(currentBranch?.preview)
+  const hasPreview = Boolean(currentStage?.preview)
 
   // Launching: fake-build sequence in-flight; disabled with spinner.
   if (previewKind === 'launching') {
