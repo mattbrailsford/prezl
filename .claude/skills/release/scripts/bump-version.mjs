@@ -33,57 +33,45 @@ if (!SEMVER.test(version)) {
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..', '..', '..');
 
+// Replace only the top-level "version": "..." string in a JSON file via
+// regex, so we preserve every other byte of formatting (inline arrays,
+// trailing whitespace, key ordering). JSON.parse/stringify would round-trip
+// these files into a single canonical style and produce noisy diffs.
+function updateJsonVersion(raw, version) {
+  const re = /^(\s*"version"\s*:\s*")([^"]+)(")/m;
+  const m = raw.match(re);
+  if (!m) {
+    throw new Error('Could not find a top-level "version" key');
+  }
+  const before = m[2];
+  return { text: raw.replace(re, `$1${version}$3`), before };
+}
+
 const targets = [
   {
     label: 'package.json',
     path: resolve(repoRoot, 'package.json'),
-    update: (raw) => {
-      const json = JSON.parse(raw);
-      const before = json.version;
-      json.version = version;
-      // Preserve trailing newline + 2-space indent to match repo style.
-      return { text: JSON.stringify(json, null, 2) + '\n', before };
-    },
+    update: (raw) => updateJsonVersion(raw, version),
   },
   {
     label: 'src-tauri/tauri.conf.json',
     path: resolve(repoRoot, 'src-tauri', 'tauri.conf.json'),
-    update: (raw) => {
-      const json = JSON.parse(raw);
-      const before = json.version;
-      json.version = version;
-      return { text: JSON.stringify(json, null, 2) + '\n', before };
-    },
+    update: (raw) => updateJsonVersion(raw, version),
   },
   {
     label: 'src-tauri/Cargo.toml',
     path: resolve(repoRoot, 'src-tauri', 'Cargo.toml'),
     update: (raw) => {
-      // Only touch the [package].version field, not any [dependencies] entries
-      // that might happen to be on the line "version = ...".
-      const lines = raw.split('\n');
-      let inPackage = false;
-      let before = null;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const sectionMatch = line.match(/^\s*\[([^\]]+)\]\s*$/);
-        if (sectionMatch) {
-          inPackage = sectionMatch[1] === 'package';
-          continue;
-        }
-        if (inPackage) {
-          const m = line.match(/^(\s*version\s*=\s*")([^"]+)(".*)$/);
-          if (m) {
-            before = m[2];
-            lines[i] = `${m[1]}${version}${m[3]}`;
-            break;
-          }
-        }
-      }
-      if (before === null) {
+      // Anchor on the [package] header, then non-greedily skip ahead to the
+      // first `version = "..."` line. Operating on the whole string (rather
+      // than splitting on \n) sidesteps CRLF-vs-LF pitfalls — the file's
+      // existing line endings round-trip untouched.
+      const re = /(\[package\][\s\S]*?\n\s*version\s*=\s*")([^"]+)(")/;
+      const m = raw.match(re);
+      if (!m) {
         throw new Error('Could not find [package].version in Cargo.toml');
       }
-      return { text: lines.join('\n'), before };
+      return { text: raw.replace(re, `$1${version}$3`), before: m[2] };
     },
   },
 ];
