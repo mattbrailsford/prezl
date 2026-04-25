@@ -41,6 +41,16 @@ export type VideoPreview = {
 
 export type Preview = UrlPreview | VideoPreview
 
+/** A "step" inside a stage — the unit a presenter advances through within
+ *  what the audience perceives as a single slide. Steps don't appear in the
+ *  stage dropdown; Space/PageDown walks them linearly. */
+export type Step = {
+  alias: string
+  title?: string
+  open?: OpenTarget
+  preview?: Preview
+}
+
 export type Stage = {
   /** Canonical stage identifier — referenced by directives and the symbol
    *  table. Required. */
@@ -53,6 +63,26 @@ export type Stage = {
   order: number
   open?: OpenTarget
   symbols?: Record<string, SymbolTarget>
+  preview?: Preview
+  /** Optional ordered list of intra-stage steps. A stage with no steps has
+   *  one implicit screen whose id is the bare stage alias. */
+  steps?: Step[]
+}
+
+/** Flat addressable unit the presenter advances through. Either a stage
+ *  with no steps (`id === stageAlias`, `stepAlias === null`) or one entry
+ *  in a stage's `steps:` array (`id === "${stageAlias}.${stepAlias}"`). */
+export type Screen = {
+  id: string
+  stageAlias: string
+  stepAlias: string | null
+  /** Flat 0-based index across the whole deck — defines navigation order
+   *  and is what selector ranges resolve against. */
+  order: number
+  title?: string
+  /** Resolved `open` after step→stage inheritance (and step-to-step
+   *  carry-forward within a stage). */
+  open?: OpenTarget
   preview?: Preview
 }
 

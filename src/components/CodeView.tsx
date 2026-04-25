@@ -11,7 +11,7 @@ import { useAppStore } from '@/state/store'
 import { editorFontSize } from '@/hooks/useUiScale'
 import {
   useActiveRenderedFile,
-  useCurrentStage,
+  useCurrentScreen,
   useSymbolTable,
   type SymbolTable,
 } from '@/hooks/useRenderedFile'
@@ -30,7 +30,7 @@ import type { FoldRange, RenderedFile } from '@/project/directiveParser'
 export function CodeView() {
   const activeFile = useAppStore((s) => s.activeFile)
   const uiScale = useAppStore((s) => s.preferences.uiScale)
-  const stage = useCurrentStage()
+  const screen = useCurrentScreen()
   const rendered = useActiveRenderedFile()
   const symbolTable = useSymbolTable()
   const navigateToFileLine = useAppStore((s) => s.navigateToFileLine)
@@ -77,9 +77,9 @@ export function CodeView() {
   }, [rendered, language])
 
   // Collapsed fold state, keyed by `${start}-${end}` per fold range. Re-seeded
-  // from rendered.foldRanges on every (file, stage) change so directive-driven
-  // initial collapse always wins.
-  const fileStageKey = `${activeFile ?? ''}::${stage?.alias ?? ''}`
+  // from rendered.foldRanges on every (file, screen) change so directive-driven
+  // initial collapse always wins on every step transition, not just stage ones.
+  const fileStageKey = `${activeFile ?? ''}::${screen?.id ?? ''}`
   const [collapsedFolds, setCollapsedFolds] = useState<Set<string>>(new Set())
   const lastSeededKey = useRef<string | null>(null)
 
@@ -104,15 +104,15 @@ export function CodeView() {
 
   // Scroll handling has two distinct triggers; we keep them separate so the
   // pendingNavigation consumption (which causes a re-render) doesn't make the
-  // (file, stage) branch undo the scroll on its second pass.
+  // (file, screen) branch undo the scroll on its second pass.
   //
-  // Branch A — fires once per (file, stage) change. Priority:
+  // Branch A — fires once per (file, screen) change. Priority:
   //   1. one-shot pendingNavigation (symbol jump that opened this file)
-  //   2. stage.open
+  //   2. screen.open
   //   3. top of file
   //
   // Branch B — fires when a same-file pendingNavigation arrives and the
-  //   (file, stage) hasn't changed (clicking a symbol that lives in the
+  //   (file, screen) hasn't changed (clicking a symbol that lives in the
   //   currently-open file). It scrolls to the target line and consumes the
   //   pending nav without resetting scrollTop afterwards.
   const lastScrolledKey = useRef<string | null>(null)
@@ -129,7 +129,7 @@ export function CodeView() {
       el.scrollIntoView({ block: 'center', behavior: 'auto' })
     }
 
-    // Branch A: (file, stage) just changed.
+    // Branch A: (file, screen) just changed.
     if (lastScrolledKey.current !== fileStageKey) {
       lastScrolledKey.current = fileStageKey
 
@@ -138,7 +138,7 @@ export function CodeView() {
         consumePendingNavigation()
         return
       }
-      const openTarget = stage?.open
+      const openTarget = screen?.open
       if (openTarget?.file === activeFile) {
         let line: number | null = null
         if (openTarget.id && rendered.marks[openTarget.id]) {
@@ -155,7 +155,7 @@ export function CodeView() {
       return
     }
 
-    // Branch B: same (file, stage), but a fresh pendingNavigation arrived
+    // Branch B: same (file, screen), but a fresh pendingNavigation arrived
     // (same-file symbol click). Scroll to it without touching scrollTop on
     // re-runs after consumption.
     if (pendingNavigation && pendingNavigation.file === activeFile) {
@@ -165,7 +165,7 @@ export function CodeView() {
   }, [
     rendered,
     activeFile,
-    stage,
+    screen,
     pendingNavigation,
     consumePendingNavigation,
     fileStageKey,

@@ -1,26 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { computeVisibleFiles } from './visibleFiles'
-import { buildStageIndex } from './stageList'
+import { buildScreenIndex } from './stageList'
 
-const STAGES = buildStageIndex([
+const SCREENS = buildScreenIndex([
   { alias: 'main', order: 1 },
   { alias: 'shell', order: 2 },
   { alias: 'preview', order: 3 },
 ])
 
 describe('visibleFiles', () => {
-  it('includes files with no directives on every stage', () => {
+  it('includes files with no directives on every screen', () => {
     const rawFiles = new Map([['a.ts', 'const x = 1']])
     const result = computeVisibleFiles({
       files: ['a.ts'],
       rawFiles,
-      currentStageAlias: 'main',
-      stageIndex: STAGES,
+      currentScreenId: 'main',
+      screenIndex: SCREENS,
     })
     expect(result).toEqual(['a.ts'])
   })
 
-  it('hides files whose @prezl file=[stages] excludes the current stage', () => {
+  it('hides files whose @prezl file=[stages] excludes the current screen', () => {
     const rawFiles = new Map([
       ['a.ts', 'const x = 1'],
       ['b.ts', '// @prezl file=[preview...]\nconst y = 2'],
@@ -28,16 +28,16 @@ describe('visibleFiles', () => {
     const onMain = computeVisibleFiles({
       files: ['a.ts', 'b.ts'],
       rawFiles,
-      currentStageAlias: 'main',
-      stageIndex: STAGES,
+      currentScreenId: 'main',
+      screenIndex: SCREENS,
     })
     expect(onMain).toEqual(['a.ts'])
 
     const onPreview = computeVisibleFiles({
       files: ['a.ts', 'b.ts'],
       rawFiles,
-      currentStageAlias: 'preview',
-      stageIndex: STAGES,
+      currentScreenId: 'preview',
+      screenIndex: SCREENS,
     })
     expect(onPreview).toEqual(['a.ts', 'b.ts'])
   })
@@ -46,9 +46,39 @@ describe('visibleFiles', () => {
     const result = computeVisibleFiles({
       files: ['ghost.ts'],
       rawFiles: new Map(),
-      currentStageAlias: 'main',
-      stageIndex: STAGES,
+      currentScreenId: 'main',
+      screenIndex: SCREENS,
     })
     expect(result).toEqual([])
+  })
+
+  it('respects step-level resolution when stage selectors are bare', () => {
+    const stepped = buildScreenIndex([
+      { alias: 'main', order: 1 },
+      {
+        alias: 'shell',
+        order: 2,
+        steps: [{ alias: 'intro' }, { alias: 'outro' }],
+      },
+    ])
+    const rawFiles = new Map([
+      ['a.ts', '// @prezl file=[shell.outro]\nconst y = 2'],
+    ])
+    expect(
+      computeVisibleFiles({
+        files: ['a.ts'],
+        rawFiles,
+        currentScreenId: 'shell.intro',
+        screenIndex: stepped,
+      }),
+    ).toEqual([])
+    expect(
+      computeVisibleFiles({
+        files: ['a.ts'],
+        rawFiles,
+        currentScreenId: 'shell.outro',
+        screenIndex: stepped,
+      }),
+    ).toEqual(['a.ts'])
   })
 })

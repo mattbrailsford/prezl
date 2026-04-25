@@ -4,9 +4,10 @@ import {
   type Preferences,
   type PrezlProject,
   type PreviewState,
+  type Screen,
 } from '@/types'
-import { reconcileStageSwitch } from './stageReducer'
-import { buildStageIndex } from '@/project/stageList'
+import { reconcileScreenSwitch } from './stageReducer'
+import { buildScreenIndex, type ScreenIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
 import { launchUrlPreview } from '@/project/previewLauncher'
 import type { LoadError } from '@/project/schema'
@@ -21,7 +22,9 @@ function sleep(ms: number): Promise<void> {
 type AppState = {
   project: PrezlProject | null
   rawFiles: Map<string, string>
-  currentStageAlias: string | null
+  /** Cached screen index built once per project load. Null when no project. */
+  screenIndex: ScreenIndex | null
+  currentScreenId: string | null
   openTabs: string[]
   activeFile: string | null
   statusMessage: string
@@ -42,8 +45,12 @@ type AppActions = {
     initialStageAlias?: string,
   ) => void
   clearProject: () => void
+  /** Jump to the first screen of a stage (the stage selector calls this). */
   switchStage: (alias: string) => void
-  switchStageRelative: (delta: 1 | -1) => void
+  /** Jump to a specific screen by full id ("shell" or "shell.intro"). */
+  switchScreen: (id: string) => void
+  /** Walk the flat ordered screen list — stage shortcuts call this. */
+  switchScreenRelative: (delta: 1 | -1) => void
   openFile: (path: string) => void
   closeTab: (path: string) => void
   setActiveFile: (path: string | null) => void
@@ -62,7 +69,8 @@ type AppActions = {
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
   project: null,
   rawFiles: new Map(),
-  currentStageAlias: null,
+  screenIndex: null,
+  currentScreenId: null,
   openTabs: [],
   activeFile: null,
   statusMessage: 'Ready',
@@ -74,19 +82,22 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   symbolFinderOpen: false,
 
   setProject: (project, rawFiles, initialStageAlias) => {
-    const stage =
-      project.stages.find((s) => s.alias === initialStageAlias) ??
-      [...project.stages].sort((a, b) => a.order - b.order)[0]
-    const stageIndex = buildStageIndex(project.stages)
-    const visibleFiles = stage
+    const screenIndex = buildScreenIndex(project.stages)
+    const initialScreen: Screen | null =
+      (initialStageAlias
+        ? firstScreenOfStage(screenIndex, initialStageAlias)
+        : null) ??
+      screenIndex.ordered[0] ??
+      null
+    const visibleFiles = initialScreen
       ? computeVisibleFiles({
           files: project.files,
           rawFiles,
-          currentStageAlias: stage.alias,
-          stageIndex,
+          currentScreenId: initialScreen.id,
+          screenIndex,
         })
       : []
-    const intended = stage?.open?.file
+    const intended = initialScreen?.open?.file
     const firstFile =
       intended && visibleFiles.includes(intended)
         ? intended
@@ -94,7 +105,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     set({
       project,
       rawFiles,
-      currentStageAlias: stage?.alias ?? null,
+      screenIndex,
+      currentScreenId: initialScreen?.id ?? null,
       openTabs: firstFile ? [firstFile] : [],
       activeFile: firstFile,
       statusMessage: 'Ready',
@@ -106,7 +118,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     set({
       project: null,
       rawFiles: new Map(),
-      currentStageAlias: null,
+      screenIndex: null,
+      currentScreenId: null,
       openTabs: [],
       activeFile: null,
       statusMessage: 'Ready',
@@ -116,47 +129,66 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   switchStage: (alias) => {
     const state = get()
+    if (!state.screenIndex) return
+    const first = firstScreenOfStage(state.screenIndex, alias)
+    if (!first) return
+    get().switchScreen(first.id)
+  },
+
+  switchScreen: (id) => {
+    const state = get()
     const project = state.project
-    if (!project) return
-    const target = project.stages.find((s) => s.alias === alias)
+    const screenIndex = state.screenIndex
+    if (!project || !screenIndex) return
+    const target = screenIndex.byId[id]
     if (!target) return
 
-    const label = target.branch ?? target.title ?? target.alias
-    set({ statusMessage: `Switching to ${label}...` })
-    const stageIndex = buildStageIndex(project.stages)
+    const previous = state.currentScreenId
+      ? (screenIndex.byId[state.currentScreenId] ?? null)
+      : null
+    const crossingStage = previous?.stageAlias !== target.stageAlias
+
+    if (crossingStage) {
+      const stage = project.stages.find((s) => s.alias === target.stageAlias)
+      const label = stage?.branch ?? stage?.title ?? target.stageAlias
+      set({ statusMessage: `Switching to ${label}...` })
+    }
+
     const visibleFiles = computeVisibleFiles({
       files: project.files,
       rawFiles: state.rawFiles,
-      currentStageAlias: target.alias,
-      stageIndex,
+      currentScreenId: target.id,
+      screenIndex,
     })
-    const next = reconcileStageSwitch({
-      stage: target,
+    const next = reconcileScreenSwitch({
+      screen: target,
       visibleFiles,
       openTabs: state.openTabs,
       activeFile: state.activeFile,
     })
     set({
-      currentStageAlias: target.alias,
+      currentScreenId: target.id,
       openTabs: next.openTabs,
       activeFile: next.activeFile,
     })
-    window.setTimeout(() => {
-      if (get().currentStageAlias === target.alias) {
-        set({ statusMessage: 'Ready' })
-      }
-    }, 400)
+    if (crossingStage) {
+      window.setTimeout(() => {
+        if (get().currentScreenId === target.id) {
+          set({ statusMessage: 'Ready' })
+        }
+      }, 400)
+    }
   },
 
-  switchStageRelative: (delta) => {
+  switchScreenRelative: (delta) => {
     const state = get()
-    if (!state.project) return
-    const ordered = [...state.project.stages].sort((a, b) => a.order - b.order)
-    const idx = ordered.findIndex((s) => s.alias === state.currentStageAlias)
+    if (!state.screenIndex || !state.currentScreenId) return
+    const ordered = state.screenIndex.ordered
+    const idx = ordered.findIndex((s) => s.id === state.currentScreenId)
     if (idx < 0) return
     const next = ordered[idx + delta]
     if (!next) return
-    get().switchStage(next.alias)
+    get().switchScreen(next.id)
   },
 
   openFile: (path) =>
@@ -185,10 +217,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
   runPreview: async () => {
     const state = get()
-    const stage = state.project?.stages.find(
-      (s) => s.alias === state.currentStageAlias,
-    )
-    const preview = stage?.preview
+    const screen =
+      state.screenIndex && state.currentScreenId
+        ? (state.screenIndex.byId[state.currentScreenId] ?? null)
+        : null
+    const preview = screen?.preview
     if (!preview) {
       set({ statusMessage: 'No preview configured' })
       window.setTimeout(() => {
@@ -245,3 +278,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   openSymbolFinder: () => set({ symbolFinderOpen: true }),
   closeSymbolFinder: () => set({ symbolFinderOpen: false }),
 }))
+
+function firstScreenOfStage(
+  screenIndex: ScreenIndex,
+  alias: string,
+): Screen | null {
+  const bounds = screenIndex.byStage[alias]
+  if (!bounds) return null
+  return bounds.screens[0] ?? null
+}

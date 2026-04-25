@@ -5,7 +5,7 @@ type DashboardRow = {
   value: number
 }
 
-// @prezl focus=[preview]
+// @prezl focus=[preview.fetchImpl, demo]
 // @prezl id=fetchDashboardData
 export async function fetchDashboardData(): Promise<DashboardRow[]> {
   const res = await fetch('/api/dashboard')

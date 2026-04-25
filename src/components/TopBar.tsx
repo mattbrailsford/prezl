@@ -1,5 +1,6 @@
 import { useAppStore } from '@/state/store'
 import { StageSelector } from './StageSelector'
+import { StepIndicator } from './StepIndicator'
 import { PretzelLogo } from './PretzelLogo'
 import { RunButton } from './RunButton'
 import { WindowControls } from './WindowControls'
@@ -33,6 +34,7 @@ export function TopBar() {
         aria-hidden
       />
       <StageSelector />
+      <StepIndicator />
       <div
         data-tauri-drag-region
         className="flex flex-1 items-center justify-end gap-2 self-stretch pr-2"

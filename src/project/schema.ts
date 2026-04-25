@@ -11,11 +11,18 @@ const projectFolder = z.object({
   color: z.string().optional(),
 })
 
-const openTarget = z.object({
-  file: z.string().min(1),
-  line: z.number().int().positive().optional(),
-  id: z.string().min(1).optional(),
-})
+/** `open` accepts either a bare file path string (shorthand for "open this
+ *  file on line 1") or the full object form. The string shorthand is the
+ *  common case; the object form is only needed when the author wants to
+ *  jump to a specific line / symbol id. */
+const openTarget = z.union([
+  z.string().min(1).transform((file) => ({ file, line: 1 })),
+  z.object({
+    file: z.string().min(1),
+    line: z.number().int().positive().optional(),
+    id: z.string().min(1).optional(),
+  }),
+])
 
 const symbolTarget = z.object({
   file: z.string().min(1),
@@ -44,6 +51,19 @@ const videoPreview = z.object({
 
 const preview = z.discriminatedUnion('type', [urlPreview, videoPreview])
 
+/** `steps:` entries accept either a bare alias string (shorthand for a
+ *  step with only an alias and no overrides) or the full object form when
+ *  the author needs a title / open / preview override. */
+const screenStep = z.union([
+  z.string().min(1).transform((alias) => ({ alias })),
+  z.object({
+    alias: z.string().min(1),
+    title: z.string().optional(),
+    open: openTarget.optional(),
+    preview: preview.optional(),
+  }),
+])
+
 const stage = z.object({
   alias: z.string().min(1),
   branch: z.string().min(1).optional(),
@@ -51,6 +71,7 @@ const stage = z.object({
   open: openTarget.optional(),
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),
+  steps: z.array(screenStep).optional(),
 })
 
 export const prezlProjectSchema = z.object({

@@ -25,6 +25,16 @@ stages:
       type: url
       src: https://example.com/umbraco-demo/dashboard
       mode: external
+    steps:
+      - intro
+      - alias: fetchImpl
+        open:
+          file: src/api.ts
+          id: fetchDashboardData
+      - alias: chartHelpers
+        open:
+          file: src/dashboard.ts
+          id: renderCharts
 
   - alias: demo
     branch: feature/recorded-demo

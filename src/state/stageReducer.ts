@@ -1,41 +1,42 @@
-import type { Stage } from '@/types'
+import type { Screen } from '@/types'
 
-export type StageSwitchInput = {
-  stage: Stage
+export type ScreenSwitchInput = {
+  screen: Screen
   visibleFiles: string[]
   openTabs: string[]
   activeFile: string | null
 }
 
-export type StageSwitchOutput = {
+export type ScreenSwitchOutput = {
   openTabs: string[]
   activeFile: string | null
 }
 
 /**
- * Pure reducer for the tab reconciliation side of a stage switch.
- * `visibleFiles` is the per-stage result of applying @prezl:file directives
+ * Pure reducer for the tab reconciliation side of a screen switch.
+ * `visibleFiles` is the per-screen result of applying @prezl:file directives
  * to the project's file list; any file not listed is treated as absent on
- * this stage.
+ * this screen.
  *
  * Invariants:
  *  - Tabs referring to files that are no longer visible are closed.
- *  - The stage's `open.file` (if present and visible) is guaranteed opened
- *    and active.
+ *  - The screen's `open.file` (if present and visible) is guaranteed opened
+ *    and active. Step-level open overrides reach this via the resolved
+ *    `screen.open` from the screen index.
  *  - If the previously active file is still visible, it stays active unless
- *    the stage explicitly opens a different file.
+ *    the screen explicitly opens a different file.
  *  - If nothing else is open, the first visible file is opened.
  */
-export function reconcileStageSwitch(
-  input: StageSwitchInput,
-): StageSwitchOutput {
+export function reconcileScreenSwitch(
+  input: ScreenSwitchInput,
+): ScreenSwitchOutput {
   const visible = new Set(input.visibleFiles)
   let openTabs = input.openTabs.filter((p) => visible.has(p))
   let activeFile: string | null = input.activeFile
 
   if (activeFile && !visible.has(activeFile)) activeFile = null
 
-  const openIntent = input.stage.open?.file
+  const openIntent = input.screen.open?.file
   if (openIntent && visible.has(openIntent)) {
     if (!openTabs.includes(openIntent)) openTabs = [...openTabs, openIntent]
     activeFile = openIntent

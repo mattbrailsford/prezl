@@ -22,7 +22,7 @@ export function registerDashboard(app: App): void {
   app.dashboards.add({
     id: 'content-insights',
     title: config.title,
-    // @prezl show=[preview...] focus=[preview]
+    // @prezl show=[preview...] focus=[preview.intro, demo]
     async render(container) {
       container.innerHTML = `<h2>${config.title}</h2>`
       const data = await fetchDashboardData()
@@ -33,10 +33,13 @@ export function registerDashboard(app: App): void {
 }
 // @prezl end
 
-// @prezl show=[preview...] collapse label="Chart rendering helpers"
+// @prezl show=[preview...] collapse=[preview.intro, preview.fetchImpl, demo] focus=[preview.chartHelpers] label="Chart rendering helpers"
 // @prezl id=renderCharts
 function renderCharts(data: { label: string; value: number }[]): HTMLElement {
   const list = document.createElement('ul')
+  // @prezl show=[preview.chartHelpers]
+  // Each row becomes a list item with the label and value rendered inline.
+  // @prezl end
   for (const row of data) {
     const li = document.createElement('li')
     li.textContent = `${row.label}: ${row.value}`

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { parseDirectives } from './directiveParser'
-import { buildStageIndex } from './stageList'
+import { buildScreenIndex } from './stageList'
 
-const STAGES = buildStageIndex([
+const STAGES = buildScreenIndex([
   { alias: 'main', order: 1 },
   { alias: 'shell', order: 2 },
   { alias: 'preview', order: 3 },
   { alias: 'demo', order: 4 },
 ])
 
-function parse(source: string, stage: string) {
-  return parseDirectives(source, stage, STAGES)
+function parse(source: string, screenId: string) {
+  return parseDirectives(source, screenId, STAGES)
 }
 
 describe('directive parser', () => {

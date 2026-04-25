@@ -1,4 +1,4 @@
-import { parseStageList, type StageIndex } from './stageList'
+import { parseScreenList, type ScreenIndex } from './stageList'
 
 export type FoldRange = { start: number; end: number; label: string | null }
 export type FocusRange = { start: number; end: number }
@@ -191,8 +191,8 @@ type Frame = {
 
 export function parseDirectives(
   source: string,
-  currentStageAlias: string,
-  stageIndex: StageIndex,
+  currentScreenId: string,
+  screenIndex: ScreenIndex,
 ): RenderedFile {
   const errors: DirectiveError[] = []
   const foldRanges: FoldRange[] = []
@@ -209,12 +209,12 @@ export function parseDirectives(
   let hiddenForStage = false
   let sawAnyContent = false
 
-  const evaluateMatch = (stages: string): boolean => {
-    const result = parseStageList(stages, stageIndex)
-    return result.ok ? result.matches(currentStageAlias) : false
+  const evaluateMatch = (selector: string): boolean => {
+    const result = parseScreenList(selector, screenIndex)
+    return result.ok ? result.matches(currentScreenId) : false
   }
-  const validateStages = (stages: string, line: number) => {
-    const result = parseStageList(stages, stageIndex)
+  const validateStages = (selector: string, line: number) => {
+    const result = parseScreenList(selector, screenIndex)
     if (!result.ok) errors.push({ line, message: result.error })
   }
 

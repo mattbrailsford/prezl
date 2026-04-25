@@ -1,20 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { reconcileStageSwitch } from './stageReducer'
-import type { Stage } from '@/types'
+import { reconcileScreenSwitch } from './stageReducer'
+import type { Screen } from '@/types'
 
-function stage(partial: Partial<Stage> = {}): Stage {
+function screen(partial: Partial<Screen> = {}): Screen {
   return {
-    alias: 'x',
-    branch: 'feature/x',
-    order: 1,
+    id: 'x',
+    stageAlias: 'x',
+    stepAlias: null,
+    order: 0,
     ...partial,
   }
 }
 
-describe('reconcileStageSwitch', () => {
+describe('reconcileScreenSwitch', () => {
   it('closes tabs for files no longer visible', () => {
-    const result = reconcileStageSwitch({
-      stage: stage(),
+    const result = reconcileScreenSwitch({
+      screen: screen(),
       visibleFiles: ['src/a.ts'],
       openTabs: ['src/a.ts', 'src/b.ts'],
       activeFile: 'src/b.ts',
@@ -23,9 +24,9 @@ describe('reconcileStageSwitch', () => {
     expect(result.activeFile).toBe('src/a.ts')
   })
 
-  it('honors stage.open.file, opening it and making it active', () => {
-    const result = reconcileStageSwitch({
-      stage: stage({ open: { file: 'src/c.ts' } }),
+  it('honors screen.open.file, opening it and making it active', () => {
+    const result = reconcileScreenSwitch({
+      screen: screen({ open: { file: 'src/c.ts' } }),
       visibleFiles: ['src/a.ts', 'src/c.ts'],
       openTabs: ['src/a.ts'],
       activeFile: 'src/a.ts',
@@ -34,9 +35,9 @@ describe('reconcileStageSwitch', () => {
     expect(result.activeFile).toBe('src/c.ts')
   })
 
-  it('ignores stage.open.file when the file is not visible on this stage', () => {
-    const result = reconcileStageSwitch({
-      stage: stage({ open: { file: 'src/missing.ts' } }),
+  it('ignores screen.open.file when the file is not visible on this screen', () => {
+    const result = reconcileScreenSwitch({
+      screen: screen({ open: { file: 'src/missing.ts' } }),
       visibleFiles: ['src/a.ts'],
       openTabs: ['src/a.ts'],
       activeFile: 'src/a.ts',
@@ -46,8 +47,8 @@ describe('reconcileStageSwitch', () => {
   })
 
   it('falls back to the first visible file when no tabs remain', () => {
-    const result = reconcileStageSwitch({
-      stage: stage(),
+    const result = reconcileScreenSwitch({
+      screen: screen(),
       visibleFiles: ['src/x.ts', 'src/y.ts'],
       openTabs: [],
       activeFile: null,
@@ -57,8 +58,8 @@ describe('reconcileStageSwitch', () => {
   })
 
   it('preserves the previously active file if still visible and no open intent', () => {
-    const result = reconcileStageSwitch({
-      stage: stage(),
+    const result = reconcileScreenSwitch({
+      screen: screen(),
       visibleFiles: ['src/a.ts', 'src/b.ts'],
       openTabs: ['src/a.ts', 'src/b.ts'],
       activeFile: 'src/a.ts',

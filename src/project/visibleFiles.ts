@@ -1,18 +1,18 @@
 import { parseDirectives } from './directiveParser'
-import type { StageIndex } from './stageList'
+import type { ScreenIndex } from './stageList'
 
 /**
  * For each project file, decide whether a `@prezl:file [stages]` directive
- * (if present at the top) gates it out of the current stage. Files with no
+ * (if present at the top) gates it out of the current screen. Files with no
  * such directive are always visible.
  */
 export function computeVisibleFiles(input: {
   files: string[]
   rawFiles: Map<string, string>
-  currentStageAlias: string
-  stageIndex: StageIndex
+  currentScreenId: string
+  screenIndex: ScreenIndex
 }): string[] {
-  const { files, rawFiles, currentStageAlias, stageIndex } = input
+  const { files, rawFiles, currentScreenId, screenIndex } = input
   const visible: string[] = []
   for (const path of files) {
     const source = rawFiles.get(path)
@@ -22,7 +22,7 @@ export function computeVisibleFiles(input: {
       visible.push(path)
       continue
     }
-    const rendered = parseDirectives(source, currentStageAlias, stageIndex)
+    const rendered = parseDirectives(source, currentScreenId, screenIndex)
     if (!rendered.hiddenForStage) visible.push(path)
   }
   return visible
