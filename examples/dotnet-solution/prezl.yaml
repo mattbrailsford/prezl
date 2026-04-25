@@ -12,9 +12,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open:
-      file: src/Backend/Program.cs
-      line: 1
+    open: src/Backend/Program.cs
 
   - alias: api
     branch: feature/weather-api
