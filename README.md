@@ -4,7 +4,7 @@
 
 <h1 align="center">Prezl</h1>
 
-<p align="center"><strong>Present code like slides.</strong></p>
+<p align="center"><strong>The clarity of slides. The context of real code.</strong></p>
 
 <p align="center">
   <img src="assets/screenshot.png" alt="Prezl showing the Contoso Weather demo mid-stage" width="900" />
