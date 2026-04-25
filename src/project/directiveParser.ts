@@ -349,7 +349,7 @@ export function parseDirectives(
             evaluateMatch(top.collapseStages)
           if (stagesMatch) {
             // Fold's visible header is the first content line (e.g. the line
-            // with `{`). Monaco renders `{ ... }` pairs inline so the summary
+            // with `{`). The viewer renders `{ … }` inline so the summary
             // reads naturally.
             foldRanges.push({
               start: top.collapseContentStart,

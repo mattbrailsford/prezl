@@ -36,11 +36,47 @@
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
-    /* IDE chrome defaults: no I-beam, no text selection. Monaco and form
-       controls opt back in below. */
+    /* IDE chrome defaults: no I-beam, no text selection. The code viewer and
+       form controls opt back in below. */
     cursor: default;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* Slim, dark scrollbars across every scrollable region — matches the IDE
+     chrome rather than the OS default chunky bar. WebView2 (Chromium) honours
+     ::-webkit-scrollbar; the standard `scrollbar-*` properties cover the
+     Firefox side. Both use the same colour scale derived from theme tokens. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-app-border)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-app-border));
+    border-radius: 5px;
+    /* Inset border keeps a visible track gutter on each side without needing
+       a separately-coloured track. */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-app-muted));
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   input,
@@ -50,70 +86,148 @@
     cursor: text;
   }
 
-  /* Monaco placeholder while loading + selection/cursor re-enabled inside. */
-  .monaco-host {
-    background-color: rgb(var(--color-app-surface));
+  /* Suppress focus rings on click — Chromium otherwise upgrades a focused
+     button to :focus-visible the moment any keyboard event lands on it,
+     which shows the ring after a Space press even when our shortcut handler
+     prevented the default. Real keyboard nav (Tab, arrow keys to a fresh
+     element) still gets a visible ring via :focus-visible below. */
+  *:focus {
+    outline: none;
   }
 
-  .monaco-host,
-  .monaco-host * {
+  *:focus-visible {
+    outline: 2px solid rgb(var(--color-app-accent));
+    outline-offset: 1px;
+    border-radius: 2px;
+  }
+
+  /* Code viewer — own background so the editor surface matches the rest of
+     the chrome instead of popping. Selection / copy is on inside this region. */
+  .code-view {
+    background-color: rgb(var(--color-app-surface));
+    font-family:
+      'JetBrains Mono',
+      'Cascadia Code',
+      Consolas,
+      'SF Mono',
+      Menlo,
+      monospace;
+    font-feature-settings: 'liga' 0;
+    line-height: 1.5;
     user-select: text;
     -webkit-user-select: text;
+    cursor: text;
+    /* Reasonable default tab width — most languages we render use 2 spaces,
+       but this stays sensible for tab-using files. */
+    tab-size: 4;
+    -moz-tab-size: 4;
   }
 
-  /* Focus decoration for @prezl:focus regions. */
-  .prezl-focus-line {
-    background-color: rgba(var(--color-focus) / 0.12);
-  }
-  .prezl-focus-gutter {
-    border-left: 2px solid rgb(var(--color-focus));
-    margin-left: 3px;
+  .code-view-inner {
+    min-width: max-content;
+    padding: 6px 0;
   }
 
-  /* Symbol decoration: any identifier matching an @prezl id= elsewhere in
-     the project. Dotted accent underline at rest; solid on hover + pointer
-     so it reads as a real link. */
-  .monaco-host .prezl-symbol {
-    text-decoration: underline dotted rgba(var(--color-app-accent) / 0.6);
-    text-underline-offset: 3px;
-  }
-  .monaco-host .prezl-symbol:hover {
-    text-decoration: underline solid rgb(var(--color-app-accent));
-    cursor: pointer;
+  .code-line {
+    display: flex;
+    align-items: center;
+    white-space: pre;
+    padding: 0 12px 0 0;
   }
 
-  /* Replace Monaco's default fold chevrons with bordered +/- squares.
-     The glyphs are drawn as inline SVG via background-image so the strokes
-     are pixel-perfect centered in the box, independent of font metrics.
-     Color is rgb(224 224 231) to match --color-text on dark theme; we can
-     theme this later via CSS custom property + color-mix if needed. */
-  .monaco-host .codicon-folding-expanded,
-  .monaco-host .codicon-folding-collapsed {
-    color: transparent !important;
-    opacity: 1 !important;
+  .code-line:hover .code-fold-toggle {
+    opacity: 1;
   }
-  .monaco-host .codicon-folding-expanded::before,
-  .monaco-host .codicon-folding-collapsed::before {
-    content: '';
-    display: inline-block;
-    box-sizing: border-box;
+
+  .code-line-no {
+    flex-shrink: 0;
+    width: 3.5em;
+    padding-right: 6px;
+    text-align: right;
+    color: #5a5a66;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+  }
+
+  .code-fold-gutter {
+    flex-shrink: 0;
+    width: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .code-fold-toggle {
     width: 13px;
     height: 13px;
     border: 1px solid rgb(var(--color-app-muted));
     border-radius: 3px;
     background-color: rgb(var(--color-app-panel));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    /* Auto-fade — only show when hovering the line, except when collapsed
+       (the +/− needs to be findable to expand). */
+    opacity: 0;
+    transition: opacity 80ms ease-out, border-color 80ms ease-out;
+  }
+
+  .code-fold-toggle.code-fold-collapsed {
+    opacity: 1;
+  }
+
+  .code-fold-toggle:hover {
+    border-color: rgb(var(--color-app-accent));
+  }
+
+  .code-fold-toggle::before {
+    content: '';
+    display: inline-block;
+    width: 9px;
+    height: 9px;
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 11px 11px;
+    background-size: 9px 9px;
   }
-  .monaco-host .codicon-folding-expanded::before {
+
+  .code-fold-toggle.code-fold-expanded::before {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M3 6h6' stroke='%23e4e4e7' stroke-width='1.6' stroke-linecap='round'/></svg>");
   }
-  .monaco-host .codicon-folding-collapsed::before {
+
+  .code-fold-toggle.code-fold-collapsed::before {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M6 3v6M3 6h6' stroke='%23e4e4e7' stroke-width='1.6' stroke-linecap='round'/></svg>");
   }
-  .monaco-host .codicon-folding-expanded:hover::before,
-  .monaco-host .codicon-folding-collapsed:hover::before {
-    border-color: rgb(var(--color-app-accent));
+
+  .code-line-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .code-fold-summary {
+    margin-left: 0.75ch;
+    color: rgb(var(--color-app-muted));
+    font-style: italic;
+  }
+
+  /* Whole-line focus highlight for @prezl focus regions. */
+  .code-line-focused {
+    background-color: rgba(var(--color-focus) / 0.12);
+    box-shadow: inset 2px 0 0 rgb(var(--color-focus));
+  }
+
+  /* Symbol decoration — any identifier matching an @prezl id elsewhere in
+     the project. Dotted accent underline at rest; solid + pointer on hover. */
+  .prezl-symbol {
+    text-decoration: underline dotted rgba(var(--color-app-accent) / 0.6);
+    text-underline-offset: 3px;
+  }
+  .prezl-symbol:hover {
+    text-decoration: underline solid rgb(var(--color-app-accent));
+    cursor: pointer;
   }
 }

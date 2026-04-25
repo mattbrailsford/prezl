@@ -2,17 +2,18 @@ import { useEffect } from 'react'
 import { useAppStore } from '@/state/store'
 
 /**
- * Stage navigation — matches common presenter-remote conventions since
- * Monaco is read-only and doesn't need Space/PageDown for itself.
+ * Stage navigation — matches common presenter-remote conventions. The code
+ * viewer is static HTML with no captive input, so Space/PageDown stay clean
+ * for the presenter regardless of where focus lives.
  *
  *   Space        / PageDown / Ctrl+Space        -> next stage
  *   Shift+Space  / PageUp   / Ctrl+Shift+Space  -> previous stage
  *
- * Registered in capture phase so Monaco's internal keybindings can't swallow
- * them when focus is inside the editor. Suppressed when:
+ * Registered in capture phase so anything else that wants those keys (modals,
+ * dropdowns) doesn't swallow them globally. Suppressed when:
  *   - the video modal is open (Space/Esc belong to playback then)
- *   - focus is on a real form control or button (outside Monaco's hidden
- *     input) — keeps Space button activation, select dropdowns, etc. working
+ *   - focus is on a real interactive control — buttons, selects, or text
+ *     inputs — so Space activates buttons / dropdowns / typed input as usual.
  */
 export function useStageShortcuts() {
   const switchStageRelative = useAppStore((s) => s.switchStageRelative)
@@ -49,25 +50,15 @@ function directionFromEvent(e: KeyboardEvent): 1 | -1 | 0 {
   return 0
 }
 
-/** Skip the shortcut when a button / real input / select / contentEditable
- *  node owns focus — outside of Monaco's internal hidden input, which we
- *  treat as the stage surface for presentation purposes. */
+/** Only suppress when focus is on a *text-typing* surface — text inputs,
+ *  textareas, or contentEditable nodes — so the user can still type a
+ *  literal space character there. Buttons and selects deliberately fall
+ *  through: in a presentation app, Space should advance the stage even if
+ *  the user just clicked an explorer item, otherwise the click leaves
+ *  Space hijacked and the next press re-opens the file. */
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable) return true
   const tag = target.tagName
-  if (tag === 'BUTTON' || tag === 'SELECT') return true
-  if (tag === 'INPUT' || tag === 'TEXTAREA') {
-    return !isInsideMonacoHost(target)
-  }
-  return false
-}
-
-function isInsideMonacoHost(el: Element): boolean {
-  let node: Element | null = el
-  while (node) {
-    if (node.classList?.contains('monaco-host')) return true
-    node = node.parentElement
-  }
-  return false
+  return tag === 'INPUT' || tag === 'TEXTAREA'
 }

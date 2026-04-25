@@ -31,15 +31,17 @@ src-tauri/          Rust shell (Tauri 2)
 src/
   App.tsx             auto-opens most-recent project if still valid; else
                       renders WelcomeScreen.
-  main.tsx            calls initMonaco() BEFORE React renders — see below.
+  main.tsx            standard ReactDOM.createRoot — no special pre-init.
   components/
-    AppShell.tsx        TopBar + Explorer + tabs + CodeEditor + StatusBar
-    TopBar.tsx          project title (click to close project) + branch
+    AppShell.tsx        TopBar + Explorer + tabs + CodeView + StatusBar
+    TopBar.tsx          project title (click to close project) + stage
                         dropdown + run + window controls. data-tauri-drag-
                         region is on every non-interactive element.
     ExplorerTree.tsx    tree from useVisibleFiles(); Open Folder +
                         collapse/expand buttons in the header.
-    CodeEditor.tsx      Monaco wrapper. Subtle — see gotchas.
+    CodeView.tsx        static read-only viewer — Shiki tokens, plain DOM
+                        for line numbers / fold widgets / decorations.
+                        Replaced Monaco; see "Code viewer" below.
   project/
     schema.ts           Zod validation for prezl.yaml.
     loader.ts           orchestrates pickProjectFolder / load_project /
@@ -48,14 +50,14 @@ src/
     directiveParser.ts  per-stage parse: text + foldRanges + focusRanges +
                         marks + hiddenForStage + errors.
     visibleFiles.ts     file-level @prezl:file filter for the explorer.
-    monacoSetup.ts      Monaco init + folding-provider lockdown.
+    shikiSetup.ts       singleton highlighter + inferLanguage.
   state/
-    store.ts            Zustand; setProject / switchBranch etc.
-    branchReducer.ts    pure tab reconciliation on branch switch.
+    store.ts            Zustand; setProject / switchStage etc.
+    stageReducer.ts     pure tab reconciliation on stage switch.
   hooks/
     useUiScale.ts       Ctrl+=/-/wheel, Ctrl+0, persisted.
     useExplorerToggle   Ctrl+E.
-    useBranchShortcuts  Ctrl+Space / Ctrl+Shift+Space.
+    useStageShortcuts   Space / PageDown / Ctrl+Space (and inverses).
     useRenderedFile.ts  useActiveRenderedFile / useVisibleFiles selectors.
 ```
 
@@ -88,7 +90,7 @@ Attribute semantics:
 - `show=[stages]` — region is **removed** (line numbers shift) on stages
   not in the list.
 - `focus=[stages]` — whole-line decoration over the region.
-- `collapse` (bare flag) — Monaco fold, always collapsed by default.
+- `collapse` (bare flag) — fold a region, always collapsed by default.
 - `collapse=[stages]` — fold only on listed stages.
 - `label="..."` — label text for the collapsed fold's placeholder. Only
   valid when `collapse` is present.
@@ -96,53 +98,57 @@ Attribute semantics:
   on non-matching stages. Must appear before any code. Cannot combine
   with other attributes.
 
-The collapse fold's Monaco `start` is the first content line (so the
-summary reads `type Foo = { ... }` inline), `end` is the last content
-line.
+The collapse fold's `start` is the first content line (so the summary
+reads `type Foo = { … }` inline) and `end` is the last content line.
 
 Outer wins: if an outer `show` drops a region, nested `collapse`/`focus`
 never fire.
 
-## Monaco gotchas
+## Code viewer
 
-**Folding provider must be locked down before any editor mounts.** The
-bundled TypeScript language service registers its own bracket-aware
-folding provider lazily. If ours isn't the only one when a TS model
-materialises, Monaco merges both sets of ranges and you get duplicate
-fold toggles in the gutter.
+`CodeView.tsx` is a static, read-only HTML viewer — no editor library.
+Tokens come from Shiki (singleton in `shikiSetup.ts`); everything else
+(line numbers, fold widgets, focus highlights, click-to-jump symbol
+spans) is plain DOM.
 
-`src/main.tsx` calls `initMonaco()` (from `src/project/monacoSetup.ts`)
-*before* `ReactDOM.render`. That function patches
-`monaco.languages.registerFoldingRangeProvider` to a no-op after
-stashing the original in `monaco.__prezlRegisterFolding`. CodeEditor
-uses the stashed original to register ours exclusively.
+Why no Monaco: the previous Monaco wrapper was ~2.5 MB of editor for
+features we explicitly turned off (IntelliSense, hover, cursor, etc.).
+Cold start showed a black screen until the editor mounted; stage
+switches needed a `visibility: hidden` flicker-prevention dance because
+Monaco's FoldingController cached models we couldn't easily invalidate.
+Static HTML rendering eliminates both — content is visible the moment
+the parser produces a `RenderedFile`, and stage switches are a normal
+React re-render.
 
-**HMR cannot un-register already-registered providers.** If you change
-Monaco-related code, a full window restart is required for changes to
-take effect — HMR will load the new code, but any Monaco provider
-that was registered in the previous session is still in memory.
+**Tokenization is async-but-cheap.** First `getHighlighter()` resolves
+the Shiki bundle (~150–250 KB; per-language grammars lazy-load on
+demand). Until tokens arrive, the viewer renders the raw text without
+colours — readable and never blank. After resolution, subsequent
+tokenizations are synchronous.
 
-**Auto-fold timing.** CodeEditor awaits Monaco's
-`FoldingController.getFoldingModel()` (a promise that resolves once the
-region tree is built from our provider) rather than guessing with
-requestAnimationFrame. Then `foldingModel.toggleCollapseState(regions)`
-collapses our ranges.
+**Folding state is local to CodeView.** A `Set<string>` of fold keys
+(`${start}-${end}`) is re-seeded from `RenderedFile.foldRanges` on
+every `(file, stage)` change, so directive-driven default-collapsed
+folds always win. The presenter can toggle live; that toggle survives
+until the next stage/file switch.
 
-**Flash prevention.** CodeEditor derives a `ready` flag from
-`fileStageKey === lastFoldedKey`. When the file or stage changes, `ready`
-flips to false in the same render that feeds Monaco new content, so
-`visibility: hidden` lands before Monaco paints. Ready flips back after
-folds + scroll land.
+**Symbol decorations are inline.** `useSymbolTable` returns a `Map<id,
+{file, line}>`. The renderer walks each line's Shiki tokens and, for
+any token whose text contains a known id at a word boundary, splits the
+token to wrap the match in a `.prezl-symbol` span with `data-target-*`
+attrs. The definition site is skipped. A single click handler at the
+container delegates jumps via `navigateToFileLine`.
 
-**Keyboard shortcuts in capture phase.** Monaco installs its own
-keydown/wheel handlers. We register global shortcuts (zoom, Ctrl+E,
-Ctrl+Enter, and the stage-navigation set below) with `{ capture: true }`
-so they fire before Monaco can swallow them — required for
-Ctrl+MouseWheel to zoom while hovering the editor.
+**Scroll handling.** A `useLayoutEffect` scrolls the target line into
+view before paint on `(file, stage, pendingNavigation)` change.
+Priority: `pendingNavigation` > `stage.open.id` > `stage.open.line` >
+top of file.
 
-**Stage navigation uses presenter-remote conventions.** Because Monaco
-is read-only we don't need to preserve Space/PageDown/PageUp for the
-editor, so the clicker-friendly bindings win:
+**Keyboard shortcuts in capture phase.** Global shortcuts (zoom,
+Ctrl+E, Ctrl+Enter, Ctrl+T, stage navigation) register with
+`{ capture: true }` so any focused control can't claim them first.
+
+**Stage navigation uses presenter-remote conventions:**
 
 | | Next stage | Prev stage |
 | --- | --- | --- |
@@ -150,55 +156,34 @@ editor, so the clicker-friendly bindings win:
 | Clicker | PageDown | PageUp |
 | Legacy | Ctrl+Space | Ctrl+Shift+Space |
 
-`useBranchShortcuts` skips the handler when focus is on a real
+`useStageShortcuts` skips the handler when focus is on a real
 interactive control (button, select, contentEditable, `<input>` /
-`<textarea>` that is NOT inside `.monaco-host`) — keeps Space-activation
-of buttons, dropdowns, etc. working normally.
+`<textarea>`) — keeps Space-activation of buttons, dropdowns, etc.
+working normally.
 
 **Video modal absorbs the clicker too.** While the video preview is
-open, `useBranchShortcuts` explicitly skips (preview.kind === 'video'),
+open, `useStageShortcuts` explicitly skips (`preview.kind === 'video'`),
 and the modal's own capture-phase handler intercepts:
 
 - `Space` / `PageDown` → play/pause (or Restart when at `stopAt`)
 - `Escape` / `PageUp` → close preview
 
 So with the same remote, PageDown drives playback inside the video and
-drives stage navigation outside, and PageUp closes the video or walks
+drives stage navigation outside; PageUp closes the video or walks
 backward a stage.
 
-**Folding provider must fire onDidChange on updates.** Monaco's
-FoldingController caches its computed FoldingModel per editor instance
-and only invalidates it on model-content events. When we mutate
-`foldRangesByUri` in place (same file, new stage), the cache survives
-and Monaco keeps serving stale ranges — you'll see fold toggles from a
-previous stage. The registered `FoldingRangeProvider` exposes a custom
-`onDidChange` event (see `foldChangeEmitter` in `CodeEditor.tsx`) and
-fires it after every `foldRangesByUri.set(...)` so Monaco flushes and
-re-queries us.
-
-**Always hide + re-fold on every (file, stage) change.** Tab switches
-re-initialise Monaco's FoldingController, losing collapse state. We go
-through the full hide → fold → reveal cycle on every change. `ready` is
-derived from `fileStageKey === lastFoldedKey` so `visibility: hidden`
-flips in the same render that feeds Monaco new content — preventing the
-expanded-content flash before the collapse lands. We previously tried
-to skip re-fold on return visits, but Monaco drops the fold state on
-model switch even within the same branch, so the optimisation broke
-auto-collapse.
-
-**Debugging the parser.** Both `useRenderedFile` (parser output) and
-the folding provider (what Monaco sees) log to the console on every
-run. If fold ranges look wrong, expand the `[prezl parser]` Object and
-compare against the `[prezl fold]` Array(N) — any mismatch means Monaco
-has stale ranges and `onDidChange` isn't firing.
+**Debugging the parser.** `useActiveRenderedFile` logs the parsed
+`RenderedFile` (text, foldRanges, focusRanges, marks, hiddenForStage,
+errors) to the console on every parse. Compare against what the viewer
+actually renders if behaviour looks wrong.
 
 For parser-only questions, the Vitest suite covers the pure logic
-directly (no React/Monaco in the way):
+directly:
 
 - `src/project/stageList.test.ts` — range grammar
 - `src/project/directiveParser.test.ts` — full directive parsing
 - `src/project/visibleFiles.test.ts` — file-level gate filter
-- `src/state/branchReducer.test.ts` — tab reconciliation
+- `src/state/stageReducer.test.ts` — tab reconciliation
 
 Add a failing case to the relevant `.test.ts` file and run
 `pnpm test` (one-shot) or `pnpm test:watch` (TDD loop). Prefer this
@@ -227,19 +212,19 @@ becomes a named anchor, and `useSymbolTable` builds a project-wide
 `Map<id, { file, line }>` from every visible file's parsed marks on the
 current stage.
 
-`CodeEditor` scans the active file's rendered text for word-boundary,
-case-sensitive occurrences of each id and decorates them with
-`inlineClassName: 'prezl-symbol'` (dotted accent underline; solid +
-pointer on hover). The definition site itself is skipped. A per-decoration
-`symbolHits` array lets the editor's `onMouseDown` resolve a click
-position back to a `{file, line}` without re-scanning.
+`CodeView` scans the active file's rendered text for word-boundary,
+case-sensitive occurrences of each id and wraps them in `.prezl-symbol`
+spans (dotted accent underline; solid + pointer on hover). The
+definition site itself is skipped. Each wrapped span carries
+`data-target-file` / `data-target-line` so a single click handler at
+the container can resolve clicks into `navigateToFileLine` calls.
 
-**Plain click navigates** (Monaco is read-only, so preserving
-click-to-place-cursor has no value; presenter flow wins). Right/middle
-click is left alone. `navigateToFileLine` in the store opens the target
-as a tab, sets `activeFile`, and drops a one-shot `pendingNavigation`
-scroll target that the existing fold+scroll effect consumes before
-falling back to `branch.open`.
+**Plain click navigates.** No modifier needed — the viewer is
+read-only so there's no cursor placement to preserve. Right/middle
+click is left alone. `navigateToFileLine` in the store opens the
+target as a tab, sets `activeFile`, and drops a one-shot
+`pendingNavigation` scroll target that the viewer's layout effect
+consumes before falling back to `stage.open`.
 
 Collisions: if two marks share an id, the first one encountered in
 `visibleFiles` order wins. Stale matches on common short words (`config`,
@@ -249,9 +234,7 @@ not yet needed.
 
 `Ctrl+T` opens the **Symbol Finder** modal: fuzzy search over the
 current stage's symbol table, arrow keys cycle results, Enter jumps,
-Esc closes. Monaco's own `Ctrl+T` / `Ctrl+Shift+O` / `Ctrl+P` /
-`Ctrl+Shift+P` bindings are disabled at editor mount so their built-in
-quick-open widgets don't collide.
+Esc closes.
 
 **Watch for hook-ordering bugs in modal components.** The SymbolFinder
 modal initially returned `null` when closed and then declared another

@@ -5,9 +5,7 @@ import { useAppStore } from '@/state/store'
  * Ctrl+T / Cmd+T opens the fuzzy symbol finder (IntelliJ/Rider convention).
  * WebView2's native "new tab" accelerator is disabled via the Rust setup
  * hook (see `disable_browser_accelerators` in src-tauri/src/lib.rs), so
- * the keystroke reaches our JS listener. Monaco's built-in Ctrl+T binding
- * is also disabled in CodeEditor.onMount so its symbol-picker widget
- * doesn't compete.
+ * the keystroke reaches our JS listener.
  *
  * Capture phase + preventDefault. Suppressed while the video preview is
  * active, or if the finder is already open.

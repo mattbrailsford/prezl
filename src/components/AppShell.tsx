@@ -3,7 +3,7 @@ import { TopBar } from './TopBar'
 import { ExplorerTree } from './ExplorerTree'
 import { ExplorerResizeHandle } from './ResizeHandle'
 import { EditorTabs } from './EditorTabs'
-import { CodeEditor } from './CodeEditor'
+import { CodeView } from './CodeView'
 import { StatusBar } from './StatusBar'
 
 export function AppShell() {
@@ -28,7 +28,7 @@ export function AppShell() {
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           <EditorTabs />
           <div className="flex min-h-0 flex-1">
-            <CodeEditor />
+            <CodeView />
           </div>
         </main>
       </div>

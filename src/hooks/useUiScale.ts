@@ -11,9 +11,9 @@ export function clampScale(value: number): number {
 }
 
 /**
- * Drives presentation-mode zoom across UI (Tailwind rem-based)
- * and editor (Monaco fontSize). Ctrl+=/Ctrl+-/Ctrl+Up/Ctrl+Down/Ctrl+0,
- * plus Ctrl+MouseWheel.
+ * Drives presentation-mode zoom across UI (Tailwind rem-based) and the
+ * code viewer's font size. Ctrl+=/Ctrl+-/Ctrl+Up/Ctrl+Down/Ctrl+0, plus
+ * Ctrl+MouseWheel.
  */
 export function useUiScale() {
   const uiScale = useAppStore((s) => s.preferences.uiScale)
@@ -84,8 +84,8 @@ export function useUiScale() {
       adjust(e.deltaY < 0 ? STEP : -STEP)
     }
 
-    // Capture phase so Monaco's internal wheel/key handlers don't swallow these
-    // (otherwise Ctrl+MouseWheel over the editor would scroll/zoom Monaco instead).
+    // Capture phase so any browser/native zoom or wheel handler can't claim
+    // these first when the cursor is over the code viewer.
     window.addEventListener('keydown', onKey, { capture: true })
     window.addEventListener('wheel', onWheel, { capture: true, passive: false })
     return () => {

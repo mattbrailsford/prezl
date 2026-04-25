@@ -2,9 +2,8 @@ import { useEffect } from 'react'
 import { useAppStore } from '@/state/store'
 
 /**
- * Ctrl+Enter (or Cmd+Enter) triggers the Run action. Registered in capture
- * phase so Monaco's own Enter handling doesn't swallow it when focus is in
- * the editor.
+ * Ctrl+Enter (or Cmd+Enter) triggers the Run action. Capture phase so any
+ * focused element (textarea, button) can't claim the key first.
  */
 export function useRunShortcut() {
   const runPreview = useAppStore((s) => s.runPreview)
