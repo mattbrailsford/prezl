@@ -255,9 +255,12 @@ over ad-hoc debug scripts.
 
 ## Preferences storage
 
-Currently in `localStorage` under `prezl.preferences.v1`. Planned to
-migrate to `appConfigDir/preferences.json` alongside `recents.json`
-before v1 ships — scope it in when a Rust command for that file lands.
+Persisted to `appConfigDir/preferences.json` via the `read_preferences` /
+`write_preferences` Tauri commands (see `src-tauri/src/commands.rs`).
+Hydrated on mount and debounced-written on change by
+`usePreferencesPersistence`; the shape lives in `Preferences` /
+`DEFAULT_PREFERENCES` in `src/types.ts` (uiScale, explorerCollapsed,
+explorerWidth, autoRevealActiveFile, explorerHintShown).
 
 ## Milestone status
 
