@@ -15,8 +15,8 @@ Slide decks are bad at showing code that evolves. Live IDE demos are powerful bu
 - It **looks and feels** like a lightweight IDE.
 - It's **controlled** like a presentation.
 - Code is **explorable, but only within curated boundaries**.
-- Progression through the talk is modelled as **branches**, not slides.
-- Each branch can launch a **preview scene** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
+- Progression through the talk is modelled as **stages** (often visualised as git branches), not slides.
+- Each stage can launch a **preview scene** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
 
 The goal is not to build a real IDE. The goal is a believable, deterministic, code-first presentation surface for speakers, trainers, and DevRel.
 
@@ -29,29 +29,31 @@ The goal is not to build a real IDE. The goal is a believable, deterministic, co
 
 ## How the stages work
 
-A Prezl project is a folder with a `prezl.yaml` and a `files/` directory. The YAML declares the presentation flow — branches (stages), their order, titles, and optional previews. The code itself lives in `files/` as real source files.
+A Prezl project is a folder with a `prezl.yaml` and a `files/` directory. The YAML declares the presentation flow — stages, their titles, and optional previews. The code itself lives in `files/` as real source files.
 
-Visibility, folding, and highlights are driven by inline `@prezl:*` comment directives colocated with the code they affect, so refactors don't break the story:
+Visibility, folding, and highlights are driven by inline `@prezl` comment directives colocated with the code they affect, so refactors don't break the story:
 
 ```ts
-// @prezl:file [shell...]         ← file visible from stage 'shell' onwards
+// @prezl file=[shell...]                ← file visible from stage 'shell' onwards
 
 export function registerDashboard() {
-  // @prezl:focus [shell]
+  // @prezl focus=[shell]
   const dashboard = createDashboard()
-  // @prezl:/focus
+  // @prezl end
 
-  // @prezl:collapse Dashboard internals    ← folded by default, click to expand
+  // @prezl collapse label="Dashboard internals"   ← folded by default
   const internals = wireUpEverything()
-  // @prezl:/collapse
+  // @prezl end
 
-  // @prezl:show [preview...]
+  // @prezl show=[preview...]
   dashboard.preview = createPreview()
-  // @prezl:/show
+  // @prezl end
 }
 ```
 
-Directive comments are stripped at render time; the audience never sees them.
+Attributes can also be stacked — `id=…  show=…  focus=…  collapse  label="…"`
+on a single open tag — and the audience never sees any of it: directive
+comments are stripped at render time.
 
 ## Status
 
