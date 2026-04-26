@@ -12,6 +12,7 @@ import { useStageShortcuts } from './hooks/useStageShortcuts'
 import { useRunShortcut } from './hooks/useRunShortcut'
 import { useSymbolFinderShortcut } from './hooks/useSymbolFinderShortcut'
 import { useDeepLink } from './hooks/useDeepLink'
+import { useMouseHistoryNav } from './hooks/useMouseHistoryNav'
 
 export function App() {
   usePreferencesPersistence()
@@ -21,6 +22,7 @@ export function App() {
   useRunShortcut()
   useSymbolFinderShortcut()
   useDeepLink()
+  useMouseHistoryNav()
 
   const project = useAppStore((s) => s.project)
   const isRouting = useAppStore((s) => s.isRouting)

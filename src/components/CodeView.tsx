@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { useAppStore } from '@/state/store'
+import { saveScrollPosition, useAppStore } from '@/state/store'
 import { editorFontSize } from '@/hooks/useUiScale'
 import {
   useActiveRenderedFile,
@@ -38,6 +38,8 @@ export function CodeView() {
   const consumePendingNavigation = useAppStore((s) =>
     s.consumePendingNavigation,
   )
+  const pendingScrollTop = useAppStore((s) => s.pendingScrollTop)
+  const consumePendingScrollTop = useAppStore((s) => s.consumePendingScrollTop)
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -107,9 +109,10 @@ export function CodeView() {
   // (file, screen) branch undo the scroll on its second pass.
   //
   // Branch A — fires once per (file, screen) change. Priority:
-  //   1. one-shot pendingNavigation (symbol jump that opened this file)
-  //   2. screen.open
-  //   3. top of file
+  //   1. pendingScrollTop (back/forward restore — exact pixel position)
+  //   2. one-shot pendingNavigation (symbol jump that opened this file)
+  //   3. screen.open
+  //   4. top of file
   //
   // Branch B — fires when a same-file pendingNavigation arrives and the
   //   (file, screen) hasn't changed (clicking a symbol that lives in the
@@ -170,6 +173,19 @@ export function CodeView() {
     if (lastScrolledKey.current !== fileStageKey) {
       lastScrolledKey.current = fileStageKey
 
+      // Highest priority: a pending pixel scroll target from goBack/
+      // goForward — the user explicitly asked to land where they last
+      // were. Defer one frame so the fold-seeding effect commits first
+      // (collapsed folds shift line offsets above the saved position).
+      if (pendingScrollTop != null) {
+        const top = pendingScrollTop
+        consumePendingScrollTop()
+        requestAnimationFrame(() => {
+          if (containerRef.current) containerRef.current.scrollTop = top
+        })
+        return
+      }
+
       if (pendingNavigation && pendingNavigation.file === activeFile) {
         scrollToLine(pendingNavigation.line, true)
         consumePendingNavigation()
@@ -205,8 +221,21 @@ export function CodeView() {
     screen,
     pendingNavigation,
     consumePendingNavigation,
+    pendingScrollTop,
+    consumePendingScrollTop,
     fileStageKey,
   ])
+
+  // Persist the current scrollTop per (screen, file) so goBack/goForward can
+  // restore where the user was. Plain map mutation — never read reactively, so
+  // no rerenders. Suppressed while a pendingScrollTop is in flight: the
+  // synthetic scroll set in the rAF below would otherwise overwrite the very
+  // value we just restored.
+  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!screen || !activeFile) return
+    if (useAppStore.getState().pendingScrollTop != null) return
+    saveScrollPosition(screen.id, activeFile, e.currentTarget.scrollTop)
+  }
 
   // Click delegation for symbol jumps — one listener instead of N.
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -256,6 +285,7 @@ export function CodeView() {
       className="code-view flex-1 overflow-auto"
       style={containerStyle}
       onClick={onClick}
+      onScroll={onScroll}
     >
       <div className="code-view-inner" role="presentation">
         {Array.from({ length: totalLines }, (_, i) => {

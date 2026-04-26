@@ -110,6 +110,9 @@ src/
     useStageShortcuts   Space / PageDown / Ctrl+Space (and inverses) —
                         walks every screen, including across stage
                         boundaries.
+    useMouseHistoryNav  XButton1/2 (mouse back/forward) → goBack /
+                        goForward. Capture-phase mousedown+mouseup;
+                        suppressed while the video preview is open.
     useRenderedFile.ts  useScreenIndex / useCurrentScreen /
                         useCurrentStage / useVisibleFiles /
                         useSymbolTable / useActiveRenderedFile.
@@ -280,6 +283,36 @@ directly:
 Add a failing case to the relevant `.test.ts` file and run
 `pnpm test` (one-shot) or `pnpm test:watch` (TDD loop). Prefer this
 over ad-hoc debug scripts.
+
+## Location history
+
+Browser-style back/forward stack of `(screenId, file)` entries. Pushed
+at the end of every user-initiated nav action — `switchScreen`,
+`openFile`, `setActiveFile`, `navigateToFileLine` — via the
+`recordCurrent()` helper inside the store. Adjacent duplicates collapse;
+a new push truncates the forward stack. `closeTab` deliberately does
+not push (closing is editing, not navigating).
+
+`goBack` / `goForward` set a closure-scoped `suppressHistoryPush`
+flag and call `applyHistoryLocation(loc)`, which mirrors switchScreen's
+visible-files / tab-reconcile work but **forces `activeFile` to the
+recorded file** — overriding the screen's `open.file` intent, because
+the user explicitly asked to return to *this* file — and **skips the
+video autoLaunch** so navigating backward never replays a video.
+
+Per-`(screen, file)` scroll positions live in a module-level
+`scrollPositions: Map<string, number>` outside Zustand state. Mutated
+in place from CodeView's `onScroll`; never read reactively, so it
+costs zero re-renders. Cleared on `setProject` / `clearProject`.
+Restoration goes through a one-shot `pendingScrollTop` field which
+CodeView consumes in its scroll layoutEffect at higher priority than
+`pendingNavigation` and `screen.open`. The set runs inside a
+`requestAnimationFrame` so the fold-seeding effect commits first —
+otherwise the saved pixel position would land on the wrong line once
+default-collapsed folds shift the layout above it. The onScroll
+handler suppresses saves while a `pendingScrollTop` is in flight, so
+the synthetic restore doesn't immediately overwrite the value it just
+read.
 
 ## Preferences storage
 

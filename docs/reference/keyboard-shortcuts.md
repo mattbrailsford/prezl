@@ -58,6 +58,21 @@ Inside the symbol finder modal:
 See [Slide-deck integration](../guide/slide-deck-integration) for the
 full launch flow and the [`prezl://` URL scheme](./url-scheme).
 
+## Mouse navigation
+
+| Button | Action |
+| --- | --- |
+| Side button 1 (XButton1, "back") | Back through location history |
+| Side button 2 (XButton2, "forward") | Forward through location history |
+
+History records every user-initiated change of `(screen, file)` —
+explorer clicks, tab clicks, screen advances, symbol jumps. Adjacent
+duplicates collapse, and a new navigation truncates the forward stack
+(standard browser behaviour). Each location remembers its scroll
+position so back / forward land you exactly where you left off,
+overriding the screen's default `open` target. Suppressed while the
+video preview modal is open.
+
 ## Presentation chrome
 
 | Shortcut | Action |

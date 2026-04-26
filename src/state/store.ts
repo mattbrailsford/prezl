@@ -20,6 +20,53 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
+/** Where the user was looking — pushed onto the back/forward stack on every
+ *  user-initiated navigation that changes (screenId, activeFile). */
+type HistoryLocation = {
+  screenId: string
+  file: string | null
+}
+
+/** Per-(screen, file) scroll positions for back/forward restore. Mutated in
+ *  place from the code viewer's onScroll handler — never observed reactively,
+ *  so it lives outside Zustand state to avoid spurious re-renders. */
+const scrollPositions = new Map<string, number>()
+
+function scrollKey(screenId: string, file: string | null): string {
+  return `${screenId}::${file ?? ''}`
+}
+
+export function saveScrollPosition(
+  screenId: string,
+  file: string | null,
+  top: number,
+): void {
+  scrollPositions.set(scrollKey(screenId, file), top)
+}
+
+function getScrollPosition(
+  screenId: string,
+  file: string | null,
+): number | null {
+  return scrollPositions.get(scrollKey(screenId, file)) ?? null
+}
+
+/** Set during goBack/goForward replay so the inner switchScreen / openFile /
+ *  setActiveFile path doesn't push a duplicate history entry. Closure-scoped
+ *  rather than store-scoped because no UI ever needs to read it. */
+let suppressHistoryPush = false
+
+function pushHistoryEntry(
+  state: { history: HistoryLocation[]; historyIndex: number },
+  loc: HistoryLocation,
+): { history: HistoryLocation[]; historyIndex: number } | null {
+  const top = state.history[state.historyIndex]
+  if (top && top.screenId === loc.screenId && top.file === loc.file) return null
+  const truncated = state.history.slice(0, state.historyIndex + 1)
+  truncated.push(loc)
+  return { history: truncated, historyIndex: truncated.length - 1 }
+}
+
 /**
  * Decide whether moving from `previousScreen` to `targetScreen` should fire
  * a video preview's `autoLaunch`. Three conditions must all hold:
@@ -69,6 +116,13 @@ type AppState = {
    *  `hideOnExit=1`. Surfaces the "Back to presentation" button + shortcut.
    *  Cleared on clearProject. */
   launchedFromSlide: boolean
+  /** Browser-style back/forward stack of (screenId, file) locations.
+   *  Pushed on user-initiated navigation; replayed by goBack/goForward. */
+  history: HistoryLocation[]
+  historyIndex: number
+  /** One-shot scroll-pixel target consumed by CodeView, set when goBack/
+   *  goForward restores a previously visited location. */
+  pendingScrollTop: number | null
 }
 
 type AppActions = {
@@ -99,9 +153,88 @@ type AppActions = {
   closeSymbolFinder: () => void
   setIsRouting: (v: boolean) => void
   setLaunchedFromSlide: (v: boolean) => void
+  /** Walk back / forward through the location history. No-op at boundaries. */
+  goBack: () => void
+  goForward: () => void
+  consumePendingScrollTop: () => void
 }
 
-export const useAppStore = create<AppState & AppActions>((set, get) => ({
+export const useAppStore = create<AppState & AppActions>((set, get) => {
+  // Helpers closed over set/get. Defined here so the actions below can call
+  // them without threading parameters through every call site.
+
+  const recordCurrent = (): void => {
+    if (suppressHistoryPush) return
+    const s = get()
+    if (!s.currentScreenId) return
+    const next = pushHistoryEntry(s, {
+      screenId: s.currentScreenId,
+      file: s.activeFile,
+    })
+    if (next) set(next)
+  }
+
+  /** Apply a history entry to the store without pushing back onto the stack.
+   *  Mirrors the visible-files / tab-reconcile work of switchScreen, but
+   *  forces activeFile to the recorded file (overriding screen.open's intent
+   *  — the user explicitly asked to go back to *this* file) and skips the
+   *  video-preview autoLaunch (going back shouldn't replay a video). */
+  const applyHistoryLocation = (loc: HistoryLocation): void => {
+    const state = get()
+    const project = state.project
+    const screenIndex = state.screenIndex
+    if (!project || !screenIndex) return
+    const target = screenIndex.byId[loc.screenId]
+    if (!target) return
+
+    const previous = state.currentScreenId
+      ? (screenIndex.byId[state.currentScreenId] ?? null)
+      : null
+    const crossingStage = previous?.stageAlias !== target.stageAlias
+
+    if (crossingStage) {
+      const stage = project.stages.find((s) => s.alias === target.stageAlias)
+      const label = stage?.branch ?? stage?.title ?? target.stageAlias
+      set({ statusMessage: `Switching to ${label}...` })
+    }
+
+    const visibleFiles = computeVisibleFiles({
+      files: project.files,
+      rawFiles: state.rawFiles,
+      currentScreenId: target.id,
+      screenIndex,
+    })
+    const visible = new Set(visibleFiles)
+    let openTabs = state.openTabs.filter((p) => visible.has(p))
+    let activeFile: string | null =
+      loc.file && visible.has(loc.file) ? loc.file : null
+    if (activeFile && !openTabs.includes(activeFile)) {
+      openTabs = [...openTabs, activeFile]
+    }
+    if (!activeFile && openTabs.length > 0) {
+      activeFile = openTabs[openTabs.length - 1]!
+    } else if (!activeFile && visibleFiles.length > 0) {
+      activeFile = visibleFiles[0]!
+      openTabs = [activeFile]
+    }
+
+    set({
+      currentScreenId: target.id,
+      openTabs,
+      activeFile,
+      pendingScrollTop: getScrollPosition(target.id, activeFile),
+    })
+
+    if (crossingStage) {
+      window.setTimeout(() => {
+        if (get().currentScreenId === target.id) {
+          set({ statusMessage: 'Ready' })
+        }
+      }, 400)
+    }
+  }
+
+  return {
   project: null,
   rawFiles: new Map(),
   screenIndex: null,
@@ -117,6 +250,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   symbolFinderOpen: false,
   isRouting: true,
   launchedFromSlide: false,
+  history: [],
+  historyIndex: -1,
+  pendingScrollTop: null,
 
   setProject: (project, rawFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
@@ -148,6 +284,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     if (initialScreen && shouldAutoLaunchPreview(null, initialScreen)) {
       previewState = { kind: 'video', preview: initialScreen.preview }
     }
+    scrollPositions.clear()
+    const initialHistory: HistoryLocation[] = initialScreen
+      ? [{ screenId: initialScreen.id, file: firstFile }]
+      : []
     set({
       project,
       rawFiles,
@@ -158,10 +298,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       statusMessage: 'Ready',
       previewState,
       loadError: null,
+      history: initialHistory,
+      historyIndex: initialHistory.length - 1,
+      pendingScrollTop: null,
     })
   },
 
-  clearProject: () =>
+  clearProject: () => {
+    scrollPositions.clear()
     set({
       project: null,
       rawFiles: new Map(),
@@ -173,7 +317,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       previewState: { kind: 'closed' },
       loadError: null,
       launchedFromSlide: false,
-    }),
+      history: [],
+      historyIndex: -1,
+      pendingScrollTop: null,
+    })
+  },
 
   switchStage: (alias) => {
     const state = get()
@@ -234,6 +382,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
         }
       }, 400)
     }
+    recordCurrent()
   },
 
   switchScreenRelative: (delta) => {
@@ -247,11 +396,13 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     get().switchScreen(next.id)
   },
 
-  openFile: (path) =>
+  openFile: (path) => {
     set((s) => ({
       openTabs: s.openTabs.includes(path) ? s.openTabs : [...s.openTabs, path],
       activeFile: path,
-    })),
+    }))
+    recordCurrent()
+  },
 
   closeTab: (path) =>
     set((s) => {
@@ -261,7 +412,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       return { openTabs, activeFile }
     }),
 
-  setActiveFile: (path) => set({ activeFile: path }),
+  setActiveFile: (path) => {
+    set({ activeFile: path })
+    recordCurrent()
+  },
 
   setStatusMessage: (msg) => set({ statusMessage: msg }),
 
@@ -328,6 +482,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       activeFile: file,
       pendingNavigation: { file, line },
     }))
+    recordCurrent()
   },
 
   consumePendingNavigation: () => set({ pendingNavigation: null }),
@@ -335,7 +490,40 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   closeSymbolFinder: () => set({ symbolFinderOpen: false }),
   setIsRouting: (v) => set({ isRouting: v }),
   setLaunchedFromSlide: (v) => set({ launchedFromSlide: v }),
-}))
+
+  goBack: () => {
+    const state = get()
+    if (state.historyIndex <= 0) return
+    const targetIdx = state.historyIndex - 1
+    const loc = state.history[targetIdx]
+    if (!loc) return
+    suppressHistoryPush = true
+    try {
+      set({ historyIndex: targetIdx })
+      applyHistoryLocation(loc)
+    } finally {
+      suppressHistoryPush = false
+    }
+  },
+
+  goForward: () => {
+    const state = get()
+    if (state.historyIndex >= state.history.length - 1) return
+    const targetIdx = state.historyIndex + 1
+    const loc = state.history[targetIdx]
+    if (!loc) return
+    suppressHistoryPush = true
+    try {
+      set({ historyIndex: targetIdx })
+      applyHistoryLocation(loc)
+    } finally {
+      suppressHistoryPush = false
+    }
+  },
+
+  consumePendingScrollTop: () => set({ pendingScrollTop: null }),
+  }
+})
 
 function firstScreenOfStage(
   screenIndex: ScreenIndex,
