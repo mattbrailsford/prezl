@@ -39,6 +39,21 @@ The definition site itself is **not** turned into a link (clicking the
 function name where it's defined would jump in place — pointless). Only
 usage sites become jumps.
 
+## On landing
+
+A jump does two things to help the audience follow you:
+
+- **Auto-expand collapsed folds.** If the target line sits inside a
+  collapsed `@prezl collapse` region — or *is* the fold's header line,
+  as when an id sits on a `collapse`d type declaration — the fold
+  opens automatically so the body is visible. You can re-collapse it
+  manually with the gutter toggle; advancing to the next screen
+  re-applies the directive defaults.
+- **Highlight flash.** The landed line briefly pulses with the accent
+  colour and fades out (~1.6s). It only fires for explicit jumps
+  (symbol click, Ctrl+T) — not for the automatic scroll that happens
+  on every screen advance.
+
 ## Picking good ids
 
 Prezl matches identifiers by exact word boundary, case-sensitive. That's

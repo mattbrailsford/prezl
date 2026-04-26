@@ -210,6 +210,28 @@ Priority: `pendingNavigation` > `screen.open.id` > `screen.open.line` >
 top of file. The `screen.open` is the resolved value (step override
 wins over stage default), so per-step opens drive scroll.
 
+Two extras layer onto every `scrollToLine` call:
+
+- **Auto-expand containing folds.** Any fold whose range covers the
+  target line (inclusive of `start`, since the start line is the fold's
+  visible header — clicking a symbol on a `collapse`d type declaration
+  should reveal the body, not just sit on the summary) gets its key
+  removed from `collapsedFolds` before scrolling. In cross-file jumps
+  the seeding effect's `setCollapsedFolds(initial)` runs first and
+  collapses everything per directive defaults; our updater runs on top
+  via `setCollapsedFolds(prev => prev - containing)`, so the order
+  produces "defaults minus containing." When expansion happens we defer
+  the actual scroll one frame (`requestAnimationFrame`) so React has
+  committed the new collapsed state and the line is back in the DOM.
+- **Highlight flash.** `flashLine(el)` runs `el.animate(...)` with a
+  stable `Animation.id` so repeat jumps cancel any in-flight flash and
+  restart cleanly. Imperative WAAPI (not a CSS class) so React's
+  className diff can't strip it mid-animation. **Only fires for
+  explicit jumps** — `scrollToLine` takes a `flash: boolean` and the
+  `screen.open` path passes `false`, otherwise every step advance would
+  flash distractingly. Colour reads `--color-app-accent` via
+  `getComputedStyle` so the flash stays themed.
+
 **Keyboard shortcuts in capture phase.** Global shortcuts (zoom,
 Ctrl+E, Ctrl+Enter, Ctrl+T, screen navigation) register with
 `{ capture: true }` so any focused control can't claim them first.
