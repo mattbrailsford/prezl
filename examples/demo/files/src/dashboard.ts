@@ -5,7 +5,7 @@ import type { App } from './framework'
 import { fetchDashboardData } from './api'
 // @prezl end
 
-// @prezl collapse label="Dashboard config types"
+// @prezl id=DashboardConfig collapse label="Dashboard config types"
 type DashboardConfig = {
   title: string
   refreshInterval: number

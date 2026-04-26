@@ -121,12 +121,49 @@ export function CodeView() {
     if (!rendered || !containerRef.current) return
     const container = containerRef.current
 
-    const scrollToLine = (line: number) => {
+    // `flash=true` is only for explicit user jumps (symbol click → a
+    // pendingNavigation). The screen.open path runs on every screen/file
+    // change and would flash distractingly on each step advance.
+    const scrollToLine = (line: number, flash: boolean) => {
+      // If the target sits inside one or more fold ranges, expand them so
+      // the line is reachable. Manual re-collapse via the toggle still
+      // works after the jump. We always defer the scroll to the next
+      // frame in this branch — in cross-file jumps the seeding effect's
+      // setCollapsedFolds hasn't committed yet, so the line we'd query
+      // for now would be hidden a tick later.
+      // Include r.start: the fold's start line is its visible header (e.g.
+      // `type Foo = {` on the `DashboardConfig` fold), so a click on that
+      // line is technically "visible" — but a symbol jump targets that
+      // header and the user's intent is to see the body, not just the
+      // summary line.
+      const containing = rendered.foldRanges.filter(
+        (r) => line >= r.start && line <= r.end,
+      )
+      if (containing.length > 0) {
+        setCollapsedFolds((prev) => {
+          const next = new Set(prev)
+          let changed = false
+          for (const r of containing) {
+            if (next.delete(foldKey(r))) changed = true
+          }
+          return changed ? next : prev
+        })
+        requestAnimationFrame(() => {
+          const el = container.querySelector(
+            `[data-line="${line}"]`,
+          ) as HTMLElement | null
+          if (!el) return
+          el.scrollIntoView({ block: 'center', behavior: 'auto' })
+          if (flash) flashLine(el)
+        })
+        return
+      }
       const el = container.querySelector(
         `[data-line="${line}"]`,
       ) as HTMLElement | null
       if (!el) return
       el.scrollIntoView({ block: 'center', behavior: 'auto' })
+      if (flash) flashLine(el)
     }
 
     // Branch A: (file, screen) just changed.
@@ -134,7 +171,7 @@ export function CodeView() {
       lastScrolledKey.current = fileStageKey
 
       if (pendingNavigation && pendingNavigation.file === activeFile) {
-        scrollToLine(pendingNavigation.line)
+        scrollToLine(pendingNavigation.line, true)
         consumePendingNavigation()
         return
       }
@@ -147,7 +184,7 @@ export function CodeView() {
           line = openTarget.line
         }
         if (line) {
-          scrollToLine(line)
+          scrollToLine(line, false)
           return
         }
       }
@@ -159,7 +196,7 @@ export function CodeView() {
     // (same-file symbol click). Scroll to it without touching scrollTop on
     // re-runs after consumption.
     if (pendingNavigation && pendingNavigation.file === activeFile) {
-      scrollToLine(pendingNavigation.line)
+      scrollToLine(pendingNavigation.line, true)
       consumePendingNavigation()
     }
   }, [
@@ -309,6 +346,30 @@ function isLineHidden(
 
 function foldKey(r: { start: number; end: number }): string {
   return `${r.start}-${r.end}`
+}
+
+const FLASH_ANIM_ID = 'prezl-line-flash'
+
+/** Brief background flash on a code line so the eye can locate the jump
+ *  target. Imperative via the Web Animations API so React reconciliation
+ *  can't clobber it, and so repeat jumps to the same line restart cleanly
+ *  without needing key/remount tricks. */
+function flashLine(el: HTMLElement) {
+  for (const a of el.getAnimations()) {
+    if (a.id === FLASH_ANIM_ID) a.cancel()
+  }
+  const accent =
+    getComputedStyle(el).getPropertyValue('--color-app-accent').trim() ||
+    '99 102 241'
+  const anim = el.animate(
+    [
+      { backgroundColor: `rgba(${accent} / 0.5)`, offset: 0 },
+      { backgroundColor: `rgba(${accent} / 0.5)`, offset: 0.4 },
+      { backgroundColor: 'transparent', offset: 1 },
+    ],
+    { duration: 1600, easing: 'ease-out' },
+  )
+  anim.id = FLASH_ANIM_ID
 }
 
 function buildLineSet(
