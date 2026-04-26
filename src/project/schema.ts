@@ -47,6 +47,12 @@ const videoPreview = z.object({
   startAt: z.number().nonnegative().optional(),
   stopAt: z.number().nonnegative().optional(),
   cues: z.array(videoCue).optional(),
+  /** When true, the video modal launches automatically the first time the
+   *  presenter advances onto a screen carrying this preview — useful for
+   *  "lead with a video" stage intros. Subsequent steps that inherit the
+   *  same preview don't re-trigger; an explicitly-redeclared preview on a
+   *  later screen does. */
+  autoLaunch: z.boolean().optional(),
 })
 
 const preview = z.discriminatedUnion('type', [urlPreview, videoPreview])

@@ -38,6 +38,10 @@ export type VideoPreview = {
   startAt?: number
   stopAt?: number
   cues?: VideoCue[]
+  /** Open the video modal automatically when the presenter first lands on
+   *  a screen carrying this preview (sticky-inherited subsequent steps
+   *  don't re-trigger). See `shouldAutoLaunchPreview` in store.ts. */
+  autoLaunch?: boolean
 }
 
 export type Preview = UrlPreview | VideoPreview

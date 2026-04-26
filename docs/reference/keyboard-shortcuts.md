@@ -30,8 +30,9 @@ Run is suppressed while a preview is already in flight.
 
 | Shortcut | Action |
 | --- | --- |
-| `Space` / `PageDown` | Play / pause. At `stopAt`: restart. |
+| `Space` / `PageDown` | Play / pause. At `stopAt`: close and continue (forward nav default). |
 | `Esc` / `PageUp` | Close the preview |
+| Restart chip click | Replay the clip from `startAt` (deliberate; nav keys won't do this). |
 
 ## Editor symbols
 

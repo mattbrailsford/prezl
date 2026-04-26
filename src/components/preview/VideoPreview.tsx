@@ -14,7 +14,9 @@ export function VideoPreview() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [awaitingResume, setAwaitingResume] = useState(false)
   // Set when the video reached its stopAt. Swaps the Play chip for a Restart
-  // chip so the presenter can re-run the clip without closing first.
+  // chip — replaying the clip is the rarer intent, so it requires an
+  // explicit click; forward nav (Space / PageDown) closes the modal and
+  // returns to the deck.
   const [atEnd, setAtEnd] = useState(false)
   // YouTube-style cursor idle tracking: controls fade out a couple of seconds
   // after the last mouse movement. Any movement flips them back on.
@@ -84,8 +86,9 @@ export function VideoPreview() {
 
   const onStopAt = useCallback(() => {
     // Pause at the stop point rather than closing — lets the presenter
-    // linger on the last frame before hitting Esc / the X to dismiss. The
-    // Play chip is replaced with a Restart chip so they can re-run the clip.
+    // linger on the last frame before forward nav (Space / PageDown / Esc /
+    // the X) closes and returns to the deck. The Play chip is replaced with
+    // a Restart chip for the deliberate "play it again" case.
     videoRef.current?.pause()
     setAtEnd(true)
   }, [])
@@ -138,7 +141,11 @@ export function VideoPreview() {
 
   // Keyboard map while the modal is up:
   //   Escape / PageUp   -> close (back to editor)
-  //   Space / PageDown  -> toggle play/pause, or restart if at end
+  //   Space / PageDown  -> toggle play/pause; close once the clip has hit
+  //                        its stopAt, so forward-nav defaults to "I'm done,
+  //                        carry on" and the deck advances naturally.
+  //                        Restart is the rarer intent and gets the explicit
+  //                        button click instead.
   // PageUp / PageDown are here so a presentation clicker that emits those
   // codes (most wireless remotes do) drives playback instead of leaking
   // through to the stage-navigation shortcut.
@@ -157,8 +164,10 @@ export function VideoPreview() {
         const video = videoRef.current
         if (!video) return
         if (atEnd) {
-          restart()
-        } else if (video.paused) {
+          closePreview()
+          return
+        }
+        if (video.paused) {
           setAwaitingResume(false)
           void video.play()
         } else {
@@ -175,7 +184,7 @@ export function VideoPreview() {
       window.removeEventListener('keydown', onKey, {
         capture: true,
       } as EventListenerOptions)
-  }, [preview, closePreview, bumpCursorActivity, atEnd, restart])
+  }, [preview, closePreview, bumpCursorActivity, atEnd])
 
   if (!preview) return null
 
@@ -212,7 +221,7 @@ export function VideoPreview() {
             type="button"
             onClick={restart}
             aria-label="Restart"
-            title="Restart (Space)"
+            title="Restart"
             className="absolute bottom-12 left-1/2 z-50 grid size-14 -translate-x-1/2 animate-pulse place-items-center rounded-full bg-black/70 text-white shadow-lg ring-1 ring-white/20 backdrop-blur transition hover:animate-none hover:bg-black hover:ring-white/40"
           >
             <RotateCcw className="size-6 transition-transform hover:scale-110" strokeWidth={2.5} />

@@ -231,8 +231,11 @@ still advances even if focus is on an explorer item.
 open, `useStageShortcuts` explicitly skips (`preview.kind === 'video'`),
 and the modal's own capture-phase handler intercepts:
 
-- `Space` / `PageDown` → play/pause (or Restart when at `stopAt`)
+- `Space` / `PageDown` → play/pause; once the clip has hit `stopAt`,
+  these close the modal so forward nav defaults to "I'm done, carry on"
 - `Escape` / `PageUp` → close preview
+- The Restart chip (only shown at `stopAt`) takes an explicit click —
+  replaying is the rare deliberate case, not what forward nav should do.
 
 So with the same remote, PageDown drives playback inside the video and
 drives screen navigation outside; PageUp closes the video or walks

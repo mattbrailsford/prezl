@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
+  type Preview,
   type PrezlProject,
   type PreviewState,
   type Screen,
@@ -17,6 +18,29 @@ const LAUNCH_DELAY_MS = 300
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+/**
+ * Decide whether moving from `previousScreen` to `targetScreen` should fire
+ * a video preview's `autoLaunch`. Three conditions must all hold:
+ *
+ *   1. The target's preview is a video with `autoLaunch: true`.
+ *   2. The target's preview object reference differs from the previous
+ *      screen's — `buildScreenIndex` reuses the same reference when a step
+ *      inherits its preview, so equal references mean "no authorial change",
+ *      which is exactly when we want to suppress re-firing.
+ *   3. We're moving forward (or it's the first screen). Going backward
+ *      through a deck shouldn't replay the intro video.
+ */
+function shouldAutoLaunchPreview(
+  previousScreen: Screen | null,
+  targetScreen: Screen,
+): targetScreen is Screen & { preview: Preview & { type: 'video' } } {
+  const preview = targetScreen.preview
+  if (preview?.type !== 'video' || !preview.autoLaunch) return false
+  if (previousScreen?.preview === preview) return false
+  if (previousScreen && targetScreen.order <= previousScreen.order) return false
+  return true
 }
 
 type AppState = {
@@ -115,6 +139,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       intended && visibleFiles.includes(intended)
         ? intended
         : (visibleFiles[0] ?? null)
+    // Always reset previewState on project load so a stale modal from a
+    // previous project never bleeds through. If the initial screen carries
+    // an autoLaunch video, open it directly here — switchScreen isn't
+    // called for the initial screen, so its autolaunch hook wouldn't fire
+    // on cold start.
+    let previewState: PreviewState = { kind: 'closed' }
+    if (initialScreen && shouldAutoLaunchPreview(null, initialScreen)) {
+      previewState = { kind: 'video', preview: initialScreen.preview }
+    }
     set({
       project,
       rawFiles,
@@ -123,6 +156,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       openTabs: firstFile ? [firstFile] : [],
       activeFile: firstFile,
       statusMessage: 'Ready',
+      previewState,
       loadError: null,
     })
   },
@@ -185,6 +219,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       openTabs: next.openTabs,
       activeFile: next.activeFile,
     })
+    // Don't stomp on an already-open preview (rare — modal absorbs Space —
+    // but defensive against stage-dropdown jumps mid-modal).
+    if (
+      get().previewState.kind === 'closed' &&
+      shouldAutoLaunchPreview(previous, target)
+    ) {
+      set({ previewState: { kind: 'video', preview: target.preview } })
+    }
     if (crossingStage) {
       window.setTimeout(() => {
         if (get().currentScreenId === target.id) {

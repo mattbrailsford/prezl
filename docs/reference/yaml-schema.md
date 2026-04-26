@@ -131,12 +131,20 @@ preview:
   src: ./videos/demo.mp4      # path relative to project root, or absolute http(s)
   startAt: 4.5                # optional — seconds
   stopAt: 32.0                # optional — pauses playback, shows Restart chip
+  autoLaunch: true            # optional — open the modal automatically when
+                              #   the presenter first lands on this screen
   cues:                       # optional — auto-pause timestamps
     - { time: 12.0, label: "Optional label for future use" }
 ```
 
 Cues pause playback with a subtle Play chip; Space / PageDown /
 chip-click resumes. Each cue fires once per session.
+
+`autoLaunch: true` is the "lead with a video" pattern: the modal opens
+the moment the presenter advances onto a screen carrying this preview,
+without needing to click *Run* first. Sticky-inherited subsequent
+steps don't re-fire — only an explicitly redeclared preview on a later
+screen does. Going backward through the deck never re-fires either.
 
 ## Notes
 

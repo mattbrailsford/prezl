@@ -90,6 +90,38 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['shell.three'].open?.file).toBe('b.ts')
   })
 
+  it('preserves preview reference identity across inherited steps', () => {
+    // Autolaunch in the store relies on this: shared identity = "no
+    // authorial change", so subsequent steps that inherit the stage's
+    // preview don't re-fire the video modal.
+    const stagePreview = {
+      type: 'video' as const,
+      src: 'intro.mp4',
+      autoLaunch: true,
+    }
+    const overridePreview = {
+      type: 'video' as const,
+      src: 'middle.mp4',
+    }
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        preview: stagePreview,
+        steps: [
+          { alias: 'one' },
+          { alias: 'two', preview: overridePreview },
+          { alias: 'three' },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.one'].preview).toBe(stagePreview)
+    expect(idx.byId['shell.two'].preview).toBe(overridePreview)
+    // step three inherits step two's override — same reference, not a new copy.
+    expect(idx.byId['shell.three'].preview).toBe(overridePreview)
+  })
+
   it('throws on duplicate step alias within a stage', () => {
     const stages: Stage[] = [
       {
