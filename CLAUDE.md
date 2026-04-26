@@ -118,8 +118,9 @@ src/
 ## Directive system invariants
 
 Prefixes accepted: `@prezl` or `@przl`. Line comments (`//`, `#`, `--`)
-and single-line block comments (`/* ... */`). Directives are always on
-their own line and always stripped from the rendered text.
+and single-line block comments (`/* ... */`, `<!-- ... -->`, `@* ... *@`).
+Directives are always on their own line and always stripped from the
+rendered text.
 
 **Attribute-based grammar** — one opening tag can stack behaviours:
 

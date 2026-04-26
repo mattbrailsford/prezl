@@ -35,6 +35,21 @@ describe('directive parser', () => {
       expect(result.text).toBe('content')
       expect(result.marks.top).toBe(1)
     })
+
+    it.each([
+      ['// @prezl id=top', 'C-style line'],
+      ['# @prezl id=top', 'hash line'],
+      ['-- @prezl id=top', 'SQL-style line'],
+      ['/* @prezl id=top */', 'C-style block'],
+      ['<!-- @prezl id=top -->', 'HTML block'],
+      ['@* @prezl id=top *@', 'Razor block'],
+    ])('detects directives in %s comments (%s)', (directive) => {
+      const src = [directive, 'content'].join('\n')
+      const result = parse(src, 'main')
+      expect(result.text).toBe('content')
+      expect(result.marks.top).toBe(1)
+      expect(result.errors).toEqual([])
+    })
   })
 
   describe('file-level gate', () => {

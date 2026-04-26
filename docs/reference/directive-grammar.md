@@ -6,8 +6,8 @@ for a friendlier introduction.
 ## Prefix + comment syntax
 
 A directive lives inside a line comment (`//`, `#`, `--`) or a
-single-line block comment (`/* … */`). Prezl recognizes either of two
-prefixes — pick whichever you prefer:
+single-line block comment (`/* … */`, `<!-- … -->`, or Razor's `@* … *@`).
+Prezl recognizes either of two prefixes — pick whichever you prefer:
 
 ```ts
 // @prezl  <attributes>
@@ -15,6 +15,8 @@ prefixes — pick whichever you prefer:
 /* @prezl <attributes> */
 # @prezl <attributes>          (Python, Ruby, shell, YAML…)
 -- @prezl <attributes>         (SQL, Haskell, Lua…)
+<!-- @prezl <attributes> -->   (HTML, XML, Vue/Markdown templates…)
+@* @prezl <attributes> *@      (Razor / .cshtml — server-side, not rendered)
 ```
 
 Everything after the prefix is an attribute list, parsed independently

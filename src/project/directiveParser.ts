@@ -49,14 +49,23 @@ type Directive =
   | { kind: 'invalid'; message: string }
 
 /** `// @prezl ...` on its own line (any leading indent). Also matches `# ...`,
- *  `-- ...`, and the block form `/* ... *\/` on a single line. */
+ *  `-- ...`, and the single-line block forms `/* ... *\/`, `<!-- ... -->`,
+ *  and Razor's `@* ... *@`. */
 const LINE_RE =
   /^\s*(?:\/\/|#|--)\s*@(?:prezl|przl)\b\s*([^\r\n]*?)\s*$/
 const BLOCK_RE =
   /^\s*\/\*\s*@(?:prezl|przl)\b\s*([\s\S]*?)\s*\*\/\s*$/
+const HTML_RE =
+  /^\s*<!--\s*@(?:prezl|przl)\b\s*([\s\S]*?)\s*-->\s*$/
+const RAZOR_RE =
+  /^\s*@\*\s*@(?:prezl|przl)\b\s*([\s\S]*?)\s*\*@\s*$/
 
 function detectDirective(rawLine: string): Directive | null {
-  const match = LINE_RE.exec(rawLine) ?? BLOCK_RE.exec(rawLine)
+  const match =
+    LINE_RE.exec(rawLine) ??
+    BLOCK_RE.exec(rawLine) ??
+    HTML_RE.exec(rawLine) ??
+    RAZOR_RE.exec(rawLine)
   if (!match) return null
   const body = match[1] ?? ''
 
