@@ -32,6 +32,16 @@ export function useStageShortcuts() {
       if (direction === 0) return
       e.preventDefault()
       e.stopPropagation()
+      // Drop focus from any clicked control (explorer item, tab, etc.) so the
+      // browser doesn't upgrade it to :focus-visible on this keypress and
+      // paint a focus ring after the screen advances. Real Tab-based
+      // navigation isn't affected — it lands on the next element fresh.
+      if (
+        document.activeElement instanceof HTMLElement &&
+        document.activeElement !== document.body
+      ) {
+        document.activeElement.blur()
+      }
       switchScreenRelative(direction)
     }
     window.addEventListener('keydown', onKey, { capture: true })
