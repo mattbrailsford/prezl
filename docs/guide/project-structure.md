@@ -18,7 +18,8 @@ my-talk/
 ```
 
 - **`prezl.yaml`** declares the presentation flow: name, projects
-  (optional), stages, previews.
+  (optional), stages, previews. `prezl.yml` is also accepted as a
+  fallback if you reach for the wrong extension out of habit.
 - **`files/`** is the root the Prezl editor shows. Paths in YAML (like
   `open.file`) and directives (`@prezl file=[...]`) are relative to this
   directory.

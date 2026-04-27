@@ -130,6 +130,29 @@ button triggers. Steps can override the preview the same way they
 override `open`, with sticky-forward inheritance. See
 [Previews](./previews).
 
+## Decluttering on cross-stage entry
+
+A stage with `reset: true` re-grounds the workspace when the presenter
+crosses into it from another stage:
+
+```yaml
+- alias: preview
+  reset: true
+  open: src/dashboard.ts
+```
+
+Tabs collapse to just the resolved `open` file, and any explorer
+folders the presenter expanded beyond the project's baseline get re-
+collapsed. Folders (and top-level groups) the presenter deliberately
+collapsed stay collapsed — the reset reduces clutter, it doesn't undo
+deliberate hides. The active file's containing chain is forced open
+so its tab still points at visible content.
+
+The reset only fires on cross-stage entry. Step transitions within the
+same stage, and back-nav across the boundary, leave the workspace
+alone — the reset is a deliberate "we're starting a new phase" act,
+not something to re-trigger mid-build.
+
 ## Full example
 
 ```yaml

@@ -48,6 +48,24 @@ Branch reload (file contents) only happens when crossing a stage
 boundary; within-stage step changes are pure parser re-runs, so they
 feel snappier than stage switches.
 
+## Stage reset
+
+A stage with `reset: true` re-grounds the workspace **only on cross-
+stage entry** (forward or via dropdown — *not* on back-nav, and *not*
+on step transitions within the stage). Two effects:
+
+- Tabs collapse to the resolved `open` file via the stage-reset
+  variant of `reconcileScreenSwitch`.
+- Explorer expansion is reset *monotonically toward less clutter*:
+  the new expanded set is `(prev ∩ baseline) ∪ activeFileChain`. So
+  presenter-driven expansions beyond the project's default get
+  re-collapsed, but presenter-driven *collapses* survive — the reset
+  honors deliberate hides instead of undoing them. The active file's
+  chain (group + folder ancestors via `ancestorChainForFile`) is the
+  only forced-open exception, since the tab would otherwise point at
+  hidden content. The store fires the reset by bumping
+  `explorerResetToken`; ExplorerTree's reset effect keys on that.
+
 ## Architecture at a glance
 
 ```
@@ -81,13 +99,19 @@ src/
                         for line numbers / fold widgets / decorations.
                         Replaced Monaco; see "Code viewer" below.
   project/
-    schema.ts           Zod validation for prezl.yaml. open: accepts a bare
-                        path string (shorthand for { file, line: 1 }) or
-                        the object form. Step entries accept a bare alias
-                        string (shorthand for { alias }) or the object
-                        form.
+    schema.ts           Zod validation for prezl.yaml (or prezl.yml — the
+                        Rust loader tries .yaml first, falls back to .yml).
+                        open: accepts a bare path string (shorthand for
+                        { file, line: 1 }) or the object form. Step
+                        entries accept a bare alias string (shorthand for
+                        { alias }) or the object form. Stages may set
+                        `reset: true` — see "Stage reset" below.
     loader.ts           orchestrates pickProjectFolder / load_project /
-                        list_project_files / read_project_file.
+                        list_project_files / read_project_file. The
+                        backend's read_project_file returns Option<String>:
+                        non-UTF-8 (binary) files come back as null and are
+                        collected into LoadedProject.binaryFiles instead
+                        of rawFiles, so the explorer still surfaces them.
     stageList.ts        screen index + selector parser. buildScreenIndex
                         produces ordered screens with step→stage open/
                         preview inheritance. parseScreenList accepts
@@ -109,7 +133,9 @@ src/
     stageReducer.ts     pure tab reconciliation on screen switch
                         (reconcileScreenSwitch). Consumes the screen's
                         resolved open, so per-step open overrides take
-                        effect.
+                        effect. Also exposes a stage-reset variant that
+                        collapses tabs to the resolved open file when
+                        crossing into a `reset: true` stage.
   hooks/
     useUiScale.ts       Ctrl+=/-/wheel, Ctrl+0, persisted.
     useExplorerToggle   Ctrl+E.

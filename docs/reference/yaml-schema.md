@@ -54,6 +54,7 @@ entry is the starting stage, and screen-range directives like
   preview:                   # optional — see Previews guide
     type: url | video
     …
+  reset: true                # optional — declutter on cross-stage entry
 ```
 
 The dropdown label cascades `title` → `branch` → `alias`, so a stage
@@ -166,6 +167,29 @@ An explicitly redeclared preview on a later step starts a new scope
 with its own start/end fires. Going backward never re-fires, and
 once an `end` video has fired for its scope it won't replay in the
 same session.
+
+#### Stage `reset:` — declutter on cross-stage entry
+
+```yaml
+- alias: preview
+  reset: true
+```
+
+When `reset: true`, entering this stage *from another stage* clears
+workspace clutter that built up earlier in the deck:
+
+- Open tabs collapse to just the resolved `open` file.
+- The explorer is reset **monotonically toward less clutter** —
+  folders the presenter expanded beyond the project's baseline are
+  re-collapsed, but folders (and top-level groups) the presenter
+  deliberately collapsed stay collapsed. The active file's containing
+  chain is the one forced-open exception, since the tab would
+  otherwise point at hidden content.
+
+Step transitions within the stage and back-nav across the stage
+boundary deliberately don't trigger the reset — it's a re-grounding
+act for new phases of the talk, not something to fire mid-build or
+when stepping back.
 
 ## Notes
 
