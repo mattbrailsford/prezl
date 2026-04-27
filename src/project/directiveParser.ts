@@ -27,7 +27,7 @@ export type DirectiveError = {
 type Attributes = {
   id?: string
   show?: string
-  focus?: string
+  focus?: string | true
   collapse?: string | true
   label?: string
   file?: string
@@ -42,7 +42,7 @@ type Directive =
       kind: 'region'
       id: string | null
       show: string | null
-      focus: string | null
+      focus: string | true | null
       collapse: string | true | null
       label: string | null
     }
@@ -154,7 +154,12 @@ function classify(attrs: Attributes): Directive {
   }
 
   const show = typeof attrs.show === 'string' ? attrs.show : null
-  const focus = typeof attrs.focus === 'string' ? attrs.focus : null
+  const focus =
+    attrs.focus === true
+      ? true
+      : typeof attrs.focus === 'string'
+        ? attrs.focus
+        : null
   const collapse =
     attrs.collapse === true
       ? true
@@ -195,7 +200,7 @@ type Frame = {
   collapseStages: string | null | true
   collapseLabel: string | null
   focusContentStart: number | null
-  focusStages: string | null
+  focusStages: string | null | true
 }
 
 export function parseDirectives(
@@ -282,7 +287,8 @@ export function parseDirectives(
 
       case 'region': {
         if (directive.show !== null) validateStages(directive.show, i + 1)
-        if (directive.focus !== null) validateStages(directive.focus, i + 1)
+        if (typeof directive.focus === 'string')
+          validateStages(directive.focus, i + 1)
         if (typeof directive.collapse === 'string')
           validateStages(directive.collapse, i + 1)
 
@@ -370,13 +376,16 @@ export function parseDirectives(
         if (
           top.focusContentStart !== null &&
           top.focusStages !== null &&
-          endLine >= top.focusContentStart &&
-          evaluateMatch(top.focusStages)
+          endLine >= top.focusContentStart
         ) {
-          focusRanges.push({
-            start: top.focusContentStart,
-            end: endLine,
-          })
+          const stagesMatch =
+            top.focusStages === true || evaluateMatch(top.focusStages)
+          if (stagesMatch) {
+            focusRanges.push({
+              start: top.focusContentStart,
+              end: endLine,
+            })
+          }
         }
         break
       }

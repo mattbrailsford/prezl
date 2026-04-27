@@ -25,7 +25,7 @@ The five attributes:
 | --- | --- | --- |
 | `id=<name>` | identifier | Mark a named anchor. Referenced from YAML (`open.id`) and from the Ctrl+T symbol finder. |
 | `show=[selector]` | range open/close | Region exists on listed screens; **removed** on others (line numbers shift). |
-| `focus=[selector]` | range open/close | Region is highlighted on listed screens. |
+| `focus` or `focus=[selector]` | range open/close | Region is highlighted (always, or on listed screens). |
 | `collapse` or `collapse=[selector]` | range open/close | Region is folded by default (always, or on listed screens). Combine with `label="…"`. |
 | `file=[selector]` | single-line, top of file | Whole file is visible only on listed screens. |
 

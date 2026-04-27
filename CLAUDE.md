@@ -162,7 +162,8 @@ Attribute semantics:
   anchors the first content line inside it.
 - `show=[selector]` — region is **removed** (line numbers shift) on
   screens not in the selector.
-- `focus=[selector]` — whole-line decoration over the region.
+- `focus` (bare flag) — whole-line decoration on every screen.
+- `focus=[selector]` — highlight only on listed screens.
 - `collapse` (bare flag) — fold a region, always collapsed by default.
 - `collapse=[selector]` — fold only on listed screens.
 - `label="..."` — label text for the collapsed fold's placeholder. Only

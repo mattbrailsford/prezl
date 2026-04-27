@@ -66,8 +66,8 @@ errors.
 | --- | --- | --- |
 | `id` | bare identifier | Any opening directive or a single-line anchor |
 | `show` | screen selector | Open/close; removes region on non-matching screens |
-| `focus` | screen selector | Open/close; highlights region on listed screens |
-| `collapse` | bare flag, or screen selector | Open/close; folds region by default |
+| `focus` | bare flag, or screen selector | Open/close; highlights region (bare = on every screen) |
+| `collapse` | bare flag, or screen selector | Open/close; folds region by default (bare = on every screen) |
 | `label` | quoted string | Companion to `collapse` — used as the folded placeholder |
 | `file` | screen selector | Single-line, must be before any code |
 | `end` | bare flag, or bare id | Close tag |

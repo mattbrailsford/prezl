@@ -140,6 +140,17 @@ describe('directive parser', () => {
       expect(parse(src, 'shell').focusRanges).toEqual([{ start: 1, end: 1 }])
       expect(parse(src, 'preview').focusRanges).toEqual([])
     })
+
+    it('bare focus highlights on every stage', () => {
+      const src = [
+        '// @prezl focus',
+        'highlighted',
+        '// @prezl end',
+      ].join('\n')
+      expect(parse(src, 'main').focusRanges).toEqual([{ start: 1, end: 1 }])
+      expect(parse(src, 'shell').focusRanges).toEqual([{ start: 1, end: 1 }])
+      expect(parse(src, 'preview').focusRanges).toEqual([{ start: 1, end: 1 }])
+    })
   })
 
   describe('stacked attributes', () => {
