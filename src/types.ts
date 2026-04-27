@@ -108,6 +108,9 @@ export type Screen = {
 
 export type PrezlProject = {
   name: string
+  /** Optional path (relative to the project root) to an image that
+   *  replaces the Prezl pretzel mark in the top-left of the editor. */
+  logo?: string
   projects?: ProjectFolder[]
   stages: Stage[]
   rootPath?: string

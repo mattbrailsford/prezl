@@ -74,6 +74,7 @@ export async function loadProjectFromDisk(
 
   const project: PrezlProject = {
     name: parsed.data.name,
+    logo: parsed.data.logo,
     projects: parsed.data.projects,
     stages: parsed.data.stages.map<Stage>((s, i) => ({
       alias: s.alias,

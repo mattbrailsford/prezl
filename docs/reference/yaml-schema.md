@@ -7,6 +7,7 @@ structure](../guide/project-structure) for a higher-level overview.
 
 ```yaml
 name: My Project            # required — shown in the Prezl titlebar
+logo: assets/logo.svg       # optional — replaces the pretzel mark top-left
 
 projects:                   # optional — see Multi-project layout
   - { name: …, path: …, icon: …, color: … }
@@ -18,6 +19,16 @@ stages:                     # required — at least one
 ### `name` (required, string)
 
 Displayed in the titlebar.
+
+### `logo` (optional, string)
+
+Path to an image (SVG, PNG, JPEG, WebP — anything an `<img>` tag can
+render) used in place of the Prezl pretzel mark in the top-left of the
+editor. Resolved relative to the project root, so the file doesn't have
+to live under `files/` — `logo: brand.svg` next to `prezl.yaml` is the
+typical layout. Absolute paths and `https://` URLs are also accepted.
+The tinted accent square is dropped when a custom logo is set so the
+mark renders on its own.
 
 ### `projects` (optional, array)
 
