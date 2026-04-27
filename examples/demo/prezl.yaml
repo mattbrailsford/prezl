@@ -4,7 +4,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open: ~
+    # No `open:` — first stage opens with just the file tree (default).
 
   - alias: shell
     branch: feature/dashboard-shell

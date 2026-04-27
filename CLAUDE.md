@@ -105,14 +105,21 @@ src/
                         { file }, no implicit line — CodeView falls through
                         to `scrollTop = 0`, leaving default-collapsed folds
                         collapsed), the object form, or explicit `null`
-                        (`~` in YAML) meaning "no file open" — the editor
-                        pane shows a faded brand mark via EmptyEditorPane
-                        and EditorTabs hides itself (kept only when the
-                        explorer is also collapsed, so the expand-explorer
-                        button stays reachable). Step entries accept a
-                        bare alias string (shorthand for { alias }) or
-                        the object form. Stages may set `reset: true` —
-                        see "Stage reset" below.
+                        (`~` in YAML) meaning "actively clear — no file
+                        open." Omitting `open:` is sticky-forward (inherit
+                        prior screen's resolved file via the reducer's
+                        prior-active-file rule); with nothing prior the
+                        pane stays empty (no auto-fallback to the first
+                        explorer file — that fallback was deliberately
+                        removed so the default first-stage UX is "just
+                        the file tree"). Empty pane renders EmptyEditorPane
+                        (faded brand mark + project name) and EditorTabs
+                        hides itself (kept only when the explorer is also
+                        collapsed, so the expand-explorer button stays
+                        reachable). Step entries accept a bare alias
+                        string (shorthand for { alias }) or the object
+                        form. Stages may set `reset: true` — see "Stage
+                        reset" below.
     loader.ts           orchestrates pickProjectFolder / load_project /
                         list_project_files / read_project_file. The
                         backend's read_project_file returns Option<String>:
@@ -479,9 +486,9 @@ must come before any early return.
 `examples/demo/` — the four-stage project with one stepped stage. Use
 it to verify behaviour after changes:
 
-- `main`: only `main.ts` + `framework.ts` in the explorer; `open: ~` so
-  the editor pane is empty (faded brand mark only) and the tab strip is
-  hidden — exercises the "intro / file-tree-only" state.
+- `main`: only `main.ts` + `framework.ts` in the explorer; no `open:`
+  declared, so the default "file tree only" state kicks in — empty
+  editor pane (faded brand mark + project name) and hidden tab strip.
 - `shell`: `dashboard.ts` appears; `registerDashboard` is the focus
   highlight.
 - `preview` (3 steps — `intro` / `fetchImpl` / `chartHelpers`):

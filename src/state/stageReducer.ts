@@ -25,12 +25,14 @@ export type ScreenSwitchOutput = {
  *    `screen.open` from the screen index.
  *  - If `screen.open` is explicitly `null` (the author wrote `open: ~`),
  *    every tab is closed and there is no active file — an "intro" empty
- *    state where only the file tree is visible. Tab/active-file inheritance
- *    is bypassed; the first-visible-file fallback does NOT fire.
+ *    state where only the file tree is visible.
  *  - If the previously active file is still visible, it stays active unless
- *    the screen explicitly opens a different file.
- *  - If nothing else is open (and `open` isn't an explicit `null`), the
- *    first visible file is opened.
+ *    the screen explicitly opens a different file. This is how undefined
+ *    `open` inherits the prior screen's state (sticky-forward across
+ *    stages and steps).
+ *  - No file auto-opens. With nothing prior and no `open:` declared, the
+ *    pane stays empty until the presenter clicks a file or a later screen
+ *    sets `open:`. The presenter starts with a clean file tree by default.
  */
 export function reconcileScreenSwitch(
   input: ScreenSwitchInput,
@@ -51,12 +53,6 @@ export function reconcileScreenSwitch(
   if (openIntent && visible.has(openIntent)) {
     if (!openTabs.includes(openIntent)) openTabs = [...openTabs, openIntent]
     activeFile = openIntent
-  }
-
-  if (openTabs.length === 0 && input.visibleFiles.length > 0) {
-    const first = input.visibleFiles[0]!
-    openTabs = [first]
-    activeFile = first
   }
 
   if (!activeFile && openTabs.length > 0) {

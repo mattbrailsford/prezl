@@ -82,26 +82,35 @@ open: src/dashboard.ts       # equivalent to { file: src/dashboard.ts, line: 1 }
 The full object form is only needed when you want to jump to a specific
 `line:` or symbol `id:`.
 
-#### `open: ~` — no file open
+#### Empty pane and `open: ~`
 
-Setting `open` to YAML null (`~`) on a stage means **no file is open on
-this screen** — the editor pane is empty and only the file tree is
-visible. The tab strip hides itself (unless the explorer is collapsed,
-in which case the strip stays so its expand-explorer button remains
-reachable). Useful as an intro stage that lets the audience read the
-project structure before any code appears:
+Omitting `open:` is **sticky-forward**: the screen inherits whatever
+the presenter is already on. With nothing to inherit (e.g. the first
+stage of the deck), the editor pane is empty and only the file tree
+is visible — the default opening state. The tab strip hides itself
+(unless the explorer is also collapsed, in which case the strip stays
+so its expand-explorer button remains reachable). The empty pane
+renders a faded brand mark with the project name as a title card.
 
 ```yaml
 - alias: intro
   title: Project structure
-  open: ~                    # explicit "no file" — empty editor pane
+  # No `open:` — file tree only, empty editor pane.
 ```
 
-Stepped stages with `open: ~` propagate the empty state through every
-step that doesn't override `open` (sticky-forward inheritance carries
-null the same way it carries a file). A later step can introduce a
-file with its own `open:` and subsequent steps inherit that, just like
-any other override.
+Setting `open: ~` (YAML null) is a stronger statement: **actively
+clear** the open file, even when a prior stage / step had one set.
+Useful for a mid-deck "summary" pause where the presenter wants the
+audience back on the project structure:
+
+```yaml
+- alias: pause
+  open: ~                    # explicit "no file" — overrides inheritance
+```
+
+Stepped stages propagate `open` (file or null) through every step that
+doesn't override it. A later step can introduce a file with its own
+`open:` and subsequent steps inherit that, just like any other override.
 
 #### Stage `steps:` — sub-navigation within a stage
 

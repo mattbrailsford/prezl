@@ -46,15 +46,20 @@ describe('reconcileScreenSwitch', () => {
     expect(result.activeFile).toBe('src/a.ts')
   })
 
-  it('falls back to the first visible file when no tabs remain', () => {
+  it('does NOT auto-open any file when nothing is open and the screen has no open intent', () => {
+    // Default behavior: with no authored `open:` and no prior tabs to
+    // inherit, the editor pane stays empty. The presenter clicks a file
+    // (or a later stage declares `open:`) to bring something up. This
+    // makes "start with the file tree" the project default — the
+    // user-facing equivalent of `open: ~` without having to write it.
     const result = reconcileScreenSwitch({
       screen: screen(),
       visibleFiles: ['src/x.ts', 'src/y.ts'],
       openTabs: [],
       activeFile: null,
     })
-    expect(result.openTabs).toEqual(['src/x.ts'])
-    expect(result.activeFile).toBe('src/x.ts')
+    expect(result.openTabs).toEqual([])
+    expect(result.activeFile).toBeNull()
   })
 
   it('preserves the previously active file if still visible and no open intent', () => {

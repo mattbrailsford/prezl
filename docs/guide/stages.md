@@ -31,11 +31,16 @@ stages:
 - **`open`** *(optional)* — what to show when this stage becomes
   active. Either a bare path string (shorthand for "open at line 1")
   or `{ file: …, line: 42 }` / `{ file: …, id: someMark }`. See
-  [Symbol navigation](./symbol-navigation) for `id:` targets. Set to
-  YAML null (`open: ~`) to **start with no file open** — the editor
-  pane shows a faded brand mark and the project name while only the
-  file tree is visible. Useful as an intro stage that lets the audience
-  take in the structure before any code appears.
+  [Symbol navigation](./symbol-navigation) for `id:` targets.
+  Omitting `open:` is **sticky-forward**: the screen inherits whatever
+  the presenter is already on, so a stage with no `open:` sitting after
+  a stage that did declare one continues to show that file. With
+  nothing prior to inherit, the editor pane is empty and only the file
+  tree is visible — the default first-stage state. Set to YAML null
+  (`open: ~`) to **actively clear** the editor mid-presentation,
+  forcing the empty state even when a prior stage had a file open.
+  Both empty states render a faded brand mark and the project name as
+  a title-card placeholder.
 
 The forward/backward sequence (Space / PageDown) follows the order in
 which stages — and steps inside them — appear in the manifest. To
@@ -166,7 +171,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open: ~                          # start empty — show the file tree only
+    # No `open:` — start with the file tree only (default empty pane).
 
   - alias: shell
     branch: feature/dashboard-shell

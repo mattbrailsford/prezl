@@ -235,10 +235,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       }
       if (!activeFile && openTabs.length > 0) {
         activeFile = openTabs[openTabs.length - 1]!
-      } else if (!activeFile && visibleFiles.length > 0) {
-        activeFile = visibleFiles[0]!
-        openTabs = [activeFile]
       }
+      // No visibleFiles[0] fallback — if the recorded location had no file,
+      // back-nav restores the empty pane the presenter actually saw.
     }
 
     set({
@@ -297,17 +296,13 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
           screenIndex,
         })
       : []
-    // `open: ~` (explicit null) on the initial stage means "no file open" —
-    // skip the visibleFiles[0] fallback that would otherwise auto-open the
-    // first file. This path doesn't go through reconcileScreenSwitch, so we
-    // honor the null directly here.
-    const explicitNoFile = initialScreen?.open === null
+    // Initial active file is the resolved authoring intent only — no
+    // visibleFiles[0] fallback. With nothing declared the project starts
+    // with a clean file tree; the presenter clicks (or `open:` on a later
+    // stage) to bring something up.
     const intended = initialScreen?.open?.file
-    const firstFile = explicitNoFile
-      ? null
-      : intended && visibleFiles.includes(intended)
-        ? intended
-        : (visibleFiles[0] ?? null)
+    const firstFile =
+      intended && visibleFiles.includes(intended) ? intended : null
     // Always reset previewState on project load so a stale modal from a
     // previous project never bleeds through. If the initial screen carries
     // an autoLaunch video, open it directly here — switchScreen isn't
