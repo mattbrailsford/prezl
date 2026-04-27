@@ -381,10 +381,11 @@ export function parseDirectives(
           const stagesMatch =
             top.focusStages === true || evaluateMatch(top.focusStages)
           if (stagesMatch) {
-            focusRanges.push({
-              start: top.focusContentStart,
-              end: endLine,
-            })
+            let start = top.focusContentStart
+            let end = endLine
+            while (start <= end && out[start - 1].trim() === '') start++
+            while (end >= start && out[end - 1].trim() === '') end--
+            if (start <= end) focusRanges.push({ start, end })
           }
         }
         break

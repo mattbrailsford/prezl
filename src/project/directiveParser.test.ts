@@ -151,6 +151,29 @@ describe('directive parser', () => {
       expect(parse(src, 'shell').focusRanges).toEqual([{ start: 1, end: 1 }])
       expect(parse(src, 'preview').focusRanges).toEqual([{ start: 1, end: 1 }])
     })
+
+    it('trims leading and trailing blank lines from the focus range', () => {
+      const src = [
+        '// @prezl focus',
+        '',
+        '  ',
+        'highlighted',
+        '',
+        '// @prezl end',
+      ].join('\n')
+      // emitted lines: "", "  ", "highlighted", ""
+      expect(parse(src, 'main').focusRanges).toEqual([{ start: 3, end: 3 }])
+    })
+
+    it('drops the focus range entirely when the body is all whitespace', () => {
+      const src = [
+        '// @prezl focus',
+        '',
+        '   ',
+        '// @prezl end',
+      ].join('\n')
+      expect(parse(src, 'main').focusRanges).toEqual([])
+    })
   })
 
   describe('stacked attributes', () => {
