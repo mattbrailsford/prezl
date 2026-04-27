@@ -102,9 +102,15 @@ src/
     schema.ts           Zod validation for prezl.yaml (or prezl.yml — the
                         Rust loader tries .yaml first, falls back to .yml).
                         open: accepts a bare path string (shorthand for
-                        { file }, no implicit line — CodeView falls through
-                        to `scrollTop = 0`, leaving default-collapsed folds
-                        collapsed), the object form, or explicit `null`
+                        { file }, no implicit line — CodeView preserves the
+                        prior scrollTop if the file is unchanged across the
+                        screen switch, else starts at the top, leaving
+                        default-collapsed folds collapsed), the object
+                        form (where `file` is optional — a partial
+                        `{ id }` or `{ line }` inherits the file from
+                        the previous resolved open via the buildScreenIndex
+                        merge; the schema rejects an empty `{}`), or
+                        explicit `null`
                         (`~` in YAML) meaning "actively clear — no file
                         open." Omitting `open:` is sticky-forward (inherit
                         prior screen's resolved file via the reducer's
@@ -256,9 +262,13 @@ container delegates jumps via `navigateToFileLine`.
 
 **Scroll handling.** A `useLayoutEffect` scrolls the target line into
 view before paint on `(file, screen, pendingNavigation)` change.
-Priority: `pendingNavigation` > `screen.open.id` > `screen.open.line` >
-top of file. The `screen.open` is the resolved value (step override
-wins over stage default), so per-step opens drive scroll.
+Priority: `pendingScrollTop` (back/forward replay) > `pendingNavigation`
+> `screen.open.id` > `screen.open.line` > preserve current scrollTop
+when the file is unchanged from the previous screen > top of file. The
+`screen.open` is the resolved value (step override wins over stage
+default), so per-step opens drive scroll. The "preserve when same file"
+fallback is what keeps step advances through one file from snapping
+back to the top when the new step has no scroll opinion of its own.
 
 Two extras layer onto every `scrollToLine` call:
 

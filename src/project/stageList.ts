@@ -53,6 +53,11 @@ export type ScreenListResult =
  *    inherit *this* step's resolved value, i.e., the stage default)
  *  - a value → that value is used and starts a new sticky chain
  *
+ * Step `open` has one extra wrinkle: a partial object that omits `file`
+ * (`{ id: 'foo' }` or `{ line: 42 }`) inherits the file from the previous
+ * resolved open. Lets a stepped stage walking through a single file say
+ * "jump to id X" without restating the path on every step.
+ *
  * Step alias collisions inside a stage throw — the schema layer should
  * have caught this; failing loud here keeps debugging simple.
  */
@@ -92,12 +97,18 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         }
         seen.add(step.alias)
         // Tri-state: undefined → inherit (prev), null → reset (stage), value → use.
-        const open =
+        // For value, also handle the partial-open shortcut: if the author
+        // wrote `{ id: ... }` or `{ line: ... }` without a `file`, fill in
+        // the file from the previous resolved open so step 2 onward can
+        // jump to a new anchor in the same file without restating the path.
+        const open: OpenTarget | null | undefined =
           step.open === undefined
             ? prevOpen
             : step.open === null
               ? stage.open
-              : step.open
+              : step.open.file === undefined && prevOpen?.file
+                ? { ...step.open, file: prevOpen.file }
+                : step.open
         const preview =
           step.preview === undefined
             ? prevPreview

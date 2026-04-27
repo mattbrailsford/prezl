@@ -16,6 +16,12 @@ const projectFolder = z.object({
  *  shorthand is the common case; the object form is only needed when the
  *  author wants to jump to a specific line / symbol id.
  *
+ *  In the object form `file` is optional. A partial `{ id: 'foo' }` or
+ *  `{ line: 42 }` inherits the file from the previous resolved open
+ *  (e.g. a step staying on the same file as its predecessor) — see the
+ *  resolver in `stageList.ts`. At least one of `file`, `line`, `id` must
+ *  be present; an empty object is rejected.
+ *
  *  Explicit `null` (`~` in YAML) means "no file open" — the editor pane is
  *  empty and only the file tree is visible. Useful for an intro screen
  *  that lets the audience take in the project structure before any code
@@ -28,11 +34,16 @@ const projectFolder = z.object({
  *  opens with a `// @prezl collapse` block over its imports. */
 const openTarget = z.union([
   z.string().min(1).transform((file) => ({ file })),
-  z.object({
-    file: z.string().min(1),
-    line: z.number().int().positive().optional(),
-    id: z.string().min(1).optional(),
-  }),
+  z
+    .object({
+      file: z.string().min(1).optional(),
+      line: z.number().int().positive().optional(),
+      id: z.string().min(1).optional(),
+    })
+    .refine(
+      (v) => v.file != null || v.line != null || v.id != null,
+      { message: 'open must specify at least one of file, line, or id' },
+    ),
 ])
 
 const symbolTarget = z.object({

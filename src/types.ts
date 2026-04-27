@@ -9,8 +9,12 @@ export type ProjectFolder = {
   color?: string
 }
 
+/** `file` is optional in the object form: a partial `{ id }` or `{ line }`
+ *  inherits the file from the previous resolved open (the resolver in
+ *  `stageList.ts` does the merge for step entries). At least one of the
+ *  three fields is always present — an all-empty open never reaches here. */
 export type OpenTarget = {
-  file: string
+  file?: string
   line?: number
   id?: string
 }

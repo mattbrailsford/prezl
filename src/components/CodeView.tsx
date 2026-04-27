@@ -116,14 +116,18 @@ export function CodeView() {
   // Branch A — fires once per (file, screen) change. Priority:
   //   1. pendingScrollTop (back/forward restore — exact pixel position)
   //   2. one-shot pendingNavigation (symbol jump that opened this file)
-  //   3. screen.open
-  //   4. top of file
+  //   3. screen.open's resolved line/id
+  //   4. preserve current scrollTop when the file is unchanged from the
+  //      previous screen (so step advances through the same file don't
+  //      jump-to-top when the new screen has no scroll opinion)
+  //   5. top of file (cross-file with no opinion)
   //
   // Branch B — fires when a same-file pendingNavigation arrives and the
   //   (file, screen) hasn't changed (clicking a symbol that lives in the
   //   currently-open file). It scrolls to the target line and consumes the
   //   pending nav without resetting scrollTop afterwards.
   const lastScrolledKey = useRef<string | null>(null)
+  const lastScrolledFile = useRef<string | null>(null)
 
   useLayoutEffect(() => {
     if (!rendered || !containerRef.current) return
@@ -176,7 +180,9 @@ export function CodeView() {
 
     // Branch A: (file, screen) just changed.
     if (lastScrolledKey.current !== fileStageKey) {
+      const prevFile = lastScrolledFile.current
       lastScrolledKey.current = fileStageKey
+      lastScrolledFile.current = activeFile
 
       // Highest priority: a pending pixel scroll target from goBack/
       // goForward — the user explicitly asked to land where they last
@@ -197,17 +203,30 @@ export function CodeView() {
         return
       }
       const openTarget = screen?.open
-      if (openTarget?.file === activeFile) {
-        let line: number | null = null
-        if (openTarget.id && rendered.marks[openTarget.id]) {
-          line = rendered.marks[openTarget.id]
-        } else if (openTarget.line) {
-          line = openTarget.line
+      if (openTarget) {
+        // Partial opens (no `file`) target the currently active file, so
+        // a stage-level `open: { id }` or any partial that the resolver
+        // couldn't fill in still scrolls correctly.
+        const targetFile = openTarget.file ?? activeFile
+        if (targetFile != null && targetFile === activeFile) {
+          let line: number | null = null
+          if (openTarget.id && rendered.marks[openTarget.id]) {
+            line = rendered.marks[openTarget.id]
+          } else if (openTarget.line) {
+            line = openTarget.line
+          }
+          if (line) {
+            scrollToLine(line, false)
+            return
+          }
         }
-        if (line) {
-          scrollToLine(line, false)
-          return
-        }
+      }
+      // Same file across the screen change with no specific scroll target:
+      // leave scrollTop alone. Step advances through one file (the most
+      // common case for a stage with `steps:`) shouldn't snap the audience
+      // back to the top when the new step has nothing to say about scroll.
+      if (prevFile != null && prevFile === activeFile) {
+        return
       }
       container.scrollTop = 0
       return

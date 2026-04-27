@@ -57,7 +57,7 @@ entry is the starting stage, and screen-range directives like
   branch: feature/dashboard  # optional — label only (e.g. git branch name)
   title: Add dashboard       # optional — dropdown label
   open:                      # optional — initial scroll target
-    file: src/dashboard.ts   #   required if `open:` is present
+    file: src/dashboard.ts   #   optional inside the object form (see below)
     line: 1                  #   scroll target; line OR id, not both
     id: registerDashboard    #   resolves to a `@prezl id=<name>` anchor
   steps: [ … ]               # optional — see Steps below
@@ -81,6 +81,30 @@ open: src/dashboard.ts       # equivalent to { file: src/dashboard.ts, line: 1 }
 
 The full object form is only needed when you want to jump to a specific
 `line:` or symbol `id:`.
+
+#### Partial `open:` — inherit the file from the previous screen
+
+Inside the object form `file` is optional. A step staying on the same
+file as its predecessor can jump to a new anchor with just an `id` (or
+`line`):
+
+```yaml
+- alias: preview
+  open: src/dashboard.ts            # step 1: open the file
+  steps:
+    - alias: registerDashboard
+    - alias: renderCharts
+      open: { id: renderCharts }    # same file as before, jump to id
+    - alias: fetchData
+      open: { line: 42 }            # still same file, jump to line 42
+```
+
+The resolver fills in `file` from the previous resolved `open` so each
+step's resolved value is fully self-describing. Subsequent steps that
+omit `open:` continue sticky-forward inheritance from the merged value.
+
+The empty object `{}` is rejected — at least one of `file`, `line`, or
+`id` must be present.
 
 #### Empty pane and `open: ~`
 

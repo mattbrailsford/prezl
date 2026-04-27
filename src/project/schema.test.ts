@@ -98,6 +98,35 @@ describe('schema — step preview/open reset (null)', () => {
   })
 })
 
+describe('schema — partial open object', () => {
+  function parseStepOpen(open: unknown) {
+    return prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          alias: 'shell',
+          steps: [{ alias: 'a', open: { file: 'a.ts' } }, { alias: 'b', open }],
+        },
+      ],
+    })
+  }
+
+  it('accepts an open object with only an id (file inherited at resolve time)', () => {
+    const r = parseStepOpen({ id: 'foo' })
+    expect(r.success).toBe(true)
+  })
+
+  it('accepts an open object with only a line', () => {
+    const r = parseStepOpen({ line: 42 })
+    expect(r.success).toBe(true)
+  })
+
+  it('rejects an empty open object', () => {
+    const r = parseStepOpen({})
+    expect(r.success).toBe(false)
+  })
+})
+
 describe('schema — stage open: null', () => {
   it('accepts open: null on a stage (no file open)', () => {
     const result = prezlProjectSchema.safeParse({

@@ -256,6 +256,64 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['intro.two'].open).toBeNull()
   })
 
+  it('a step open with only an id inherits the file from prev', () => {
+    // Common authoring shape for a stepped stage walking through one file:
+    // step 1 opens the file, step 2+ jump to specific anchors with just
+    // `{ id: ... }`. The resolver fills in the file so downstream code
+    // (CodeView, the reducer's openIntent check) works as if the author
+    // had written the file path on each step.
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        open: { file: 'a.ts' },
+        steps: [
+          { alias: 'one' },
+          { alias: 'two', open: { id: 'foo' } },
+          { alias: 'three', open: { line: 42 } },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.two'].open).toEqual({ file: 'a.ts', id: 'foo' })
+    // Sticky-forward continues from the merged value, so step three
+    // inherits a.ts as well, then overrides position with line 42.
+    expect(idx.byId['shell.three'].open).toEqual({ file: 'a.ts', line: 42 })
+  })
+
+  it('a step partial open after a file change inherits the new file', () => {
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        open: { file: 'a.ts' },
+        steps: [
+          { alias: 'one' },
+          { alias: 'two', open: { file: 'b.ts' } },
+          { alias: 'three', open: { id: 'foo' } },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.three'].open).toEqual({ file: 'b.ts', id: 'foo' })
+  })
+
+  it('a step partial open with no inheritable file leaves file unset', () => {
+    // Stage default is null (no file), so step one's partial open has
+    // nothing to merge. The resolved open keeps file undefined; the
+    // viewer falls back to whatever activeFile is at scroll time.
+    const stages: Stage[] = [
+      {
+        alias: 'intro',
+        order: 1,
+        open: null,
+        steps: [{ alias: 'one', open: { id: 'foo' } }],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['intro.one'].open).toEqual({ id: 'foo' })
+  })
+
   it('reset on a step whose stage has no default leaves the field unset', () => {
     const stepBPreview = {
       type: 'video' as const,
