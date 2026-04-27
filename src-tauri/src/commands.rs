@@ -93,10 +93,13 @@ pub fn load_project(
     if !root.is_dir() {
         return Err(CommandError::NotFound(path));
     }
-    let manifest_path = root.join("prezl.yaml");
-    if !manifest_path.is_file() {
-        return Err(CommandError::MissingManifest);
-    }
+    // .yaml is the documented extension; .yml is accepted silently in case
+    // someone reaches for the wrong one out of habit.
+    let manifest_path = ["prezl.yaml", "prezl.yml"]
+        .iter()
+        .map(|name| root.join(name))
+        .find(|p| p.is_file())
+        .ok_or(CommandError::MissingManifest)?;
     let manifest = fs::read_to_string(&manifest_path)?;
     let canonical = fs::canonicalize(&root)?;
     *state.0.lock().unwrap() = Some(canonical.clone());
