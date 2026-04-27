@@ -1,6 +1,5 @@
-import { useMemo } from 'react'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { useAppStore } from '@/state/store'
+import { useProjectLogoSrc } from '@/hooks/useProjectLogoSrc'
 import { StageSelector } from './StageSelector'
 import { StepIndicator } from './StepIndicator'
 import { PretzelLogo } from './PretzelLogo'
@@ -10,19 +9,8 @@ import { BackToPresentationButton } from './BackToPresentationButton'
 
 export function TopBar() {
   const projectName = useAppStore((s) => s.project?.name ?? 'Prezl')
-  const logo = useAppStore((s) => s.project?.logo)
-  const rootPath = useAppStore((s) => s.project?.rootPath ?? null)
   const clearProject = useAppStore((s) => s.clearProject)
-
-  const logoSrc = useMemo(() => {
-    if (!logo || !rootPath) return null
-    if (/^https?:\/\//i.test(logo)) return logo
-    const cleaned = logo.replace(/^\.\//, '')
-    const absolute = cleaned.startsWith('/') || /^[A-Za-z]:[\\/]/.test(cleaned)
-      ? cleaned
-      : `${rootPath}/${cleaned}`
-    return convertFileSrc(absolute)
-  }, [logo, rootPath])
+  const logoSrc = useProjectLogoSrc()
 
   return (
     <header

@@ -16,6 +16,11 @@ const projectFolder = z.object({
  *  shorthand is the common case; the object form is only needed when the
  *  author wants to jump to a specific line / symbol id.
  *
+ *  Explicit `null` (`~` in YAML) means "no file open" — the editor pane is
+ *  empty and only the file tree is visible. Useful for an intro screen
+ *  that lets the audience take in the project structure before any code
+ *  is shown. The reducer clears tabs when this resolves on a screen.
+ *
  *  No implicit `line: 1` — the viewer's "no target" path is `scrollTop = 0`,
  *  which leaves default-collapsed folds collapsed. Setting `line: 1`
  *  explicitly would route through `scrollToLine`, which auto-expands any
@@ -104,7 +109,7 @@ const stage = z.object({
   alias: z.string().min(1),
   branch: z.string().min(1).optional(),
   title: z.string().optional(),
-  open: openTarget.optional(),
+  open: openTarget.nullable().optional(),
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),
   steps: z.array(screenStep).optional(),

@@ -220,18 +220,25 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       currentScreenId: target.id,
       screenIndex,
     })
-    const visible = new Set(visibleFiles)
-    let openTabs = state.openTabs.filter((p) => visible.has(p))
-    let activeFile: string | null =
-      loc.file && visible.has(loc.file) ? loc.file : null
-    if (activeFile && !openTabs.includes(activeFile)) {
-      openTabs = [...openTabs, activeFile]
-    }
-    if (!activeFile && openTabs.length > 0) {
-      activeFile = openTabs[openTabs.length - 1]!
-    } else if (!activeFile && visibleFiles.length > 0) {
-      activeFile = visibleFiles[0]!
-      openTabs = [activeFile]
+    let openTabs: string[]
+    let activeFile: string | null
+    if (target.open === null) {
+      // Author declared "no file" on this screen; honor it on back-nav too.
+      openTabs = []
+      activeFile = null
+    } else {
+      const visible = new Set(visibleFiles)
+      openTabs = state.openTabs.filter((p) => visible.has(p))
+      activeFile = loc.file && visible.has(loc.file) ? loc.file : null
+      if (activeFile && !openTabs.includes(activeFile)) {
+        openTabs = [...openTabs, activeFile]
+      }
+      if (!activeFile && openTabs.length > 0) {
+        activeFile = openTabs[openTabs.length - 1]!
+      } else if (!activeFile && visibleFiles.length > 0) {
+        activeFile = visibleFiles[0]!
+        openTabs = [activeFile]
+      }
     }
 
     set({
@@ -290,9 +297,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
           screenIndex,
         })
       : []
+    // `open: ~` (explicit null) on the initial stage means "no file open" —
+    // skip the visibleFiles[0] fallback that would otherwise auto-open the
+    // first file. This path doesn't go through reconcileScreenSwitch, so we
+    // honor the null directly here.
+    const explicitNoFile = initialScreen?.open === null
     const intended = initialScreen?.open?.file
-    const firstFile =
-      intended && visibleFiles.includes(intended)
+    const firstFile = explicitNoFile
+      ? null
+      : intended && visibleFiles.includes(intended)
         ? intended
         : (visibleFiles[0] ?? null)
     // Always reset previewState on project load so a stale modal from a

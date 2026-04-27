@@ -191,6 +191,71 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['shell.c'].open).toBe(stageOpen)
   })
 
+  it('propagates a stage-level null open to a no-step screen', () => {
+    // `open: ~` at the stage level means "this screen has no file open".
+    // The reducer keys on screen.open === null, so the screen index must
+    // carry the explicit null through (not collapse it to undefined).
+    const stages: Stage[] = [{ alias: 'intro', order: 1, open: null }]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId.intro.open).toBeNull()
+  })
+
+  it('inherits a stage-level null open through steps with no override', () => {
+    // Sticky-forward inheritance must carry null the same way it carries a
+    // value, so a stepped intro stage stays "no file open" across every
+    // step until something explicitly changes it.
+    const stages: Stage[] = [
+      {
+        alias: 'intro',
+        order: 1,
+        open: null,
+        steps: [{ alias: 'one' }, { alias: 'two' }],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['intro.one'].open).toBeNull()
+    expect(idx.byId['intro.two'].open).toBeNull()
+  })
+
+  it('a step can open a file under a null-open stage and later steps inherit it', () => {
+    const stepOpen = { file: 'a.ts' }
+    const stages: Stage[] = [
+      {
+        alias: 'intro',
+        order: 1,
+        open: null,
+        steps: [
+          { alias: 'tree' },
+          { alias: 'reveal', open: stepOpen },
+          { alias: 'follow' },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['intro.tree'].open).toBeNull()
+    expect(idx.byId['intro.reveal'].open).toBe(stepOpen)
+    expect(idx.byId['intro.follow'].open).toBe(stepOpen)
+  })
+
+  it('a step can reset back to a null-open stage default', () => {
+    const stepOpen = { file: 'a.ts' }
+    const stages: Stage[] = [
+      {
+        alias: 'intro',
+        order: 1,
+        open: null,
+        steps: [
+          { alias: 'one', open: stepOpen },
+          { alias: 'two', open: null },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['intro.one'].open).toBe(stepOpen)
+    // step two resets to the stage default, which is itself null.
+    expect(idx.byId['intro.two'].open).toBeNull()
+  })
+
   it('reset on a step whose stage has no default leaves the field unset', () => {
     const stepBPreview = {
       type: 'video' as const,

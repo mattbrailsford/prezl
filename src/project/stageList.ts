@@ -82,7 +82,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
       stageScreens.push(screen)
     } else {
       const seen = new Set<string>()
-      let prevOpen: OpenTarget | undefined = stage.open
+      let prevOpen: OpenTarget | null | undefined = stage.open
       let prevPreview: Preview | undefined = stage.preview
       for (const step of stage.steps) {
         if (seen.has(step.alias)) {

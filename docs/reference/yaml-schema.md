@@ -82,6 +82,27 @@ open: src/dashboard.ts       # equivalent to { file: src/dashboard.ts, line: 1 }
 The full object form is only needed when you want to jump to a specific
 `line:` or symbol `id:`.
 
+#### `open: ~` — no file open
+
+Setting `open` to YAML null (`~`) on a stage means **no file is open on
+this screen** — the editor pane is empty and only the file tree is
+visible. The tab strip hides itself (unless the explorer is collapsed,
+in which case the strip stays so its expand-explorer button remains
+reachable). Useful as an intro stage that lets the audience read the
+project structure before any code appears:
+
+```yaml
+- alias: intro
+  title: Project structure
+  open: ~                    # explicit "no file" — empty editor pane
+```
+
+Stepped stages with `open: ~` propagate the empty state through every
+step that doesn't override `open` (sticky-forward inheritance carries
+null the same way it carries a file). A later step can introduce a
+file with its own `open:` and subsequent steps inherit that, just like
+any other override.
+
 #### Stage `steps:` — sub-navigation within a stage
 
 Optional ordered list of intra-stage screens — the build-style reveals

@@ -98,6 +98,30 @@ describe('schema — step preview/open reset (null)', () => {
   })
 })
 
+describe('schema — stage open: null', () => {
+  it('accepts open: null on a stage (no file open)', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'intro', open: null }],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].open).toBeNull()
+    }
+  })
+
+  it('keeps stage open undefined when omitted', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'shell' }],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].open).toBeUndefined()
+    }
+  })
+})
+
 describe('schema — stage reset flag', () => {
   it('accepts reset: true on a stage', () => {
     const result = prezlProjectSchema.safeParse({

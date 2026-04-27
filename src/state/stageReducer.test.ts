@@ -66,6 +66,20 @@ describe('reconcileScreenSwitch', () => {
     })
     expect(result.activeFile).toBe('src/a.ts')
   })
+
+  it('clears every tab and active file when screen.open is explicitly null', () => {
+    // Author wrote `open: ~` — "no file open" intro state. The
+    // first-visible-file fallback must be skipped so the editor pane
+    // really does stay empty.
+    const result = reconcileScreenSwitch({
+      screen: screen({ open: null }),
+      visibleFiles: ['src/a.ts', 'src/b.ts'],
+      openTabs: ['src/a.ts', 'src/b.ts'],
+      activeFile: 'src/a.ts',
+    })
+    expect(result.openTabs).toEqual([])
+    expect(result.activeFile).toBeNull()
+  })
 })
 
 describe('applyStageEntryReset', () => {

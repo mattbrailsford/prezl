@@ -31,7 +31,11 @@ stages:
 - **`open`** *(optional)* — what to show when this stage becomes
   active. Either a bare path string (shorthand for "open at line 1")
   or `{ file: …, line: 42 }` / `{ file: …, id: someMark }`. See
-  [Symbol navigation](./symbol-navigation) for `id:` targets.
+  [Symbol navigation](./symbol-navigation) for `id:` targets. Set to
+  YAML null (`open: ~`) to **start with no file open** — the editor
+  pane shows a faded brand mark and the project name while only the
+  file tree is visible. Useful as an intro stage that lets the audience
+  take in the structure before any code appears.
 
 The forward/backward sequence (Space / PageDown) follows the order in
 which stages — and steps inside them — appear in the manifest. To
@@ -162,7 +166,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open: src/main.ts
+    open: ~                          # start empty — show the file tree only
 
   - alias: shell
     branch: feature/dashboard-shell

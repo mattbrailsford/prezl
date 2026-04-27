@@ -104,10 +104,15 @@ src/
                         open: accepts a bare path string (shorthand for
                         { file }, no implicit line — CodeView falls through
                         to `scrollTop = 0`, leaving default-collapsed folds
-                        collapsed) or the object form. Step entries accept
-                        a bare alias string (shorthand for { alias }) or the
-                        object form. Stages may set `reset: true` — see
-                        "Stage reset" below.
+                        collapsed), the object form, or explicit `null`
+                        (`~` in YAML) meaning "no file open" — the editor
+                        pane shows a faded brand mark via EmptyEditorPane
+                        and EditorTabs hides itself (kept only when the
+                        explorer is also collapsed, so the expand-explorer
+                        button stays reachable). Step entries accept a
+                        bare alias string (shorthand for { alias }) or
+                        the object form. Stages may set `reset: true` —
+                        see "Stage reset" below.
     loader.ts           orchestrates pickProjectFolder / load_project /
                         list_project_files / read_project_file. The
                         backend's read_project_file returns Option<String>:
@@ -474,7 +479,9 @@ must come before any early return.
 `examples/demo/` — the four-stage project with one stepped stage. Use
 it to verify behaviour after changes:
 
-- `main`: only `main.ts` + `framework.ts` in the explorer.
+- `main`: only `main.ts` + `framework.ts` in the explorer; `open: ~` so
+  the editor pane is empty (faded brand mark only) and the tab strip is
+  hidden — exercises the "intro / file-tree-only" state.
 - `shell`: `dashboard.ts` appears; `registerDashboard` is the focus
   highlight.
 - `preview` (3 steps — `intro` / `fetchImpl` / `chartHelpers`):

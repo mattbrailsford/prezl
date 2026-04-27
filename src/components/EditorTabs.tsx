@@ -97,12 +97,16 @@ export function EditorTabs() {
   ) : null
 
   if (openTabs.length === 0) {
+    // Hide the tab strip entirely when nothing is open — the editor pane
+    // is just a clean empty state. Exception: if the explorer is also
+    // collapsed, keep the strip so its expand-explorer button stays
+    // reachable (otherwise the user has no UI affordance to bring the
+    // file tree back).
+    if (!explorerCollapsed) return null
     return (
       <div className="flex h-11 items-stretch bg-app-panel">
         {expandExplorerButton}
-        <div className="flex flex-1 items-center border-b border-app-border px-3 text-base text-app-muted">
-          No file open
-        </div>
+        <div className="flex flex-1 items-center border-b border-app-border" />
       </div>
     )
   }

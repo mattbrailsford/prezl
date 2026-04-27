@@ -4,9 +4,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open:
-      file: src/main.ts
-      line: 1
+    open: ~
 
   - alias: shell
     branch: feature/dashboard-shell

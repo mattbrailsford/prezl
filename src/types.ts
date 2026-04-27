@@ -76,7 +76,10 @@ export type Stage = {
   branch?: string
   title?: string
   order: number
-  open?: OpenTarget
+  /** `null` (YAML `~`) explicitly means "no file open" — the screen
+   *  resolves with no active file and an empty tab strip. `undefined`
+   *  preserves whatever was active on the prior screen. */
+  open?: OpenTarget | null
   symbols?: Record<string, SymbolTarget>
   preview?: Preview
   /** Optional ordered list of intra-stage steps. A stage with no steps has
@@ -101,8 +104,12 @@ export type Screen = {
   order: number
   title?: string
   /** Resolved `open` after step→stage inheritance (and step-to-step
-   *  carry-forward within a stage). */
-  open?: OpenTarget
+   *  carry-forward within a stage). Explicit `null` means "this screen
+   *  has no file open" — the reducer clears tabs and leaves the editor
+   *  pane empty. `undefined` is the implicit case (no authored intent;
+   *  the reducer preserves whatever was active or falls back to the
+   *  first visible file). */
+  open?: OpenTarget | null
   preview?: Preview
 }
 

@@ -15,6 +15,7 @@ import {
   useSymbolTable,
   type SymbolTable,
 } from '@/hooks/useRenderedFile'
+import { useProjectLogoSrc } from '@/hooks/useProjectLogoSrc'
 import {
   PREZL_THEME,
   ShikiToken,
@@ -22,6 +23,7 @@ import {
   inferLanguage,
 } from '@/project/shikiSetup'
 import type { FoldRange, RenderedFile } from '@/project/directiveParser'
+import { PretzelLogo } from './PretzelLogo'
 
 /** Static, read-only code viewer. Replaces Monaco — about 2.5 MB of editor
  *  for a fake-IDE viewer was overkill. Uses Shiki for tokens and renders
@@ -261,12 +263,8 @@ export function CodeView() {
     }
   }
 
-  if (!activeFile) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-sm text-app-muted">
-        Open a file from the explorer
-      </div>
-    )
+  if (!activeFile || !rendered) {
+    return <EmptyEditorPane />
   }
 
   if (isBinaryFile) {
@@ -276,10 +274,6 @@ export function CodeView() {
         <span className="text-xs opacity-70">{activeFile}</span>
       </div>
     )
-  }
-
-  if (!rendered) {
-    return <div className="code-view flex-1" />
   }
 
   const focusLines = buildLineSet(rendered.focusRanges)
@@ -517,4 +511,36 @@ function tokenStyle(token: ShikiToken): CSSProperties {
   if (fs & FONT_STYLE_BOLD) style.fontWeight = 'bold'
   if (fs & FONT_STYLE_UNDERLINE) style.textDecoration = 'underline'
   return style
+}
+
+/** Centered, low-contrast brand mark for the empty editor pane — shown
+ *  when no file is open (project logo if set, otherwise the Prezl
+ *  pretzel mark). Reads like a "title slide" for the project: brand
+ *  mark, project name, and a small explorer hint. Visual breather, not
+ *  an action target. */
+function EmptyEditorPane() {
+  const logoSrc = useProjectLogoSrc()
+  const projectName = useAppStore((s) => s.project?.name ?? null)
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-app-surface text-center">
+      {logoSrc ? (
+        <img
+          src={logoSrc}
+          alt=""
+          aria-hidden
+          className="pointer-events-none h-32 w-32 object-contain opacity-20"
+        />
+      ) : (
+        <PretzelLogo className="pointer-events-none h-32 w-32 text-app opacity-20" />
+      )}
+      {projectName && (
+        <div className="text-2xl font-semibold text-app opacity-40">
+          {projectName}
+        </div>
+      )}
+      <div className="text-sm text-app-muted">
+        Select a file from the explorer to begin
+      </div>
+    </div>
+  )
 }
