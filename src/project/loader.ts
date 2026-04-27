@@ -12,6 +12,7 @@ type BackendProjectLoad = {
 export type LoadedProject = {
   project: PrezlProject
   rawFiles: Map<string, string> // relPath -> contents
+  binaryFiles: Set<string> // relPath of files the backend couldn't read as UTF-8
 }
 
 export async function pickProjectFolder(): Promise<string | null> {
@@ -22,7 +23,7 @@ export async function pickProjectFolder(): Promise<string | null> {
 
 export async function loadProjectFromDisk(
   path: string,
-): Promise<{ project: PrezlProject; rawFiles: Map<string, string> } | { error: LoadError }> {
+): Promise<LoadedProject | { error: LoadError }> {
   let backend: BackendProjectLoad
   try {
     backend = await invoke<BackendProjectLoad>('load_project', { path })
@@ -90,16 +91,22 @@ export async function loadProjectFromDisk(
   }
 
   const rawFiles = new Map<string, string>()
+  const binaryFiles = new Set<string>()
   for (const rel of files) {
     try {
-      const contents = await invoke<string>('read_project_file', { relPath: rel })
-      rawFiles.set(rel, contents)
+      // Backend returns null for non-UTF-8 (binary) files; we still surface
+      // them in the explorer with a placeholder, so track the path here.
+      const contents = await invoke<string | null>('read_project_file', {
+        relPath: rel,
+      })
+      if (contents != null) rawFiles.set(rel, contents)
+      else binaryFiles.add(rel)
     } catch (e) {
       return { error: translateBackendError(e, rel) }
     }
   }
 
-  return { project, rawFiles }
+  return { project, rawFiles, binaryFiles }
 }
 
 function translateBackendError(raw: unknown, context?: string): LoadError {

@@ -52,6 +52,17 @@ describe('visibleFiles', () => {
     expect(result).toEqual([])
   })
 
+  it('includes binary files even though they are absent from rawFiles', () => {
+    const result = computeVisibleFiles({
+      files: ['logo.png', 'a.ts'],
+      rawFiles: new Map([['a.ts', 'const x = 1']]),
+      binaryFiles: new Set(['logo.png']),
+      currentScreenId: 'main',
+      screenIndex: SCREENS,
+    })
+    expect(result).toEqual(['logo.png', 'a.ts'])
+  })
+
   it('respects step-level resolution when stage selectors are bare', () => {
     const stepped = buildScreenIndex([
       { alias: 'main', order: 1 },

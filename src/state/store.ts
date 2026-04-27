@@ -94,6 +94,9 @@ function shouldAutoLaunchOnEnter(
 type AppState = {
   project: PrezlProject | null
   rawFiles: Map<string, string>
+  /** Paths the backend couldn't read as UTF-8. Listed in the explorer with a
+   *  "Can't preview this file type" placeholder. */
+  binaryFiles: Set<string>
   /** Cached screen index built once per project load. Null when no project. */
   screenIndex: ScreenIndex | null
   currentScreenId: string | null
@@ -140,6 +143,7 @@ type AppActions = {
   setProject: (
     project: PrezlProject,
     rawFiles: Map<string, string>,
+    binaryFiles: Set<string>,
     initialStageAlias?: string,
   ) => void
   clearProject: () => void
@@ -212,6 +216,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const visibleFiles = computeVisibleFiles({
       files: project.files,
       rawFiles: state.rawFiles,
+      binaryFiles: state.binaryFiles,
       currentScreenId: target.id,
       screenIndex,
     })
@@ -248,6 +253,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   return {
   project: null,
   rawFiles: new Map(),
+  binaryFiles: new Set(),
   screenIndex: null,
   currentScreenId: null,
   openTabs: [],
@@ -267,7 +273,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   lastEndAutoLaunchedScreenId: null,
   explorerResetToken: 0,
 
-  setProject: (project, rawFiles, initialStageAlias) => {
+  setProject: (project, rawFiles, binaryFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
     const initialScreen: Screen | null =
       (initialStageAlias
@@ -279,6 +285,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       ? computeVisibleFiles({
           files: project.files,
           rawFiles,
+          binaryFiles,
           currentScreenId: initialScreen.id,
           screenIndex,
         })
@@ -304,6 +311,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     set({
       project,
       rawFiles,
+      binaryFiles,
       screenIndex,
       currentScreenId: initialScreen?.id ?? null,
       openTabs: firstFile ? [firstFile] : [],
@@ -323,6 +331,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     set({
       project: null,
       rawFiles: new Map(),
+      binaryFiles: new Set(),
       screenIndex: null,
       currentScreenId: null,
       openTabs: [],
@@ -371,6 +380,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const visibleFiles = computeVisibleFiles({
       files: project.files,
       rawFiles: state.rawFiles,
+      binaryFiles: state.binaryFiles,
       currentScreenId: target.id,
       screenIndex,
     })

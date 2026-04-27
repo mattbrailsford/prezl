@@ -39,6 +39,7 @@ export function useCurrentStage(): Stage | null {
 export function useVisibleFiles(): string[] {
   const files = useAppStore((s) => s.project?.files ?? EMPTY_ARRAY)
   const rawFiles = useAppStore((s) => s.rawFiles)
+  const binaryFiles = useAppStore((s) => s.binaryFiles)
   const screen = useCurrentScreen()
   const screenIndex = useScreenIndex()
 
@@ -47,10 +48,11 @@ export function useVisibleFiles(): string[] {
     return computeVisibleFiles({
       files,
       rawFiles,
+      binaryFiles,
       currentScreenId: screen.id,
       screenIndex,
     })
-  }, [files, rawFiles, screen, screenIndex])
+  }, [files, rawFiles, binaryFiles, screen, screenIndex])
 }
 
 /**

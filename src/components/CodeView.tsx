@@ -29,6 +29,9 @@ import type { FoldRange, RenderedFile } from '@/project/directiveParser'
  *  decorations, and click-to-jump symbol underlines. */
 export function CodeView() {
   const activeFile = useAppStore((s) => s.activeFile)
+  const isBinaryFile = useAppStore(
+    (s) => activeFile != null && s.binaryFiles.has(activeFile),
+  )
   const uiScale = useAppStore((s) => s.preferences.uiScale)
   const screen = useCurrentScreen()
   const rendered = useActiveRenderedFile()
@@ -262,6 +265,15 @@ export function CodeView() {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-app-muted">
         Open a file from the explorer
+      </div>
+    )
+  }
+
+  if (isBinaryFile) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-1 text-sm text-app-muted">
+        <span>Can't preview this file type</span>
+        <span className="text-xs opacity-70">{activeFile}</span>
       </div>
     )
   }

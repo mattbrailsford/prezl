@@ -190,7 +190,7 @@ fn walk(base: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), CommandErr
 pub fn read_project_file(
     rel_path: String,
     state: State<ProjectRoot>,
-) -> Result<String, CommandError> {
+) -> Result<Option<String>, CommandError> {
     let root = {
         let guard = state.0.lock().unwrap();
         guard.clone().ok_or(CommandError::NoActiveProject)?
@@ -200,8 +200,13 @@ pub fn read_project_file(
     // this command.
     let files_root = root.join("files");
     let full = joined_within_root(&files_root, &rel_path)?;
-    let contents = fs::read_to_string(&full)?;
-    Ok(contents)
+    // Non-UTF-8 (binary) files return Ok(None) so the caller can skip them
+    // without aborting the whole project load.
+    match fs::read_to_string(&full) {
+        Ok(contents) => Ok(Some(contents)),
+        Err(e) if e.kind() == std::io::ErrorKind::InvalidData => Ok(None),
+        Err(e) => Err(e.into()),
+    }
 }
 
 #[tauri::command]

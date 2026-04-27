@@ -41,7 +41,7 @@ describe('store — trailing autoLaunch advance flow', () => {
 
   it('opens trailing video on forward advance, then advances on second call', () => {
     const { project, rawFiles } = projectWithTrailingOnStep2()
-    useAppStore.getState().setProject(project, rawFiles, 'preview')
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
     // Initial screen is the first of the preview stage (intro).
     expect(useAppStore.getState().currentScreenId).toBe('preview.intro')
 
@@ -75,7 +75,7 @@ describe('store — trailing autoLaunch advance flow', () => {
 
   it('does not re-fire the trailing video on re-traversal', () => {
     const { project, rawFiles } = projectWithTrailingOnStep2()
-    useAppStore.getState().setProject(project, rawFiles, 'preview')
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
     // Advance through the trailing flow once.
     useAppStore.getState().switchScreenRelative(1) // intro -> fetchImpl
     useAppStore.getState().switchScreenRelative(1) // opens trailing video
@@ -105,7 +105,7 @@ describe('store — trailing autoLaunch advance flow', () => {
       { alias: 'next', order: 2 },
     ]
     const project: PrezlProject = { name: 'Test', stages, files: [] }
-    useAppStore.getState().setProject(project, new Map(), 'shell')
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
     expect(useAppStore.getState().currentScreenId).toBe('shell.a')
 
     // a -> b: same preview reference, should NOT fire.
@@ -163,7 +163,7 @@ describe('store — stage-level reset flag', () => {
 
   it('cross-stage entry into a reset stage closes other tabs and bumps the token', () => {
     const { project, rawFiles } = projectWithReset()
-    useAppStore.getState().setProject(project, rawFiles, 'main')
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'main')
 
     // Open an extra tab on the main stage so we can verify it gets closed.
     useAppStore.getState().openFile('extra.ts')
@@ -181,7 +181,7 @@ describe('store — stage-level reset flag', () => {
 
   it('step transition within a reset stage does not re-fire the reset', () => {
     const { project, rawFiles } = projectWithReset()
-    useAppStore.getState().setProject(project, rawFiles, 'preview')
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
     // Initial screen is preview.a; reset already fired on this entry path
     // is cosmetic since setProject builds clean state, but the explorer
     // token starts at 0 and shouldn't have moved yet.
@@ -199,7 +199,7 @@ describe('store — stage-level reset flag', () => {
 
   it('back-nav into a reset stage does not trigger a reset', () => {
     const { project, rawFiles } = projectWithReset()
-    useAppStore.getState().setProject(project, rawFiles, 'preview')
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
     // Stack a useful history: open extra, then move forward into main.
     useAppStore.getState().openFile('extra.ts')
     useAppStore.getState().switchScreen('main')

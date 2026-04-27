@@ -60,7 +60,7 @@ export function useOpenProject() {
           setLoadError(result.error)
           return false
         }
-        setProject(result.project, result.rawFiles)
+        setProject(result.project, result.rawFiles, result.binaryFiles)
         try {
           await rememberRecent(path, result.project.name)
         } catch {
