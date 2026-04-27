@@ -112,7 +112,10 @@
   width: 520px;
   height: 390px;
   transform-origin: top left;
-  transform: scale(calc(100cqi / 520));
+  /* Divide by 520px (length / length) so the calc resolves to a dimensionless
+     <number> — scale() rejects <length> values and the whole transform would
+     otherwise be invalid, leaving the mockup unscaled and clipped on mobile. */
+  transform: scale(calc(100cqi / 520px));
   font-size: 12px;
   line-height: 1.5;
 }

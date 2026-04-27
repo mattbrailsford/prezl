@@ -229,7 +229,11 @@ svg {
   user-select: none;
 }
 .pz-line.focus { background: rgba(250, 204, 21, 0.07); }
-.pz-line.focus .ln { border-left: 2px solid #eab308; padding-left: 0; margin-left: -2px; }
+/* Inset box-shadow rather than border-left + negative margin: the parent
+   .pz-code has overflow: hidden, and a -2px margin pushes the indicator
+   outside the clipping rect (only the sub-pixel scaled mobile render
+   accidentally leaks it through). Inset shadow stays inside the .ln box. */
+.pz-line.focus .ln { box-shadow: inset 2px 0 0 #eab308; }
 .pz-line.collapsed { color: #52525b; }
 .pz-line.collapsed .chev-sq {
   display: inline-grid;
