@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PanelLeftOpen, X } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { fileTypeStyle } from '@/project/fileTypeStyles'
@@ -20,9 +20,37 @@ export function EditorTabs() {
   const dragStartScrollLeft = useRef(0)
   const hasDragged = useRef(false)
 
+  // Edge-fade indicators: subtle gradient overlays at the strip's left
+  // and right edges that appear only when there's content to scroll to
+  // in that direction. Replaces the missing scrollbar's affordance.
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+  const updateFades = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+
   useEffect(() => {
     activeTabRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   }, [activeFile])
+
+  // Re-check fade visibility on tab list change (scrollWidth shifts when
+  // tabs are added/removed and ResizeObserver doesn't fire for that).
+  useLayoutEffect(() => {
+    updateFades()
+  }, [openTabs, updateFades])
+
+  // ResizeObserver covers strip-width changes (window resize, explorer
+  // collapse/expand, drag of the explorer resize handle).
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const ro = new ResizeObserver(updateFades)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [updateFades])
 
   // Drag-to-pan: the tab strip is overflow-x:auto with the scrollbar
   // hidden. Mouse-down on the strip starts a temporary window-level
@@ -88,49 +116,68 @@ export function EditorTabs() {
   return (
     <div className="flex h-11 items-stretch bg-app-surface">
       {expandExplorerButton}
-      <div
-        ref={scrollRef}
-        onMouseDown={onMouseDown}
-        onClickCapture={onClickCapture}
-        className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {openTabs.map((path) => {
-          const isActive = path === activeFile
-          const name = path.split('/').pop() ?? path
-          const accent = fileTypeStyle(name)?.topBorderColor ?? 'border-t-app-accent'
-          return (
-            <div
-              key={path}
-              ref={isActive ? activeTabRef : null}
-              className={`group flex h-11 shrink-0 items-center gap-2 border-r border-app-border px-3 text-base border-t-2 ${
-                isActive
-                  ? `bg-app-surface text-app ${accent}`
-                  : `border-t-transparent border-b border-b-app-border bg-app-panel text-app-muted hover:text-app`
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setActiveFile(path)}
-                className="whitespace-nowrap py-2 pr-1"
-                title={path}
+      <div className="relative flex min-w-0 flex-1 items-stretch">
+        <div
+          ref={scrollRef}
+          onMouseDown={onMouseDown}
+          onClickCapture={onClickCapture}
+          onScroll={updateFades}
+          className="flex flex-1 items-stretch overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {openTabs.map((path) => {
+            const isActive = path === activeFile
+            const name = path.split('/').pop() ?? path
+            const accent = fileTypeStyle(name)?.topBorderColor ?? 'border-t-app-accent'
+            return (
+              <div
+                key={path}
+                ref={isActive ? activeTabRef : null}
+                className={`group flex h-11 shrink-0 items-center gap-2 border-r border-app-border px-3 text-base border-t-2 ${
+                  isActive
+                    ? `bg-app-surface text-app ${accent}`
+                    : `border-t-transparent border-b border-b-app-border bg-app-panel text-app-muted hover:text-app`
+                }`}
               >
-                {name}
-              </button>
-              <button
-                type="button"
-                onClick={() => closeTab(path)}
-                className="grid size-7 place-items-center rounded text-app-muted hover:bg-app-border hover:text-app"
-                title="Close"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-          )
-        })}
-        {/* Spacer fills the empty area to the right of the last tab so
-            the strip's bottom edge keeps a continuous border-b where
-            no tab lives. */}
-        <div className="h-11 flex-1 border-b border-app-border" aria-hidden />
+                <button
+                  type="button"
+                  onClick={() => setActiveFile(path)}
+                  className="whitespace-nowrap py-2 pr-1"
+                  title={path}
+                >
+                  {name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => closeTab(path)}
+                  className="grid size-7 place-items-center rounded text-app-muted hover:bg-app-border hover:text-app"
+                  title="Close"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            )
+          })}
+          {/* Spacer fills the empty area to the right of the last tab so
+              the strip's bottom edge keeps a continuous border-b where
+              no tab lives. */}
+          <div className="h-11 flex-1 border-b border-app-border" aria-hidden />
+        </div>
+        {/* Edge fades signal "more tabs this way". Rendered as overlays
+            outside the scroll container so they don't pan with the
+            content. pointer-events-none keeps drag-to-pan working
+            through them. */}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-app-surface to-transparent transition-opacity duration-150 ${
+            canScrollLeft ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-app-surface to-transparent transition-opacity duration-150 ${
+            canScrollRight ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
       </div>
     </div>
   )
