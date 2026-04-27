@@ -1,28 +1,25 @@
-Second beta — focused on polish around the directive system, video previews, and slide-deck integration. The big new piece is `prezl://` deep links that let you launch directly into a screen from a Keynote/PowerPoint slide.
+Third beta — focused on the video preview system. Adds a "trail with video" pattern alongside the existing lead-with-video, and an inheritance escape hatch for steps that want to drop a sibling's preview override.
 
 ## Highlights
 
-- **Slide-deck deep links.** Custom `prezl://open?path=…&screen=…` URL scheme lets a Keynote/PowerPoint slide launch (or focus) Prezl on a specific screen, optionally fullscreen. A "Back to presentation" affordance returns the user to the slide deck (Shift+Esc, or the top-bar button). The status bar gains register/unregister and share-link controls; share opens an options popover for picking the target screen and saving an OS-native shortcut file (`.url` / `.webloc` / `.desktop`). See [Slide-deck integration](https://mattbrailsford.github.io/prezl/guide/slide-deck-integration/).
-- **Lead-with-video pattern.** Stages can `autoLaunch` a fullscreen video preview the moment the screen opens, and the modal advances to the next screen on PageDown / Space once playback hits its `stopAt` cue. Ideal for "show the demo, then walk through the code."
-- **HTML and Razor directive comments.** `@prezl` directives now parse inside `<!-- … -->` and `@* … *@` single-line block comments, so Razor / Blazor / cshtml / xml / html projects work without workarounds.
-- **Smarter symbol jumps.** Clicking a symbol that lives inside a collapsed fold auto-expands the containing fold(s) before scrolling, and the target line briefly flashes the accent colour so the eye catches it. Plain step advances skip the flash so they don't feel noisy.
-- **Mouse back/forward navigation.** XButton1 / XButton2 (the side buttons on most mice) drive the browser-style history stack — back to the previous `(screen, file, scroll)` and forward again. Suppressed while a video preview is open so the modal owns the buttons.
+- **Trail-with-video (`autoLaunch: end`).** Stages and steps can now declare a video preview that fires at the *end* of its scope, not just the start. When the presenter forward-advances out of the screen, the screen advance pauses, the video plays, and a carry-on close (Space at the `stopAt` cue, or Space when the video ends naturally) closes the modal and advances the deck in the same press — no extra keypress. Esc / PageUp / the X button still close without advancing, in case you want to back out. The boolean shorthand `autoLaunch: true` continues to mean `start`. See [Previews → Auto-launch](https://mattbrailsford.github.io/prezl/guide/previews/).
+- **Preview/open reset shorthand for steps.** A step can now say `preview: ~` (YAML null) to drop whatever step-level override is sticky-inheriting forward and revert to the **stage's** preview. Same shape works for `open: ~`. Useful when one step introduces a trailing-video preview and a later step in the same stage should fall back to the stage's plain preview rather than carry the override forward. The reset also restarts the sticky chain, so subsequent empty steps inherit the reset value, not the original override.
 
 ## Fixes
 
-- Clicking an explorer item or tab and then pressing Space / PageDown no longer paints a focus ring on the clicked control. The shortcut blurs the active element before advancing; Tab-driven keyboard navigation still gets a focus ring as expected.
+- A trailing video declared on a stage no longer re-fires on every step's forward-advance inside that stage. It now fires exactly once, on forward-leaving the last screen still showing the preview — symmetric with how `autoLaunch: start` fires on the first screen where a preview newly appears.
 
 ## Install
 
 | Platform | Asset | Notes |
 | --- | --- | --- |
-| Windows | `Prezl_0.1.0-beta.2_x64-setup.exe` | NSIS installer |
-| Windows (portable) | `Prezl_0.1.0-beta.2_x64-portable.exe` | Single self-contained exe — drop it anywhere and run, state lives in a `data/` folder next to it |
-| macOS | `Prezl_0.1.0-beta.2_universal.dmg` | Universal binary (arm64 + x86_64) |
-| Linux | `Prezl_0.1.0-beta.2_amd64.AppImage` | Portable, no install required |
-| Linux | `Prezl_0.1.0-beta.2_amd64.deb` / `.rpm` | Distro packages |
+| Windows | `Prezl_0.1.0-beta.3_x64-setup.exe` | NSIS installer |
+| Windows (portable) | `Prezl_0.1.0-beta.3_x64-portable.exe` | Single self-contained exe — drop it anywhere and run, state lives in a `data/` folder next to it |
+| macOS | `Prezl_0.1.0-beta.3_universal.dmg` | Universal binary (arm64 + x86_64) |
+| Linux | `Prezl_0.1.0-beta.3_amd64.AppImage` | Portable, no install required |
+| Linux | `Prezl_0.1.0-beta.3_amd64.deb` / `.rpm` | Distro packages |
 
-The portable Windows exe and the Linux AppImage are the right choice for demoing Prezl on someone else's machine (a conference laptop, a borrowed workstation) without leaving anything behind. The portable Windows build keys off its filename: keep "portable" in the name and state stays next to the exe; rename it to `Prezl.exe` and it falls back to `%APPDATA%`.
+The portable Windows exe and the Linux AppImage are the right choice for demoing Prezl on someone else's machine without leaving anything behind. The portable Windows build keys off its filename: keep "portable" in the name and state stays next to the exe; rename it to `Prezl.exe` and it falls back to `%APPDATA%`.
 
 ## Known limitations
 
