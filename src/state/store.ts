@@ -400,16 +400,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const idx = ordered.findIndex((s) => s.id === state.currentScreenId)
     if (idx < 0) return
     // Trail-with-video: forward-leaving a screen with `autoLaunch: 'end'`
-    // opens its video first instead of advancing. The next forward press
-    // (or any close path) leaves the lastEndAutoLaunchedScreenId set so we
-    // don't replay it. Stays inert when a modal is already up — defensive
-    // against rapid input.
+    // opens its video first instead of advancing. Fires only when leaving
+    // the preview's *scope* — i.e., the next screen has a different
+    // preview, or we're at the end of the deck. Sticky-inheritance gives
+    // every step inside a stage the same preview reference, so without
+    // this guard a stage-level trailing video would re-fire on every step
+    // forward-advance. lastEndAutoLaunchedScreenId then suppresses the
+    // re-fire on the immediate "advance after watching" press. Stays
+    // inert when a modal is already up — defensive against rapid input.
     if (delta === 1 && state.previewState.kind === 'closed') {
       const current = ordered[idx]
+      const next = ordered[idx + 1] ?? null
       const preview = current?.preview
+      const leavingPreviewScope = !next || next.preview !== preview
       if (
         preview?.type === 'video' &&
         preview.autoLaunch === 'end' &&
+        leavingPreviewScope &&
         state.lastEndAutoLaunchedScreenId !== current.id
       ) {
         set({
