@@ -128,6 +128,7 @@ export function CodeView() {
   //   pending nav without resetting scrollTop afterwards.
   const lastScrolledKey = useRef<string | null>(null)
   const lastScrolledFile = useRef<string | null>(null)
+  const scrollAnimRef = useRef<number | null>(null)
 
   useLayoutEffect(() => {
     if (!rendered || !containerRef.current) return
@@ -136,6 +137,51 @@ export function CodeView() {
     // `flash=true` is only for explicit user jumps (symbol click → a
     // pendingNavigation). The screen.open path runs on every screen/file
     // change and would flash distractingly on each step advance.
+    const cancelScrollAnim = () => {
+      if (scrollAnimRef.current != null) {
+        cancelAnimationFrame(scrollAnimRef.current)
+        scrollAnimRef.current = null
+      }
+    }
+
+    // ~180ms easeOutCubic — snappy enough to feel instant on quick step
+    // advances but smooth enough to track the eye to the new focus point.
+    const animateScrollTop = (target: number) => {
+      cancelScrollAnim()
+      const start = container.scrollTop
+      const distance = target - start
+      if (Math.abs(distance) < 1) {
+        container.scrollTop = target
+        return
+      }
+      const duration = 180
+      const t0 = performance.now()
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - t0) / duration)
+        const eased = 1 - Math.pow(1 - t, 3)
+        container.scrollTop = start + distance * eased
+        if (t < 1) {
+          scrollAnimRef.current = requestAnimationFrame(tick)
+        } else {
+          scrollAnimRef.current = null
+        }
+      }
+      scrollAnimRef.current = requestAnimationFrame(tick)
+    }
+
+    // Don't move if the line is already within a comfortable band
+    // (10%–75% of the viewport); otherwise park it ~15% from the top
+    // so there's room to read what comes after.
+    const reveal = (el: HTMLElement) => {
+      const elRect = el.getBoundingClientRect()
+      const cRect = container.getBoundingClientRect()
+      const relativeTop = elRect.top - cRect.top
+      const h = container.clientHeight
+      const inBand = relativeTop >= h * 0.1 && relativeTop + elRect.height <= h * 0.75
+      if (inBand) return
+      animateScrollTop(container.scrollTop + relativeTop - h * 0.15)
+    }
+
     const scrollToLine = (line: number, flash: boolean) => {
       // If the target sits inside one or more fold ranges, expand them so
       // the line is reachable. Manual re-collapse via the toggle still
@@ -165,7 +211,7 @@ export function CodeView() {
             `[data-line="${line}"]`,
           ) as HTMLElement | null
           if (!el) return
-          el.scrollIntoView({ block: 'center', behavior: 'auto' })
+          reveal(el)
           if (flash) flashLine(el)
         })
         return
@@ -174,7 +220,7 @@ export function CodeView() {
         `[data-line="${line}"]`,
       ) as HTMLElement | null
       if (!el) return
-      el.scrollIntoView({ block: 'center', behavior: 'auto' })
+      reveal(el)
       if (flash) flashLine(el)
     }
 
@@ -191,6 +237,7 @@ export function CodeView() {
       if (pendingScrollTop != null) {
         const top = pendingScrollTop
         consumePendingScrollTop()
+        cancelScrollAnim()
         requestAnimationFrame(() => {
           if (containerRef.current) containerRef.current.scrollTop = top
         })
@@ -228,6 +275,7 @@ export function CodeView() {
       if (prevFile != null && prevFile === activeFile) {
         return
       }
+      cancelScrollAnim()
       container.scrollTop = 0
       return
     }
