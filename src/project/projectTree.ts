@@ -201,6 +201,23 @@ export function ancestorFolderKeysForFile(
   return []
 }
 
+/**
+ * Like `ancestorFolderKeysForFile`, but prepends the containing top-level
+ * group key — the full chain that has to be expanded for the file to be
+ * visible. Used by stage-level reset, where a manually-collapsed group must
+ * still re-open enough to reveal the stage's `open` file.
+ */
+export function ancestorChainForFile(
+  filePath: string,
+  tree: GroupedTree,
+): string[] {
+  for (const group of tree) {
+    const found = walkForFile(group.children, filePath)
+    if (found) return [group.key, ...found]
+  }
+  return []
+}
+
 function walkForFile(nodes: TreeNode[], filePath: string): string[] | null {
   for (const node of nodes) {
     if (node.kind === 'file') {

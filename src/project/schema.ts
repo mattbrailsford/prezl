@@ -102,11 +102,16 @@ const stage = z.object({
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),
   steps: z.array(screenStep).optional(),
-  /** When true, entering this stage from another stage closes every other
-   *  open tab and collapses every explorer folder except the chain leading
-   *  to the resolved `open` file — a "re-grounding" act for transitions
-   *  into a new phase of the presentation. Cross-stage entry only; step
-   *  transitions within the stage and back-nav don't trigger it. */
+  /** When true, entering this stage from another stage clears workspace
+   *  clutter that built up during the previous phase. Tabs collapse to
+   *  just the resolved `open` file. The explorer is reset *monotonically
+   *  toward less clutter*: folders the presenter expanded beyond the
+   *  baseline are re-collapsed, but folders (and top-level groups) the
+   *  presenter deliberately collapsed stay collapsed — a declutter act
+   *  the reset honors rather than undoes. The active file's chain is the
+   *  only forced-open exception, since the tab would otherwise point at
+   *  hidden content. Cross-stage entry only; step transitions within the
+   *  stage and back-nav don't trigger it. */
   reset: z.boolean().optional(),
 })
 

@@ -14,6 +14,7 @@ import { useAppStore } from '@/state/store'
 import { useVisibleFiles } from '@/hooks/useRenderedFile'
 import { usePickAndOpenProject } from '@/hooks/useProjectLoader'
 import {
+  ancestorChainForFile,
   ancestorFolderKeysForFile,
   groupFilesByProject,
   type TreeNode,
@@ -225,11 +226,26 @@ export function ExplorerTree() {
   // clean overview rather than the entire tree dumped open.
   const groupKeys = useMemo(() => groups.map((g) => g.key), [groups])
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(groupKeys))
+  // `groups` recomputes on every screen switch (visibleFiles changes per
+  // screen), so this effect fires constantly. Default-opening every group
+  // here would clobber a presenter who manually collapsed one — the very
+  // bug the stage-level reset is supposed to honor too. Track keys we've
+  // already greeted via a ref and only default-open the ones we've never
+  // seen before; previously-seen keys defer to whatever `expanded` says.
+  const seenGroupKeysRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     setExpanded((prev) => {
+      let changed = false
       const next = new Set(prev)
-      for (const k of groupKeys) if (!next.has(k)) next.add(k)
-      return next
+      for (const k of groupKeys) {
+        if (seenGroupKeysRef.current.has(k)) continue
+        seenGroupKeysRef.current.add(k)
+        if (!next.has(k)) {
+          next.add(k)
+          changed = true
+        }
+      }
+      return changed ? next : prev
     })
   }, [groupKeys])
 
@@ -254,22 +270,28 @@ export function ExplorerTree() {
   }, [activeFile, groups])
 
   // Stage-level `reset:` trigger. The store increments explorerResetToken
-  // on cross-stage entry into an opted-in stage; here we collapse every
-  // folder outside the active file's chain to "re-ground" the audience for
-  // the next phase. Top-level groups stay open — collapsing those would
-  // hide whole projects, which isn't what the directive is for. The ref
-  // skips the initial render (token starts at 0).
+  // on cross-stage entry into an opted-in stage; here we re-ground the
+  // explorer for the next phase. The reset is *monotonic toward less
+  // clutter*: anything the presenter expanded beyond the baseline is
+  // re-collapsed (additive clutter, undone), but anything the presenter
+  // deliberately collapsed stays collapsed (a declutter act, preserved).
+  // Hard exception: the active file's full chain — including its top-level
+  // group — is always forced open, otherwise the new stage's tab would
+  // point at content the explorer hides. The ref skips the initial render
+  // (token starts at 0).
   const lastResetTokenRef = useRef(explorerResetToken)
   useEffect(() => {
     if (explorerResetToken === lastResetTokenRef.current) return
     lastResetTokenRef.current = explorerResetToken
-    const next = new Set(groupKeys)
-    if (activeFile) {
-      for (const k of ancestorFolderKeysForFile(activeFile, groups)) {
-        next.add(k)
+    const baseline = new Set(groupKeys)
+    setExpanded((prev) => {
+      const next = new Set<string>()
+      for (const k of prev) if (baseline.has(k)) next.add(k)
+      if (activeFile) {
+        for (const k of ancestorChainForFile(activeFile, groups)) next.add(k)
       }
-    }
-    setExpanded(next)
+      return next
+    })
   }, [explorerResetToken, groupKeys, activeFile, groups])
 
   if (!project) {

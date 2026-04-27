@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { groupFilesByProject } from './projectTree'
+import {
+  ancestorChainForFile,
+  ancestorFolderKeysForFile,
+  groupFilesByProject,
+} from './projectTree'
 
 describe('groupFilesByProject', () => {
   it('returns a single catch-all group when no projects are declared', () => {
@@ -106,5 +110,39 @@ describe('groupFilesByProject', () => {
     )
     expect(tree).toHaveLength(1)
     expect((tree[0] as { name: string }).name).toBe('Admin')
+  })
+})
+
+describe('ancestorFolderKeysForFile / ancestorChainForFile', () => {
+  const tree = groupFilesByProject(
+    ['src/Backend/Api/Weather.cs', 'src/Backend/Program.cs'],
+    [{ name: 'Backend', path: 'src/Backend' }],
+  )
+
+  it('ancestorFolderKeysForFile returns the in-group folder chain only', () => {
+    expect(ancestorFolderKeysForFile('src/Backend/Api/Weather.cs', tree))
+      .toEqual(['proj:0:Backend:Api'])
+  })
+
+  it('ancestorFolderKeysForFile returns [] for a file at the group root', () => {
+    expect(ancestorFolderKeysForFile('src/Backend/Program.cs', tree))
+      .toEqual([])
+  })
+
+  it('ancestorChainForFile prepends the containing group key', () => {
+    expect(ancestorChainForFile('src/Backend/Api/Weather.cs', tree))
+      .toEqual(['proj:0:Backend', 'proj:0:Backend:Api'])
+  })
+
+  it('ancestorChainForFile still returns the group key for a top-level file', () => {
+    // The stage-reset path needs the group open even when the active file
+    // sits directly under the group root with no folder ancestors.
+    expect(ancestorChainForFile('src/Backend/Program.cs', tree))
+      .toEqual(['proj:0:Backend'])
+  })
+
+  it('both helpers return [] when the file is not in the tree', () => {
+    expect(ancestorFolderKeysForFile('does/not/exist.cs', tree)).toEqual([])
+    expect(ancestorChainForFile('does/not/exist.cs', tree)).toEqual([])
   })
 })
