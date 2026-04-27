@@ -200,18 +200,34 @@ svg {
 .pz-icon.code-blue { color: #60a5fa; }
 
 .pz-editor { display: flex; flex-direction: column; background: #1a1a1e; min-height: 0; }
-.pz-tabs { display: flex; border-bottom: 1px solid rgba(148, 163, 184, 0.08); }
+.pz-tabs {
+  display: flex;
+  background: #1e1e22;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
 .pz-tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  /* 4 + 2px transparent border-top = 6px above text, so heights stay
+     identical between active and inactive. */
+  padding: 4px 12px 6px;
   font-size: 11px;
   color: #a1a1aa;
+  border-top: 2px solid transparent;
   border-right: 1px solid rgba(148, 163, 184, 0.08);
 }
 .pz-tab svg { color: #71717a; width: 10px; height: 10px; }
-.pz-tab.active { background: #27272a; color: #e4e4e7; }
+.pz-tab.active {
+  background: #1a1a1e;
+  color: #e4e4e7;
+  /* Top accent stripe in the file-type color (TS blue, matching the
+     .code-blue icons). Paint a 1px line in the editor bg directly under
+     this tab to cover .pz-tabs's border-bottom, so the active tab
+     merges seamlessly into the code area below. */
+  border-top-color: #60a5fa;
+  box-shadow: 0 1px 0 0 #1a1a1e;
+}
 
 .pz-code { padding: 6px 0; overflow: hidden; }
 /* white-space: pre preserves both single spaces between tokens and the
@@ -219,7 +235,7 @@ svg {
    flex items that contain only whitespace are removed by the layout
    (CSS Flexbox §4), which collapses `</span> <span>` into `</span><span>`
    and produces "exportfunctionregisterDashboard". */
-.pz-line { padding: 1px 0; color: #e4e4e7; white-space: pre; }
+.pz-line { position: relative; padding: 1px 0; color: #e4e4e7; white-space: pre; }
 .pz-line .ln {
   display: inline-block;
   width: 28px;
@@ -229,11 +245,23 @@ svg {
   user-select: none;
 }
 .pz-line.focus { background: rgba(250, 204, 21, 0.07); }
-/* Inset box-shadow rather than border-left + negative margin: the parent
-   .pz-code has overflow: hidden, and a -2px margin pushes the indicator
-   outside the clipping rect (only the sub-pixel scaled mobile render
-   accidentally leaks it through). Inset shadow stays inside the .ln box. */
-.pz-line.focus .ln { box-shadow: inset 2px 0 0 #eab308; }
+/* Absolutely-positioned bar instead of border-left/box-shadow on .ln:
+   - border-left + negative margin leaked past .pz-code's overflow:hidden
+     under sub-pixel scaling on mobile.
+   - inset box-shadow on the inline-block .ln rendered a 1px artifact
+     along the bottom edge at scaled sizes — visible on the last focus
+     line because the line below it isn't tinted to mask it.
+   A block-level pseudo-element bounded by top/bottom: 0 has no inline-
+   block baseline math to go wrong. */
+.pz-line.focus::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #eab308;
+}
 .pz-line.collapsed { color: #52525b; }
 .pz-line.collapsed .chev-sq {
   display: inline-grid;
