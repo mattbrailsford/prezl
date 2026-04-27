@@ -7,7 +7,7 @@ import {
   type PreviewState,
   type Screen,
 } from '@/types'
-import { reconcileScreenSwitch } from './stageReducer'
+import { applyStageEntryReset, reconcileScreenSwitch } from './stageReducer'
 import { buildScreenIndex, type ScreenIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
 import { launchUrlPreview } from '@/project/previewLauncher'
@@ -128,6 +128,12 @@ type AppState = {
    *  this session. Re-traversing the same screen (back-then-forward, or
    *  via the stage dropdown) won't replay it. Reset on project (re)load. */
   lastEndAutoLaunchedScreenId: string | null
+  /** Monotonic counter incremented when a cross-stage entry triggers a
+   *  stage-level `reset:` flag. ExplorerTree subscribes to this and
+   *  collapses every folder outside the active file's ancestor chain on
+   *  change. The store can't drive the explorer's expanded set directly —
+   *  it's local component state — so a token is the lightest signal. */
+  explorerResetToken: number
 }
 
 type AppActions = {
@@ -231,7 +237,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     })
 
     if (crossingStage) {
-      window.setTimeout(() => {
+      setTimeout(() => {
         if (get().currentScreenId === target.id) {
           set({ statusMessage: 'Ready' })
         }
@@ -259,6 +265,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   historyIndex: -1,
   pendingScrollTop: null,
   lastEndAutoLaunchedScreenId: null,
+  explorerResetToken: 0,
 
   setProject: (project, rawFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
@@ -351,10 +358,13 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       ? (screenIndex.byId[state.currentScreenId] ?? null)
       : null
     const crossingStage = previous?.stageAlias !== target.stageAlias
+    const targetStage = crossingStage
+      ? project.stages.find((s) => s.alias === target.stageAlias)
+      : undefined
 
     if (crossingStage) {
-      const stage = project.stages.find((s) => s.alias === target.stageAlias)
-      const label = stage?.branch ?? stage?.title ?? target.stageAlias
+      const label =
+        targetStage?.branch ?? targetStage?.title ?? target.stageAlias
       set({ statusMessage: `Switching to ${label}...` })
     }
 
@@ -364,16 +374,26 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       currentScreenId: target.id,
       screenIndex,
     })
-    const next = reconcileScreenSwitch({
+    let next = reconcileScreenSwitch({
       screen: target,
       visibleFiles,
       openTabs: state.openTabs,
       activeFile: state.activeFile,
     })
+    // Stage-level reset: cross-stage entry into an opted-in stage clears
+    // every other tab and signals the explorer to collapse folders outside
+    // the active file's chain. Step transitions inside the stage and
+    // back-nav (which goes through applyHistoryLocation, not this path)
+    // never trigger reset — re-grounding only fires on a true stage entry.
+    const resetting = crossingStage && targetStage?.reset === true
+    if (resetting) next = applyStageEntryReset(next)
     set({
       currentScreenId: target.id,
       openTabs: next.openTabs,
       activeFile: next.activeFile,
+      ...(resetting
+        ? { explorerResetToken: state.explorerResetToken + 1 }
+        : {}),
     })
     // Don't stomp on an already-open preview (rare — modal absorbs Space —
     // but defensive against stage-dropdown jumps mid-modal).
@@ -384,7 +404,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       set({ previewState: { kind: 'video', preview: target.preview } })
     }
     if (crossingStage) {
-      window.setTimeout(() => {
+      setTimeout(() => {
         if (get().currentScreenId === target.id) {
           set({ statusMessage: 'Ready' })
         }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reconcileScreenSwitch } from './stageReducer'
+import { applyStageEntryReset, reconcileScreenSwitch } from './stageReducer'
 import type { Screen } from '@/types'
 
 function screen(partial: Partial<Screen> = {}): Screen {
@@ -64,6 +64,35 @@ describe('reconcileScreenSwitch', () => {
       openTabs: ['src/a.ts', 'src/b.ts'],
       activeFile: 'src/a.ts',
     })
+    expect(result.activeFile).toBe('src/a.ts')
+  })
+})
+
+describe('applyStageEntryReset', () => {
+  it('collapses openTabs to just the active file', () => {
+    const result = applyStageEntryReset({
+      openTabs: ['src/a.ts', 'src/b.ts', 'src/c.ts'],
+      activeFile: 'src/b.ts',
+    })
+    expect(result.openTabs).toEqual(['src/b.ts'])
+    expect(result.activeFile).toBe('src/b.ts')
+  })
+
+  it('returns empty tabs when there is no active file', () => {
+    const result = applyStageEntryReset({
+      openTabs: ['src/a.ts'],
+      activeFile: null,
+    })
+    expect(result.openTabs).toEqual([])
+    expect(result.activeFile).toBeNull()
+  })
+
+  it('keeps the active file even if it was the only tab', () => {
+    const result = applyStageEntryReset({
+      openTabs: ['src/a.ts'],
+      activeFile: 'src/a.ts',
+    })
+    expect(result.openTabs).toEqual(['src/a.ts'])
     expect(result.activeFile).toBe('src/a.ts')
   })
 })

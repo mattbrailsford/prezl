@@ -124,3 +124,97 @@ describe('store — trailing autoLaunch advance flow', () => {
     expect(useAppStore.getState().previewState.kind).toBe('video')
   })
 })
+
+describe('store — stage-level reset flag', () => {
+  beforeEach(() => {
+    useAppStore.getState().clearProject()
+  })
+
+  function projectWithReset(): {
+    project: PrezlProject
+    rawFiles: Map<string, string>
+  } {
+    const stages: Stage[] = [
+      {
+        alias: 'main',
+        order: 1,
+        open: { file: 'main.ts' },
+      },
+      {
+        alias: 'preview',
+        order: 2,
+        open: { file: 'dashboard.ts' },
+        reset: true,
+        steps: [
+          { alias: 'a' },
+          { alias: 'b', open: { file: 'api.ts' } },
+        ],
+      },
+    ]
+    const files = ['main.ts', 'extra.ts', 'dashboard.ts', 'api.ts']
+    // computeVisibleFiles skips files missing from rawFiles, so seed every
+    // declared file with empty content to make them visible.
+    const rawFiles = new Map(files.map((f) => [f, '']))
+    return {
+      project: { name: 'Test', stages, files },
+      rawFiles,
+    }
+  }
+
+  it('cross-stage entry into a reset stage closes other tabs and bumps the token', () => {
+    const { project, rawFiles } = projectWithReset()
+    useAppStore.getState().setProject(project, rawFiles, 'main')
+
+    // Open an extra tab on the main stage so we can verify it gets closed.
+    useAppStore.getState().openFile('extra.ts')
+    expect(useAppStore.getState().openTabs).toEqual(['main.ts', 'extra.ts'])
+    const tokenBefore = useAppStore.getState().explorerResetToken
+
+    // Cross into preview.a — the stage's open file is dashboard.ts, and
+    // since the stage opted into reset, every other tab should drop.
+    useAppStore.getState().switchScreen('preview.a')
+    expect(useAppStore.getState().currentScreenId).toBe('preview.a')
+    expect(useAppStore.getState().openTabs).toEqual(['dashboard.ts'])
+    expect(useAppStore.getState().activeFile).toBe('dashboard.ts')
+    expect(useAppStore.getState().explorerResetToken).toBe(tokenBefore + 1)
+  })
+
+  it('step transition within a reset stage does not re-fire the reset', () => {
+    const { project, rawFiles } = projectWithReset()
+    useAppStore.getState().setProject(project, rawFiles, 'preview')
+    // Initial screen is preview.a; reset already fired on this entry path
+    // is cosmetic since setProject builds clean state, but the explorer
+    // token starts at 0 and shouldn't have moved yet.
+    expect(useAppStore.getState().currentScreenId).toBe('preview.a')
+    const tokenAfterInitial = useAppStore.getState().explorerResetToken
+
+    // Open an extra tab then walk to step b — the reset must not fire on
+    // step transitions, so the extra tab survives the move.
+    useAppStore.getState().openFile('extra.ts')
+    useAppStore.getState().switchScreen('preview.b')
+    expect(useAppStore.getState().currentScreenId).toBe('preview.b')
+    expect(useAppStore.getState().openTabs).toContain('extra.ts')
+    expect(useAppStore.getState().explorerResetToken).toBe(tokenAfterInitial)
+  })
+
+  it('back-nav into a reset stage does not trigger a reset', () => {
+    const { project, rawFiles } = projectWithReset()
+    useAppStore.getState().setProject(project, rawFiles, 'preview')
+    // Stack a useful history: open extra, then move forward into main.
+    useAppStore.getState().openFile('extra.ts')
+    useAppStore.getState().switchScreen('main')
+    const tokenAfterForward = useAppStore.getState().explorerResetToken
+
+    // Open another tab on main to prove it survives the back-nav.
+    useAppStore.getState().openFile('api.ts')
+    useAppStore.getState().goBack() // back to preview's last entry
+    expect(useAppStore.getState().currentScreenId).toBe('main')
+    // goBack walks one step at a time; one more step lands us on preview.
+    useAppStore.getState().goBack()
+    expect(useAppStore.getState().currentScreenId).toBe('preview.a')
+    // Crucially: no reset signal fired. The extra tab from earlier should
+    // still be on the tab strip.
+    expect(useAppStore.getState().openTabs).toContain('api.ts')
+    expect(useAppStore.getState().explorerResetToken).toBe(tokenAfterForward)
+  })
+})

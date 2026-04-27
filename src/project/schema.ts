@@ -102,6 +102,12 @@ const stage = z.object({
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),
   steps: z.array(screenStep).optional(),
+  /** When true, entering this stage from another stage closes every other
+   *  open tab and collapses every explorer folder except the chain leading
+   *  to the resolved `open` file — a "re-grounding" act for transitions
+   *  into a new phase of the presentation. Cross-stage entry only; step
+   *  transitions within the stage and back-nav don't trigger it. */
+  reset: z.boolean().optional(),
 })
 
 export const prezlProjectSchema = z.object({

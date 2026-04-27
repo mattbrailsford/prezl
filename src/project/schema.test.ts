@@ -97,3 +97,35 @@ describe('schema — step preview/open reset (null)', () => {
     }
   })
 })
+
+describe('schema — stage reset flag', () => {
+  it('accepts reset: true on a stage', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'shell', reset: true }],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].reset).toBe(true)
+    }
+  })
+
+  it('keeps reset undefined when omitted', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'shell' }],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].reset).toBeUndefined()
+    }
+  })
+
+  it('rejects non-boolean reset', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'shell', reset: 'yes' }],
+    })
+    expect(result.success).toBe(false)
+  })
+})

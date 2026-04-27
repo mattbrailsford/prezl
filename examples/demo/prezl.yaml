@@ -18,6 +18,7 @@ stages:
   - alias: preview
     branch: feature/dashboard-preview
     title: Preview dashboard
+    reset: true
     open:
       file: src/dashboard.ts
       id: registerDashboard

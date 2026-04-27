@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
   ChevronDown,
@@ -210,6 +210,7 @@ export function ExplorerTree() {
   const activeFile = useAppStore((s) => s.activeFile)
   const openFile = useAppStore((s) => s.openFile)
   const setPreferences = useAppStore((s) => s.setPreferences)
+  const explorerResetToken = useAppStore((s) => s.explorerResetToken)
   const visibleFiles = useVisibleFiles()
   const pickAndOpen = usePickAndOpenProject()
 
@@ -251,6 +252,25 @@ export function ExplorerTree() {
       return changed ? next : prev
     })
   }, [activeFile, groups])
+
+  // Stage-level `reset:` trigger. The store increments explorerResetToken
+  // on cross-stage entry into an opted-in stage; here we collapse every
+  // folder outside the active file's chain to "re-ground" the audience for
+  // the next phase. Top-level groups stay open — collapsing those would
+  // hide whole projects, which isn't what the directive is for. The ref
+  // skips the initial render (token starts at 0).
+  const lastResetTokenRef = useRef(explorerResetToken)
+  useEffect(() => {
+    if (explorerResetToken === lastResetTokenRef.current) return
+    lastResetTokenRef.current = explorerResetToken
+    const next = new Set(groupKeys)
+    if (activeFile) {
+      for (const k of ancestorFolderKeysForFile(activeFile, groups)) {
+        next.add(k)
+      }
+    }
+    setExpanded(next)
+  }, [explorerResetToken, groupKeys, activeFile, groups])
 
   if (!project) {
     return <div className="p-3 text-xs text-app-muted">No project loaded</div>

@@ -54,3 +54,18 @@ export function reconcileScreenSwitch(
 
   return { openTabs, activeFile }
 }
+
+/**
+ * Collapse the reconciled output to just the resolved active file — the tab
+ * side of the stage-level `reset:` flag. Caller decides when to apply it
+ * (cross-stage forward entry into a stage that opted in); the explorer-side
+ * collapse is signalled separately via the store's explorerResetToken.
+ */
+export function applyStageEntryReset(
+  output: ScreenSwitchOutput,
+): ScreenSwitchOutput {
+  return {
+    openTabs: output.activeFile ? [output.activeFile] : [],
+    activeFile: output.activeFile,
+  }
+}

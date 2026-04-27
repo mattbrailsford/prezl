@@ -82,6 +82,11 @@ export type Stage = {
   /** Optional ordered list of intra-stage steps. A stage with no steps has
    *  one implicit screen whose id is the bare stage alias. */
   steps?: Step[]
+  /** When true, cross-stage entry into this stage clears every non-active
+   *  tab and collapses every explorer folder outside the active file's
+   *  ancestor chain. Step transitions within the stage and back-nav don't
+   *  trigger it. */
+  reset?: boolean
 }
 
 /** Flat addressable unit the presenter advances through. Either a stage
