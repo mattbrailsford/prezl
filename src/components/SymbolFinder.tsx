@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { useAppStore } from '@/state/store'
-import { useSymbolTable } from '@/hooks/useRenderedFile'
+import { useNavigableSymbols } from '@/hooks/useRenderedFile'
 import { fuzzyFilter } from '@/project/fuzzyMatch'
 
 type SymbolRow = { id: string; file: string; line: number }
@@ -10,7 +10,7 @@ export function SymbolFinder() {
   const open = useAppStore((s) => s.symbolFinderOpen)
   const closeSymbolFinder = useAppStore((s) => s.closeSymbolFinder)
   const navigateToFileLine = useAppStore((s) => s.navigateToFileLine)
-  const symbolTable = useSymbolTable()
+  const symbolTable = useNavigableSymbols()
 
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)

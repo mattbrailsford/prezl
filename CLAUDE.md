@@ -254,11 +254,17 @@ presenter can toggle live; that toggle survives until the next
 screen/file switch.
 
 **Symbol decorations are inline.** `useSymbolTable` returns a `Map<id,
-{file, line}>`. The renderer walks each line's Shiki tokens and, for
-any token whose text contains a known id at a word boundary, splits the
-token to wrap the match in a `.prezl-symbol` span with `data-target-*`
-attrs. The definition site is skipped. A single click handler at the
-container delegates jumps via `navigateToFileLine`.
+{file, line}>` of every anchor on the current screen. The renderer
+walks each line's Shiki tokens and, for any token whose text contains
+a known id at a word boundary, splits the token to wrap the match in
+a `.prezl-symbol` span with `data-target-*` attrs. The definition site
+is skipped. A single click handler at the container delegates jumps
+via `navigateToFileLine`. The Ctrl+T picker uses `useNavigableSymbols`
+instead — same shape, but pre-filtered to ids with at least one
+non-definition word-boundary occurrence in some visible file's
+rendered text. Pure section anchors (typically just `open.id` scroll
+targets) get filtered out so the picker only lists ids the audience
+could actually click on in the code.
 
 **Scroll handling.** A `useLayoutEffect` scrolls the target line into
 view before paint on `(file, screen, pendingNavigation)` change.
@@ -478,8 +484,17 @@ consumes before falling back to `screen.open`.
 Collisions: if two marks share an id, the first one encountered in
 `visibleFiles` order wins. Stale matches on common short words (`config`,
 `i`) are possible but rare for a curated presentation — pick distinctive
-ids. Future escape hatch would be an explicit `linkable=false` attribute,
-not yet needed.
+ids.
+
+`Ctrl+T` lists *navigable* anchors only — see `useNavigableSymbols` in
+`useRenderedFile.ts`. An id qualifies when its name appears at least
+once as a word-boundary token in some visible file's rendered text
+outside its own definition line. Pure section anchors (the kind you
+add only so YAML `open.id` can scroll there) drop out of the picker
+because they have nothing to click on in code. The unfiltered
+`useSymbolTable` is still what powers click-to-jump and what
+`@prezl open.id` resolves against, so the anchor still works as a
+scroll target — it just stops being noise in the picker.
 
 `Ctrl+T` opens the **Symbol Finder** modal: fuzzy search over the
 current screen's symbol table, arrow keys cycle results, Enter jumps,

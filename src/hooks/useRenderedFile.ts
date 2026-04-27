@@ -61,6 +61,12 @@ export function useVisibleFiles(): string[] {
  * order). Re-parsing every file on every screen change is cheap for the
  * size of project Prezl targets; memoise by inputs to avoid redundant
  * parses on unrelated re-renders.
+ *
+ * Returns *all* anchors, including pure section markers with no usages.
+ * The picker uses {@link useNavigableSymbols} to surface only the ids
+ * that actually appear as clickable text somewhere; the unfiltered table
+ * stays useful for click-to-jump (where non-referenced ids are no-ops
+ * because there's nothing to wrap) and as the canonical anchor map.
  */
 export function useSymbolTable(): SymbolTable {
   const rawFiles = useAppStore((s) => s.rawFiles)
@@ -83,6 +89,56 @@ export function useSymbolTable(): SymbolTable {
     return table
   }, [rawFiles, screen, screenIndex, files])
 }
+
+/**
+ * Filtered view of {@link useSymbolTable} that drops anchors with no
+ * usages — i.e. ids that never appear as a word-boundary token in any
+ * visible file's rendered text outside their own definition line. These
+ * are pure section markers (typically used as `open.id` scroll targets);
+ * surfacing them in the Ctrl+T picker is noise because there's nowhere
+ * to "jump from" — the rendered code never carries the name.
+ */
+export function useNavigableSymbols(): SymbolTable {
+  const rawFiles = useAppStore((s) => s.rawFiles)
+  const screen = useCurrentScreen()
+  const screenIndex = useScreenIndex()
+  const files = useVisibleFiles()
+  const symbolTable = useSymbolTable()
+
+  return useMemo(() => {
+    if (!screen || symbolTable.size === 0) return EMPTY_SYMBOL_TABLE
+    const referenced = new Set<string>()
+    const wordRe = /\b[A-Za-z_]\w*\b/g
+    for (const path of files) {
+      const source = rawFiles.get(path)
+      if (source == null) continue
+      const rendered = parseDirectives(source, screen.id, screenIndex)
+      const lines = rendered.text.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        const lineNumber = i + 1
+        wordRe.lastIndex = 0
+        let m: RegExpExecArray | null
+        while ((m = wordRe.exec(lines[i])) !== null) {
+          const id = m[0]
+          if (referenced.has(id)) continue
+          const def = symbolTable.get(id)
+          if (!def) continue
+          if (def.file === path && def.line === lineNumber) continue
+          referenced.add(id)
+        }
+      }
+      if (referenced.size === symbolTable.size) break
+    }
+    if (referenced.size === symbolTable.size) return symbolTable
+    const filtered: SymbolTable = new Map()
+    for (const [id, target] of symbolTable) {
+      if (referenced.has(id)) filtered.set(id, target)
+    }
+    return filtered
+  }, [rawFiles, screen, screenIndex, files, symbolTable])
+}
+
+const EMPTY_SYMBOL_TABLE: SymbolTable = new Map()
 
 /**
  * Render the currently active file for the current screen. Returns null when

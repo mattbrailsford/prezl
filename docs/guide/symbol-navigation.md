@@ -31,13 +31,22 @@ Two things automatically become interactive wherever the identifier
    Clicking it opens the file containing the definition and scrolls to
    the marked line — even if that file isn't already open in a tab.
 2. **Ctrl+T finder.** Press <kbd>Ctrl</kbd>+<kbd>T</kbd> to open a fuzzy
-   search over every id in the project (at the current stage). Type
-   `regD` → `registerDashboard` ranks first. Arrow keys cycle, Enter
-   jumps.
+   search over every id that's actually clickable in code on the
+   current screen. Type `regD` → `registerDashboard` ranks first.
+   Arrow keys cycle, Enter jumps.
 
 The definition site itself is **not** turned into a link (clicking the
 function name where it's defined would jump in place — pointless). Only
 usage sites become jumps.
+
+::: tip Pure section anchors don't clutter the picker
+If an id is only used as a scroll target — e.g. `// @prezl id=overview`
+sitting above a section so a step's `open.id: overview` lands there —
+and its name never appears as a word in any visible file's code, it's
+*omitted* from the Ctrl+T list. The anchor still works as an `open.id`
+target; it just doesn't show up in the picker because there's nothing
+to click on.
+:::
 
 ## On landing
 
