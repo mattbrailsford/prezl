@@ -83,13 +83,7 @@
           <div class="pz-line focus"><span class="ln">12</span>  <span class="var">dashboard</span>.<span class="fn">register</span>(<span class="var">app</span>)</div>
           <div class="pz-line"><span class="ln">13</span><span class="punct">}</span></div>
           <div class="pz-line"><span class="ln">14</span></div>
-          <div class="pz-line collapsed">
-            <span class="ln">15</span>
-            <span class="chev-sq">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            </span>
-            <span class="dim">…</span>
-          </div>
+          <div class="pz-line collapsed"><span class="ln">15</span><span class="chev-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span><span class="dim">…</span></div>
           <div class="pz-line"><span class="ln">24</span><span class="punct">}</span></div>
         </div>
       </div>
@@ -220,7 +214,12 @@ svg {
 .pz-tab.active { background: #27272a; color: #e4e4e7; }
 
 .pz-code { padding: 6px 0; overflow: hidden; }
-.pz-line { display: flex; align-items: center; padding: 1px 0; color: #e4e4e7; white-space: nowrap; }
+/* white-space: pre preserves both single spaces between tokens and the
+   leading indentation on lines 11/12. Flex would strip them — anonymous
+   flex items that contain only whitespace are removed by the layout
+   (CSS Flexbox §4), which collapses `</span> <span>` into `</span><span>`
+   and produces "exportfunctionregisterDashboard". */
+.pz-line { padding: 1px 0; color: #e4e4e7; white-space: pre; }
 .pz-line .ln {
   display: inline-block;
   width: 28px;
@@ -242,6 +241,9 @@ svg {
   margin-right: 8px;
   background: #27272a;
   color: #a1a1aa;
+  /* No flex parent any more, so align with the text x-height instead of
+     sitting on the baseline (which would push the box above "…"). */
+  vertical-align: middle;
 }
 .pz-line.collapsed .chev-sq svg { width: 8px; height: 8px; }
 
