@@ -142,7 +142,7 @@
   .code-line-no {
     flex-shrink: 0;
     width: 3.5em;
-    padding-right: 6px;
+    padding-right: 4px;
     text-align: right;
     color: #5a5a66;
     user-select: none;
@@ -206,6 +206,7 @@
   .code-line-content {
     flex: 1;
     min-width: 0;
+    padding-left: 4px;
   }
 
   .code-fold-summary {
