@@ -47,12 +47,27 @@ const videoPreview = z.object({
   startAt: z.number().nonnegative().optional(),
   stopAt: z.number().nonnegative().optional(),
   cues: z.array(videoCue).optional(),
-  /** When true, the video modal launches automatically the first time the
-   *  presenter advances onto a screen carrying this preview — useful for
-   *  "lead with a video" stage intros. Subsequent steps that inherit the
-   *  same preview don't re-trigger; an explicitly-redeclared preview on a
-   *  later screen does. */
-  autoLaunch: z.boolean().optional(),
+  /** Open the video modal automatically at the start ("lead with video")
+   *  or end ("trail with video") of a screen. `true` is shorthand for
+   *  `'start'`; `false` and missing both mean no autolaunch.
+   *
+   *  - `'start'`: opens the moment the presenter advances onto the screen.
+   *  - `'end'`: opens when the presenter forward-advances *out* of the
+   *    screen — the screen advance pauses, the video plays, and a
+   *    subsequent forward press leaves to the next screen normally.
+   *
+   *  Subsequent steps that inherit the same preview don't re-fire; an
+   *  explicitly-redeclared preview on a later screen does. Once an `'end'`
+   *  video has fired for a given screen it won't re-fire in the same
+   *  session, even if the presenter walks back through. */
+  autoLaunch: z
+    .union([z.boolean(), z.literal('start'), z.literal('end')])
+    .optional()
+    .transform((v) => {
+      if (v === true || v === 'start') return 'start' as const
+      if (v === 'end') return 'end' as const
+      return undefined
+    }),
 })
 
 const preview = z.discriminatedUnion('type', [urlPreview, videoPreview])

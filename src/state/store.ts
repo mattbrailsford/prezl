@@ -69,9 +69,10 @@ function pushHistoryEntry(
 
 /**
  * Decide whether moving from `previousScreen` to `targetScreen` should fire
- * a video preview's `autoLaunch`. Three conditions must all hold:
+ * a video preview's `autoLaunch: 'start'` (the lead-with-video pattern).
+ * Three conditions must all hold:
  *
- *   1. The target's preview is a video with `autoLaunch: true`.
+ *   1. The target's preview is a video with `autoLaunch: 'start'`.
  *   2. The target's preview object reference differs from the previous
  *      screen's — `buildScreenIndex` reuses the same reference when a step
  *      inherits its preview, so equal references mean "no authorial change",
@@ -79,12 +80,12 @@ function pushHistoryEntry(
  *   3. We're moving forward (or it's the first screen). Going backward
  *      through a deck shouldn't replay the intro video.
  */
-function shouldAutoLaunchPreview(
+function shouldAutoLaunchOnEnter(
   previousScreen: Screen | null,
   targetScreen: Screen,
 ): targetScreen is Screen & { preview: Preview & { type: 'video' } } {
   const preview = targetScreen.preview
-  if (preview?.type !== 'video' || !preview.autoLaunch) return false
+  if (preview?.type !== 'video' || preview.autoLaunch !== 'start') return false
   if (previousScreen?.preview === preview) return false
   if (previousScreen && targetScreen.order <= previousScreen.order) return false
   return true
@@ -123,6 +124,10 @@ type AppState = {
   /** One-shot scroll-pixel target consumed by CodeView, set when goBack/
    *  goForward restores a previously visited location. */
   pendingScrollTop: number | null
+  /** Screen id whose `autoLaunch: 'end'` video has already been played in
+   *  this session. Re-traversing the same screen (back-then-forward, or
+   *  via the stage dropdown) won't replay it. Reset on project (re)load. */
+  lastEndAutoLaunchedScreenId: string | null
 }
 
 type AppActions = {
@@ -253,6 +258,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   history: [],
   historyIndex: -1,
   pendingScrollTop: null,
+  lastEndAutoLaunchedScreenId: null,
 
   setProject: (project, rawFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
@@ -281,7 +287,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     // called for the initial screen, so its autolaunch hook wouldn't fire
     // on cold start.
     let previewState: PreviewState = { kind: 'closed' }
-    if (initialScreen && shouldAutoLaunchPreview(null, initialScreen)) {
+    if (initialScreen && shouldAutoLaunchOnEnter(null, initialScreen)) {
       previewState = { kind: 'video', preview: initialScreen.preview }
     }
     scrollPositions.clear()
@@ -301,6 +307,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       history: initialHistory,
       historyIndex: initialHistory.length - 1,
       pendingScrollTop: null,
+      lastEndAutoLaunchedScreenId: null,
     })
   },
 
@@ -320,6 +327,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       history: [],
       historyIndex: -1,
       pendingScrollTop: null,
+      lastEndAutoLaunchedScreenId: null,
     })
   },
 
@@ -371,7 +379,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     // but defensive against stage-dropdown jumps mid-modal).
     if (
       get().previewState.kind === 'closed' &&
-      shouldAutoLaunchPreview(previous, target)
+      shouldAutoLaunchOnEnter(previous, target)
     ) {
       set({ previewState: { kind: 'video', preview: target.preview } })
     }
@@ -391,6 +399,26 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const ordered = state.screenIndex.ordered
     const idx = ordered.findIndex((s) => s.id === state.currentScreenId)
     if (idx < 0) return
+    // Trail-with-video: forward-leaving a screen with `autoLaunch: 'end'`
+    // opens its video first instead of advancing. The next forward press
+    // (or any close path) leaves the lastEndAutoLaunchedScreenId set so we
+    // don't replay it. Stays inert when a modal is already up — defensive
+    // against rapid input.
+    if (delta === 1 && state.previewState.kind === 'closed') {
+      const current = ordered[idx]
+      const preview = current?.preview
+      if (
+        preview?.type === 'video' &&
+        preview.autoLaunch === 'end' &&
+        state.lastEndAutoLaunchedScreenId !== current.id
+      ) {
+        set({
+          previewState: { kind: 'video', preview, trailing: true },
+          lastEndAutoLaunchedScreenId: current.id,
+        })
+        return
+      }
+    }
     const next = ordered[idx + delta]
     if (!next) return
     get().switchScreen(next.id)

@@ -8,8 +8,12 @@ export function VideoPreview() {
   const preview = useAppStore((s) =>
     s.previewState.kind === 'video' ? s.previewState.preview : null,
   )
+  const trailing = useAppStore((s) =>
+    s.previewState.kind === 'video' ? Boolean(s.previewState.trailing) : false,
+  )
   const rootPath = useAppStore((s) => s.project?.rootPath ?? null)
   const closePreview = useAppStore((s) => s.closePreview)
+  const switchScreenRelative = useAppStore((s) => s.switchScreenRelative)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [awaitingResume, setAwaitingResume] = useState(false)
@@ -32,7 +36,9 @@ export function VideoPreview() {
 
   // Sync the resume indicator with actual playback state so external pauses
   // (e.g. end of file, browser-initiated pause) flip it on, and any play
-  // event flips it off.
+  // event flips it off. The `ended` event also flips atEnd on so videos
+  // without a stopAt cue still hit the carry-on close path naturally —
+  // critical for trailing videos that simply play through.
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
@@ -41,11 +47,14 @@ export function VideoPreview() {
       setAwaitingResume(false)
       setAtEnd(false)
     }
+    const onEnded = () => setAtEnd(true)
     video.addEventListener('pause', onPause)
     video.addEventListener('play', onPlay)
+    video.addEventListener('ended', onEnded)
     return () => {
       video.removeEventListener('pause', onPause)
       video.removeEventListener('play', onPlay)
+      video.removeEventListener('ended', onEnded)
     }
   }, [preview])
 
@@ -140,12 +149,15 @@ export function VideoPreview() {
   }, [preview, bumpCursorActivity])
 
   // Keyboard map while the modal is up:
-  //   Escape / PageUp   -> close (back to editor)
-  //   Space / PageDown  -> toggle play/pause; close once the clip has hit
-  //                        its stopAt, so forward-nav defaults to "I'm done,
-  //                        carry on" and the deck advances naturally.
-  //                        Restart is the rarer intent and gets the explicit
-  //                        button click instead.
+  //   Escape / PageUp   -> close (back to editor) — always stays put
+  //   Space / PageDown  -> toggle play/pause; once the clip has hit its
+  //                        stopAt, this is the "carry on" close. For a
+  //                        regular (lead-with-video) preview it just
+  //                        dismisses the modal and the next forward press
+  //                        advances the deck. For a trailing
+  //                        (autoLaunch: 'end') preview it advances the
+  //                        deck in the same press, since the trailing
+  //                        video IS the leaving act.
   // PageUp / PageDown are here so a presentation clicker that emits those
   // codes (most wireless remotes do) drives playback instead of leaking
   // through to the stage-navigation shortcut.
@@ -165,6 +177,7 @@ export function VideoPreview() {
         if (!video) return
         if (atEnd) {
           closePreview()
+          if (trailing) switchScreenRelative(1)
           return
         }
         if (video.paused) {
@@ -184,7 +197,7 @@ export function VideoPreview() {
       window.removeEventListener('keydown', onKey, {
         capture: true,
       } as EventListenerOptions)
-  }, [preview, closePreview, bumpCursorActivity, atEnd])
+  }, [preview, closePreview, bumpCursorActivity, atEnd, trailing, switchScreenRelative])
 
   if (!preview) return null
 

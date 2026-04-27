@@ -56,11 +56,19 @@ preview:
   is replaced with a **Restart** chip; clicking it replays from
   `startAt`. Forward nav (Space / PageDown) closes and returns to the
   deck — replaying is the rare deliberate case.
-- **`autoLaunch`** — when `true`, the modal opens automatically the
-  first time the presenter advances onto a screen carrying this
-  preview. Subsequent steps that inherit the same preview don't
-  re-fire; an explicitly redeclared preview on a later screen does.
-  Useful for "lead with a video" stage intros.
+- **`autoLaunch`** — when set, the modal opens automatically without
+  needing to click *Run*. Two modes:
+  - `'start'` (or shorthand `true`) — opens the moment the presenter
+    advances onto the screen. The "lead with a video" stage intro.
+  - `'end'` — opens when the presenter forward-advances *out* of the
+    screen: the screen advance pauses, the video plays, and a
+    subsequent forward press leaves to the next screen normally. The
+    "trail with a video" payoff for a section just walked through.
+
+  Subsequent steps that inherit the same preview don't re-fire; an
+  explicitly redeclared preview on a later screen does. Once an
+  `'end'` video has fired for a given screen it won't replay in the
+  same session, even if the presenter walks back through.
 - **`cues`** — timestamps (seconds) where playback auto-pauses. Each
   cue fires once per session. Use them to pause over beats that need
   narration.

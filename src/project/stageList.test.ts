@@ -97,7 +97,7 @@ describe('buildScreenIndex', () => {
     const stagePreview = {
       type: 'video' as const,
       src: 'intro.mp4',
-      autoLaunch: true,
+      autoLaunch: 'start' as const,
     }
     const overridePreview = {
       type: 'video' as const,

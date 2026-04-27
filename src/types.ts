@@ -38,10 +38,13 @@ export type VideoPreview = {
   startAt?: number
   stopAt?: number
   cues?: VideoCue[]
-  /** Open the video modal automatically when the presenter first lands on
-   *  a screen carrying this preview (sticky-inherited subsequent steps
-   *  don't re-trigger). See `shouldAutoLaunchPreview` in store.ts. */
-  autoLaunch?: boolean
+  /** Open the video modal automatically at the start of a screen
+   *  ("lead with video") or when the presenter forward-advances out of
+   *  the screen ("trail with video"). Sticky-inherited subsequent steps
+   *  don't re-trigger. The schema accepts a bare `true` as shorthand for
+   *  `'start'` and normalises to this enum. See `store.ts` for the
+   *  fire/suppress rules. */
+  autoLaunch?: 'start' | 'end'
 }
 
 export type Preview = UrlPreview | VideoPreview
@@ -103,7 +106,10 @@ export type PrezlProject = {
 export type PreviewState =
   | { kind: 'closed' }
   | { kind: 'launching'; preview: Preview }
-  | { kind: 'video'; preview: VideoPreview }
+  /** `trailing` is set when the modal was opened via `autoLaunch: 'end'` —
+   *  the carry-on close path (atEnd + Space) advances the deck instead of
+   *  just dismissing the modal. Esc / mid-play closes always stay put. */
+  | { kind: 'video'; preview: VideoPreview; trailing?: boolean }
   | { kind: 'url'; preview: UrlPreview }
 
 export type Preferences = {

@@ -131,8 +131,7 @@ preview:
   src: ./videos/demo.mp4      # path relative to project root, or absolute http(s)
   startAt: 4.5                # optional — seconds
   stopAt: 32.0                # optional — pauses playback, shows Restart chip
-  autoLaunch: true            # optional — open the modal automatically when
-                              #   the presenter first lands on this screen
+  autoLaunch: start           # optional — 'start' (or true), or 'end'
   cues:                       # optional — auto-pause timestamps
     - { time: 12.0, label: "Optional label for future use" }
 ```
@@ -140,11 +139,21 @@ preview:
 Cues pause playback with a subtle Play chip; Space / PageDown /
 chip-click resumes. Each cue fires once per session.
 
-`autoLaunch: true` is the "lead with a video" pattern: the modal opens
-the moment the presenter advances onto a screen carrying this preview,
-without needing to click *Run* first. Sticky-inherited subsequent
-steps don't re-fire — only an explicitly redeclared preview on a later
-screen does. Going backward through the deck never re-fires either.
+`autoLaunch` opens the modal automatically without a *Run* click. Two
+modes:
+
+- **`start`** (or shorthand `true`) — the "lead with a video" pattern:
+  the modal opens the moment the presenter advances onto a screen
+  carrying this preview.
+- **`end`** — the "trail with a video" pattern: when the presenter
+  forward-advances out of the screen, the screen advance pauses, the
+  video plays, and a subsequent forward press leaves to the next
+  screen normally.
+
+Sticky-inherited subsequent steps don't re-fire — only an explicitly
+redeclared preview on a later screen does. Going backward never
+re-fires either, and once an `end` video has fired for a given screen
+it won't replay in the same session.
 
 ## Notes
 
