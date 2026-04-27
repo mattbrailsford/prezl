@@ -118,17 +118,17 @@ describe('directive parser', () => {
       ])
     })
 
-    it('captures the start line indent on the fold range', () => {
+    it('captures the directive line indent on the fold range', () => {
       const src = [
         'function outer() {',
         '  // @prezl collapse label="body"',
-        '  const x = 1',
-        '  const y = 2',
+        '      const x = 1',
+        '      const y = 2',
         '  // @prezl end',
         '}',
       ].join('\n')
-      // start = the first emitted line inside the region (`  const x = 1`),
-      // so the indent is two spaces.
+      // The placeholder sits where the opening `@prezl` directive was, not
+      // where the first content line is — so two spaces, not six.
       const result = parse(src, 'main')
       expect(result.foldRanges[0]?.indent).toBe('  ')
     })

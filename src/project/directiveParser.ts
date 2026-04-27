@@ -4,9 +4,9 @@ export type FoldRange = {
   start: number
   end: number
   label: string | null
-  /** Leading whitespace of the start line. The viewer uses this to render the
-   *  comment placeholder for labeled collapsed folds at the same depth as the
-   *  hidden block. */
+  /** Leading whitespace of the opening `@prezl` directive line. The viewer
+   *  uses this to render the comment placeholder for labeled collapsed folds
+   *  at the same depth as the directive that introduced them. */
   indent: string
 }
 export type FocusRange = { start: number; end: number }
@@ -207,6 +207,7 @@ type Frame = {
   collapseContentStart: number | null
   collapseStages: string | null | true
   collapseLabel: string | null
+  collapseIndent: string
   focusContentStart: number | null
   focusStages: string | null | true
 }
@@ -313,6 +314,7 @@ export function parseDirectives(
           collapseContentStart: null,
           collapseStages: null,
           collapseLabel: null,
+          collapseIndent: '',
           focusContentStart: null,
           focusStages: null,
         }
@@ -321,6 +323,7 @@ export function parseDirectives(
           frame.collapseContentStart = renderedLine + 1
           frame.collapseStages = directive.collapse
           frame.collapseLabel = directive.label
+          frame.collapseIndent = line.match(/^[ \t]*/)?.[0] ?? ''
         }
 
         if (directive.focus !== null && (!parentDropping && showKeeping)) {
@@ -375,14 +378,13 @@ export function parseDirectives(
             // with `{`). For unlabeled folds the viewer keeps that header
             // visible and appends `⋯` inline; for labeled folds it hides the
             // whole [start, end] range and renders a comment placeholder at
-            // `indent` instead.
-            const startLineText = out[top.collapseContentStart - 1] ?? ''
-            const indent = startLineText.match(/^[ \t]*/)?.[0] ?? ''
+            // `indent` instead — taken from the opening directive's leading
+            // whitespace so the placeholder sits where the `@prezl` line was.
             foldRanges.push({
               start: top.collapseContentStart,
               end: endLine,
               label: top.collapseLabel,
-              indent,
+              indent: top.collapseIndent,
             })
           }
         }

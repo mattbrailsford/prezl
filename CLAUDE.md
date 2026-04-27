@@ -231,9 +231,12 @@ the last. The viewer renders this two ways:
   language (`commentSyntaxFor` in `CodeView.tsx`); it's purely
   decorative — doesn't have to round-trip through `detectDirective`.
 
-The parser captures the start line's leading whitespace into
-`FoldRange.indent` so the placeholder can sit at the right depth
-without the viewer having to re-scan the source.
+The parser captures the **opening `@prezl` directive line's** leading
+whitespace into `FoldRange.indent` so the placeholder sits where the
+author wrote the directive — not where the first content line happens
+to be indented to. That way the collapsed line sits at the depth the
+author chose for the marker, regardless of how the body inside is
+indented.
 
 Outer wins: if an outer `show` drops a region, nested `collapse`/`focus`
 never fire.
