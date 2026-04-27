@@ -51,12 +51,19 @@ export type Preview = UrlPreview | VideoPreview
 
 /** A "step" inside a stage — the unit a presenter advances through within
  *  what the audience perceives as a single slide. Steps don't appear in the
- *  stage dropdown; Space/PageDown walks them linearly. */
+ *  stage dropdown; Space/PageDown walks them linearly.
+ *
+ *  `open` and `preview` are tri-state: undefined means "inherit
+ *  sticky-forward from the previous step's resolved value", explicit `null`
+ *  means "reset — fall back to the stage's default, ignoring any prior step
+ *  override", and a value means "use this". The reset form lets a later
+ *  step break out of an earlier step's override without restating the
+ *  stage's default. */
 export type Step = {
   alias: string
   title?: string
-  open?: OpenTarget
-  preview?: Preview
+  open?: OpenTarget | null
+  preview?: Preview | null
 }
 
 export type Stage = {

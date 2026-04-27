@@ -132,6 +132,88 @@ describe('buildScreenIndex', () => {
     ]
     expect(() => buildScreenIndex(stages)).toThrow(/duplicate step alias/)
   })
+
+  it('resets a step preview to the stage default when set to null', () => {
+    // The motivating case for the reset escape hatch: step B declares an
+    // override (e.g. a trailing-video preview) and the author wants step C
+    // to drop that and revert to the stage's plain preview rather than
+    // inherit B's override via sticky-forward.
+    const stagePreview = {
+      type: 'video' as const,
+      src: 'stage.mp4',
+    }
+    const stepBPreview = {
+      type: 'video' as const,
+      src: 'b.mp4',
+      autoLaunch: 'end' as const,
+    }
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        preview: stagePreview,
+        steps: [
+          { alias: 'a' },
+          { alias: 'b', preview: stepBPreview },
+          { alias: 'c', preview: null },
+          { alias: 'd' },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.a'].preview).toBe(stagePreview)
+    expect(idx.byId['shell.b'].preview).toBe(stepBPreview)
+    // Reset: c falls back to the stage's preview, NOT b's override.
+    expect(idx.byId['shell.c'].preview).toBe(stagePreview)
+    // And d inherits c's resolved value (which is the stage default), so
+    // sticky-forward continues from the reset point — not from b.
+    expect(idx.byId['shell.d'].preview).toBe(stagePreview)
+  })
+
+  it('resets a step open to the stage default when set to null', () => {
+    const stageOpen = { file: 'main.ts', line: 1 }
+    const stepBOpen = { file: 'b.ts', line: 1 }
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        open: stageOpen,
+        steps: [
+          { alias: 'a' },
+          { alias: 'b', open: stepBOpen },
+          { alias: 'c', open: null },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.a'].open).toBe(stageOpen)
+    expect(idx.byId['shell.b'].open).toBe(stepBOpen)
+    expect(idx.byId['shell.c'].open).toBe(stageOpen)
+  })
+
+  it('reset on a step whose stage has no default leaves the field unset', () => {
+    const stepBPreview = {
+      type: 'video' as const,
+      src: 'b.mp4',
+    }
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        // No stage-level preview.
+        steps: [
+          { alias: 'a' },
+          { alias: 'b', preview: stepBPreview },
+          { alias: 'c', preview: null },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.a'].preview).toBeUndefined()
+    expect(idx.byId['shell.b'].preview).toBe(stepBPreview)
+    // No stage default to fall back to → unset.
+    expect(idx.byId['shell.c'].preview).toBeUndefined()
+  })
 })
 
 describe('parseScreenList — flat (no steps)', () => {

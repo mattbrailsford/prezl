@@ -109,6 +109,15 @@ the file or preview, subsequent empty steps stay there until the next
 explicit override — matching how a presenter actually moves rather than
 snapping back to defaults on every empty step.
 
+**Reset escape hatch.** Set `open: ~` or `preview: ~` (YAML null) on a
+step to drop the inherited step value and revert to the **stage's
+default**. Useful when one step introduces an override (a different
+file, or a trailing-video preview) and a later step in the same stage
+should fall back to the stage's plain preview rather than carry that
+override forward. Subsequent empty steps then inherit the reset value
+(i.e., the stage default) — sticky-forward continues from the reset
+point, not from the prior override.
+
 **Aliases must be unique within a stage.** The schema rejects duplicates.
 
 #### Stage `preview:` — URL
@@ -139,21 +148,24 @@ preview:
 Cues pause playback with a subtle Play chip; Space / PageDown /
 chip-click resumes. Each cue fires once per session.
 
-`autoLaunch` opens the modal automatically without a *Run* click. Two
-modes:
+`autoLaunch` opens the modal automatically without a *Run* click.
+Each mode fires once per *scope* — the run of screens sharing the
+same preview, formed when steps inherit a stage's preview or carry
+forward a step-level override. Two modes:
 
-- **`start`** (or shorthand `true`) — the "lead with a video" pattern:
-  the modal opens the moment the presenter advances onto a screen
-  carrying this preview.
-- **`end`** — the "trail with a video" pattern: when the presenter
-  forward-advances out of the screen, the screen advance pauses, the
-  video plays, and a subsequent forward press leaves to the next
-  screen normally.
+- **`start`** (or shorthand `true`) — the "lead with a video"
+  pattern: the modal opens on the first screen of the scope (the
+  screen where the preview newly appears).
+- **`end`** — the "trail with a video" pattern: the modal opens on
+  the last screen of the scope, when the presenter forward-advances
+  out of it. The screen advance pauses, the video plays, and a
+  carry-on close (atEnd Space, or natural video end) advances the
+  deck in the same press.
 
-Sticky-inherited subsequent steps don't re-fire — only an explicitly
-redeclared preview on a later screen does. Going backward never
-re-fires either, and once an `end` video has fired for a given screen
-it won't replay in the same session.
+An explicitly redeclared preview on a later step starts a new scope
+with its own start/end fires. Going backward never re-fires, and
+once an `end` video has fired for its scope it won't replay in the
+same session.
 
 ## Notes
 

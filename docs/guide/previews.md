@@ -57,18 +57,21 @@ preview:
   `startAt`. Forward nav (Space / PageDown) closes and returns to the
   deck — replaying is the rare deliberate case.
 - **`autoLaunch`** — when set, the modal opens automatically without
-  needing to click *Run*. Two modes:
-  - `'start'` (or shorthand `true`) — opens the moment the presenter
-    advances onto the screen. The "lead with a video" stage intro.
-  - `'end'` — opens when the presenter forward-advances *out* of the
-    screen: the screen advance pauses, the video plays, and a
-    subsequent forward press leaves to the next screen normally. The
+  needing to click *Run*. Each mode fires once per *scope* — the run
+  of screens sharing the same preview, formed when steps inherit a
+  stage's preview or carry forward a step-level override. Two modes:
+  - `'start'` (or shorthand `true`) — opens on the first screen of
+    the scope (the "lead with a video" stage intro).
+  - `'end'` — opens on the last screen of the scope, when the
+    presenter forward-advances out of it: the screen advance pauses,
+    the video plays, and a carry-on close (atEnd Space, or natural
+    video end) advances the deck in the same press. The
     "trail with a video" payoff for a section just walked through.
 
-  Subsequent steps that inherit the same preview don't re-fire; an
-  explicitly redeclared preview on a later screen does. Once an
-  `'end'` video has fired for a given screen it won't replay in the
-  same session, even if the presenter walks back through.
+  An explicitly redeclared preview on a later step starts a new scope
+  with its own start/end fires. Once an `'end'` video has fired for
+  its scope it won't replay in the same session, even if the
+  presenter walks back through.
 - **`cues`** — timestamps (seconds) where playback auto-pauses. Each
   cue fires once per session. Use them to pause over beats that need
   narration.
@@ -102,10 +105,21 @@ share the URL preview; `shell.liveDemo` swaps it for the video.
 Subsequent steps after `liveDemo`, if any, would continue with the
 video unless they re-state a preview themselves.
 
-To swap previews mid-stage, re-state the one you want — there's no
-"clear back to stage default" syntax, since the audience-facing
-experience is "you stay in this preview context until the presenter
-deliberately changes it."
+To swap previews mid-stage, re-state the one you want, or use the
+**reset shorthand**:
+
+```yaml
+- alias: dropOverride
+  preview: ~        # drop the inherited step preview, fall back to stage's
+```
+
+`preview: ~` (YAML null) on a step drops whatever step-level override
+was carrying forward and reverts to the stage's preview. Sticky-forward
+then continues from this reset point — later empty steps inherit the
+stage's preview, not the prior override. Same shape works for `open: ~`
+when you want a step to forget a prior file override and revert to the
+stage's default file. If the stage doesn't declare a preview / open of
+its own, the reset leaves the field unset.
 
 ### Controls while the video is up
 

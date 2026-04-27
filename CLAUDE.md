@@ -36,7 +36,13 @@ with multiple screens — single-step stages look unchanged.
 Step `open` and `preview` inherit **sticky-forward**: missing values
 fall through to the previous step's resolved value, with the stage's
 defaults seeding step 1. Once a step swaps files or previews,
-subsequent empty steps stay there until the next override.
+subsequent empty steps stay there until the next override. Both
+fields are tri-state in `buildScreenIndex`: `undefined` = inherit from
+prev, explicit `null` = reset to the stage's default (breaks the chain
+so subsequent inherits pick up the reset value, not the original
+override), value = use it. The reset form lets a later step drop an
+earlier step's override (e.g. a trailing-video preview) without
+restating the stage's default.
 
 Branch reload (file contents) only happens when crossing a stage
 boundary; within-stage step changes are pure parser re-runs, so they
@@ -447,12 +453,17 @@ it to verify behaviour after changes:
     focus on `render()`. `Chart rendering helpers` collapsed at the
     bottom.
   - `preview.fetchImpl` — file swaps to `api.ts` via per-step `open`,
-    focus on `fetchDashboardData`. URL preview still Run-able (sticky
-    inheritance).
+    focus on `fetchDashboardData`. Carries a step-level
+    `autoLaunch: 'end'` video preview — forward-advancing from this
+    screen plays the wrap-up clip first and then advances to
+    `chartHelpers` on the carry-on close (atEnd Space).
   - `preview.chartHelpers` — file back to `dashboard.ts` via per-step
     `open`, scrolls to `renderCharts`. The `Chart rendering helpers`
     fold expands and is focus-highlighted; an inner `show=
-    [preview.chartHelpers]` comment block becomes visible.
+    [preview.chartHelpers]` comment block becomes visible. Uses
+    `preview: ~` to drop `fetchImpl`'s trailing-video override and
+    fall back to the stage default (which is none here) — exercises
+    the reset escape hatch.
 - `demo`: everything visible, no focus (preview's focus selectors
   don't match this stage's screen).
 

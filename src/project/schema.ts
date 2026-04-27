@@ -48,18 +48,20 @@ const videoPreview = z.object({
   stopAt: z.number().nonnegative().optional(),
   cues: z.array(videoCue).optional(),
   /** Open the video modal automatically at the start ("lead with video")
-   *  or end ("trail with video") of a screen. `true` is shorthand for
-   *  `'start'`; `false` and missing both mean no autolaunch.
+   *  or end ("trail with video") of the preview's *scope* — the run of
+   *  screens sharing this preview reference, formed by sticky-forward
+   *  inheritance across steps. `true` is shorthand for `'start'`; `false`
+   *  and missing both mean no autolaunch.
    *
-   *  - `'start'`: opens the moment the presenter advances onto the screen.
-   *  - `'end'`: opens when the presenter forward-advances *out* of the
-   *    screen — the screen advance pauses, the video plays, and a
-   *    subsequent forward press leaves to the next screen normally.
+   *  - `'start'`: opens on the first screen of the scope (i.e., the
+   *    screen where this preview newly appears).
+   *  - `'end'`: opens on the last screen of the scope, when the
+   *    presenter forward-advances out of it. The screen advance pauses,
+   *    the video plays, and a subsequent carry-on close (atEnd Space,
+   *    or natural video end) advances the deck in the same press.
    *
-   *  Subsequent steps that inherit the same preview don't re-fire; an
-   *  explicitly-redeclared preview on a later screen does. Once an `'end'`
-   *  video has fired for a given screen it won't re-fire in the same
-   *  session, even if the presenter walks back through. */
+   *  Once an `'end'` video has fired for its scope it won't re-fire in
+   *  the same session, even if the presenter walks back through. */
   autoLaunch: z
     .union([z.boolean(), z.literal('start'), z.literal('end')])
     .optional()
@@ -74,14 +76,21 @@ const preview = z.discriminatedUnion('type', [urlPreview, videoPreview])
 
 /** `steps:` entries accept either a bare alias string (shorthand for a
  *  step with only an alias and no overrides) or the full object form when
- *  the author needs a title / open / preview override. */
+ *  the author needs a title / open / preview override.
+ *
+ *  Both `open` and `preview` are tri-state: omit to keep sticky-forward
+ *  inheritance from the previous step, give a value to override, or
+ *  explicitly write `null` (`~` in YAML) to *reset* — fall back to the
+ *  stage's default, ignoring any earlier step override. The reset form
+ *  is what lets a step say "drop the trailing-video preview my sibling
+ *  declared and revert to the stage's plain preview." */
 const screenStep = z.union([
   z.string().min(1).transform((alias) => ({ alias })),
   z.object({
     alias: z.string().min(1),
     title: z.string().optional(),
-    open: openTarget.optional(),
-    preview: preview.optional(),
+    open: openTarget.nullable().optional(),
+    preview: preview.nullable().optional(),
   }),
 ])
 

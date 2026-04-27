@@ -45,11 +45,16 @@ export type ScreenListResult =
  * `steps:` produce one implicit screen (id = stage.alias, stepAlias = null);
  * stages with `steps:` produce one screen per step (id = `stage.step`).
  *
- * Resolution rules:
- *  - Step `open` / `preview` fall through to the previous step's resolved
- *    value (sticky inheritance), and to the stage's defaults at step 1.
- *  - Step alias collisions inside a stage throw — the schema layer should
- *    have caught this; failing loud here keeps debugging simple.
+ * Resolution rules for step `open` / `preview` (both tri-state):
+ *  - omitted (`undefined`) → sticky-forward from the previous step's
+ *    resolved value; the stage's default seeds step 1
+ *  - explicit `null` → reset to the stage's default, breaking sticky
+ *    inheritance (also resets the chain so subsequent missing values
+ *    inherit *this* step's resolved value, i.e., the stage default)
+ *  - a value → that value is used and starts a new sticky chain
+ *
+ * Step alias collisions inside a stage throw — the schema layer should
+ * have caught this; failing loud here keeps debugging simple.
  */
 export function buildScreenIndex(stages: Stage[]): ScreenIndex {
   const ordered: Screen[] = []
@@ -86,8 +91,19 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
           )
         }
         seen.add(step.alias)
-        const open = step.open ?? prevOpen
-        const preview = step.preview ?? prevPreview
+        // Tri-state: undefined → inherit (prev), null → reset (stage), value → use.
+        const open =
+          step.open === undefined
+            ? prevOpen
+            : step.open === null
+              ? stage.open
+              : step.open
+        const preview =
+          step.preview === undefined
+            ? prevPreview
+            : step.preview === null
+              ? stage.preview
+              : step.preview
         const screen: Screen = {
           id: `${stage.alias}.${step.alias}`,
           stageAlias: stage.alias,
