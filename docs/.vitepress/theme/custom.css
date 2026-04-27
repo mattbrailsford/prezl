@@ -118,4 +118,9 @@
   transform: scale(calc(100cqi / 520px));
   font-size: 12px;
   line-height: 1.5;
+  /* VitePress's .VPHero .image-container sets text-align: center on
+     mobile so a small product icon sits centered above the heading.
+     text-align inherits, so the inline content of .pz-line was being
+     centered too. Reset to left for the IDE mockup. */
+  text-align: left;
 }
