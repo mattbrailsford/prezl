@@ -12,11 +12,17 @@ const projectFolder = z.object({
 })
 
 /** `open` accepts either a bare file path string (shorthand for "open this
- *  file on line 1") or the full object form. The string shorthand is the
- *  common case; the object form is only needed when the author wants to
- *  jump to a specific line / symbol id. */
+ *  file at the top, no specific line") or the full object form. The string
+ *  shorthand is the common case; the object form is only needed when the
+ *  author wants to jump to a specific line / symbol id.
+ *
+ *  No implicit `line: 1` — the viewer's "no target" path is `scrollTop = 0`,
+ *  which leaves default-collapsed folds collapsed. Setting `line: 1`
+ *  explicitly would route through `scrollToLine`, which auto-expands any
+ *  fold containing the target line — surprising for a file like one that
+ *  opens with a `// @prezl collapse` block over its imports. */
 const openTarget = z.union([
-  z.string().min(1).transform((file) => ({ file, line: 1 })),
+  z.string().min(1).transform((file) => ({ file })),
   z.object({
     file: z.string().min(1),
     line: z.number().int().positive().optional(),

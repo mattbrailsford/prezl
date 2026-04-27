@@ -102,10 +102,12 @@ src/
     schema.ts           Zod validation for prezl.yaml (or prezl.yml — the
                         Rust loader tries .yaml first, falls back to .yml).
                         open: accepts a bare path string (shorthand for
-                        { file, line: 1 }) or the object form. Step
-                        entries accept a bare alias string (shorthand for
-                        { alias }) or the object form. Stages may set
-                        `reset: true` — see "Stage reset" below.
+                        { file }, no implicit line — CodeView falls through
+                        to `scrollTop = 0`, leaving default-collapsed folds
+                        collapsed) or the object form. Step entries accept
+                        a bare alias string (shorthand for { alias }) or the
+                        object form. Stages may set `reset: true` — see
+                        "Stage reset" below.
     loader.ts           orchestrates pickProjectFolder / load_project /
                         list_project_files / read_project_file. The
                         backend's read_project_file returns Option<String>:
