@@ -14,10 +14,11 @@ import { useAppStore } from '@/state/store'
 import { useVisibleFiles } from '@/hooks/useRenderedFile'
 import { usePickAndOpenProject } from '@/hooks/useProjectLoader'
 import {
-  collectFolderKeys,
+  ancestorFolderKeysForFile,
   groupFilesByProject,
   type TreeNode,
 } from '@/project/projectTree'
+import { fileTypeStyle } from '@/project/fileTypeStyles'
 
 type Palette = {
   border: string
@@ -196,63 +197,10 @@ function ProjectGlyph({
   return <Box className={`size-5 shrink-0 ${palette.text}`} />
 }
 
-// Extension → (is-code, Tailwind color class) lookup. Colors loosely follow
-// IDE file-icon conventions so the tree reads at-a-glance. Unknown types
-// fall through to a muted generic file icon.
-const FILE_STYLES: Record<string, { code: boolean; color: string }> = {
-  // JS/TS
-  ts: { code: true, color: 'text-sky-400' },
-  tsx: { code: true, color: 'text-sky-400' },
-  js: { code: true, color: 'text-yellow-300' },
-  jsx: { code: true, color: 'text-yellow-300' },
-  mjs: { code: true, color: 'text-yellow-300' },
-  cjs: { code: true, color: 'text-yellow-300' },
-  // .NET
-  cs: { code: true, color: 'text-violet-400' },
-  razor: { code: true, color: 'text-violet-300' },
-  cshtml: { code: true, color: 'text-violet-300' },
-  // Rust / Go / systems
-  rs: { code: true, color: 'text-orange-400' },
-  go: { code: true, color: 'text-cyan-400' },
-  c: { code: true, color: 'text-blue-500' },
-  h: { code: true, color: 'text-blue-500' },
-  cpp: { code: true, color: 'text-blue-500' },
-  hpp: { code: true, color: 'text-blue-500' },
-  // JVM / friends
-  java: { code: true, color: 'text-red-400' },
-  kt: { code: true, color: 'text-orange-400' },
-  swift: { code: true, color: 'text-orange-500' },
-  // Script
-  py: { code: true, color: 'text-emerald-400' },
-  rb: { code: true, color: 'text-red-500' },
-  php: { code: true, color: 'text-indigo-400' },
-  sh: { code: true, color: 'text-green-300' },
-  bash: { code: true, color: 'text-green-300' },
-  // Frameworks / UI
-  vue: { code: true, color: 'text-emerald-400' },
-  svelte: { code: true, color: 'text-orange-500' },
-  // Styling
-  css: { code: false, color: 'text-pink-400' },
-  scss: { code: false, color: 'text-pink-500' },
-  sass: { code: false, color: 'text-pink-500' },
-  less: { code: false, color: 'text-pink-400' },
-  // Markup / config
-  html: { code: false, color: 'text-orange-400' },
-  xml: { code: false, color: 'text-orange-300' },
-  json: { code: false, color: 'text-yellow-400' },
-  yaml: { code: false, color: 'text-red-400' },
-  yml: { code: false, color: 'text-red-400' },
-  toml: { code: false, color: 'text-amber-400' },
-  md: { code: false, color: 'text-sky-300' },
-  mdx: { code: false, color: 'text-sky-300' },
-  sql: { code: false, color: 'text-orange-300' },
-}
-
 function FileGlyph({ name }: { name: string }) {
-  const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  const style = FILE_STYLES[ext]
+  const style = fileTypeStyle(name)
   const Icon = style?.code ? FileCode : File
-  const color = style?.color ?? 'text-app-muted'
+  const color = style?.textColor ?? 'text-app-muted'
   return <Icon className={`size-5 shrink-0 ${color}`} />
 }
 
@@ -270,24 +218,39 @@ export function ExplorerTree() {
     [visibleFiles, projects],
   )
 
-  // Default: every folder + every project/catch-all group starts expanded.
-  // Re-running on groups change adds new keys without blowing away existing
-  // collapse choices.
-  const allExpandableKeys = useMemo(() => {
-    const keys = collectFolderKeys(groups)
-    for (const g of groups) keys.push(g.key)
-    return keys
-  }, [groups])
-  const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set(allExpandableKeys),
-  )
+  // Default: only top-level groups (project / catch-all) are expanded.
+  // Folders within groups stay collapsed until a file inside them becomes
+  // active — see the activeFile effect below — so the explorer opens with a
+  // clean overview rather than the entire tree dumped open.
+  const groupKeys = useMemo(() => groups.map((g) => g.key), [groups])
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(groupKeys))
   useEffect(() => {
     setExpanded((prev) => {
       const next = new Set(prev)
-      for (const k of allExpandableKeys) if (!next.has(k)) next.add(k)
+      for (const k of groupKeys) if (!next.has(k)) next.add(k)
       return next
     })
-  }, [allExpandableKeys])
+  }, [groupKeys])
+
+  // Auto-reveal: whenever the active file changes (open, tab click, screen
+  // open), expand the chain of folders leading to it. Never collapses — the
+  // presenter's manual toggles stick.
+  useEffect(() => {
+    if (!activeFile) return
+    const ancestors = ancestorFolderKeysForFile(activeFile, groups)
+    if (ancestors.length === 0) return
+    setExpanded((prev) => {
+      let changed = false
+      const next = new Set(prev)
+      for (const k of ancestors) {
+        if (!next.has(k)) {
+          next.add(k)
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [activeFile, groups])
 
   if (!project) {
     return <div className="p-3 text-xs text-app-muted">No project loaded</div>

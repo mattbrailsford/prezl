@@ -184,3 +184,31 @@ export function collectFolderKeys(
   }
   return acc
 }
+
+/**
+ * Walk the grouped tree to find `filePath` and return the chain of folder
+ * keys leading down to it (group → … → leaf's parent). Returns [] if the
+ * file isn't present (or is a top-level child of its group).
+ */
+export function ancestorFolderKeysForFile(
+  filePath: string,
+  tree: GroupedTree,
+): string[] {
+  for (const group of tree) {
+    const found = walkForFile(group.children, filePath)
+    if (found) return found
+  }
+  return []
+}
+
+function walkForFile(nodes: TreeNode[], filePath: string): string[] | null {
+  for (const node of nodes) {
+    if (node.kind === 'file') {
+      if (node.fullPath === filePath) return []
+      continue
+    }
+    const sub = walkForFile(node.children, filePath)
+    if (sub) return [node.key, ...sub]
+  }
+  return null
+}
