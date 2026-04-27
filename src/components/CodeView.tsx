@@ -347,6 +347,7 @@ export function CodeView() {
   const foldByStart = new Map<number, FoldRange>()
   for (const r of rendered.foldRanges) foldByStart.set(r.start, r)
   const totalLines = rendered.text.split('\n').length
+  const commentSyntax = commentSyntaxFor(language)
 
   const containerStyle: CSSProperties = {
     fontSize: editorFontSize(uiScale),
@@ -363,15 +364,37 @@ export function CodeView() {
       <div className="code-view-inner" role="presentation">
         {Array.from({ length: totalLines }, (_, i) => {
           const lineNumber = i + 1
-          if (isLineHidden(lineNumber, rendered.foldRanges, collapsedFolds)) {
-            return null
+          const hidden = isLineHidden(
+            lineNumber,
+            rendered.foldRanges,
+            collapsedFolds,
+          )
+          const fold = foldByStart.get(lineNumber)
+          const collapsed = fold ? collapsedFolds.has(foldKey(fold)) : false
+
+          // Labeled collapsed fold: hide the entire [start, end] block and
+          // stand a comment-styled placeholder in for it. Unlabeled folds
+          // keep the existing inline `⋯` summary on the start line.
+          // `!hidden` keeps a labeled fold nested inside another collapsed
+          // fold from leaking through its parent's hidden body.
+          if (fold && collapsed && fold.label && !hidden) {
+            return (
+              <FoldPlaceholderLine
+                key={lineNumber}
+                lineNumber={lineNumber}
+                fold={fold}
+                comment={commentSyntax}
+                onToggle={() => toggleFold(fold)}
+              />
+            )
           }
+
+          if (hidden) return null
+
           const lineTokens = tokens?.[i] ?? null
           const lineText = lineTokens
             ? null
             : (rendered.text.split('\n')[i] ?? '')
-          const fold = foldByStart.get(lineNumber)
-          const collapsed = fold ? collapsedFolds.has(foldKey(fold)) : false
           const focused = focusLines.has(lineNumber)
           return (
             <div
@@ -415,15 +438,99 @@ export function CodeView() {
                     )
                   : lineText}
                 {fold && collapsed ? (
-                  <span className="code-fold-summary">
-                    {fold.label ?? '⋯'}
-                  </span>
+                  <span className="code-fold-summary">⋯</span>
                 ) : null}
               </span>
             </div>
           )
         })}
       </div>
+    </div>
+  )
+}
+
+type CommentSyntax = { open: string; close: string }
+
+/** Comment shape used for labeled-collapse placeholders. The viewer renders
+ *  these as decorative pseudo-code, so the syntax just needs to read like a
+ *  comment in the active language — it doesn't have to round-trip through
+ *  `detectDirective`. */
+function commentSyntaxFor(lang: string): CommentSyntax {
+  switch (lang) {
+    case 'typescript':
+    case 'javascript':
+    case 'jsx':
+    case 'tsx':
+    case 'csharp':
+    case 'rust':
+    case 'go':
+    case 'java':
+    case 'kotlin':
+    case 'swift':
+    case 'php':
+    case 'scss':
+      return { open: '//', close: '' }
+    case 'css':
+    case 'c':
+    case 'cpp':
+      return { open: '/*', close: ' */' }
+    case 'python':
+    case 'ruby':
+    case 'shellscript':
+    case 'yaml':
+    case 'toml':
+      return { open: '#', close: '' }
+    case 'sql':
+      return { open: '--', close: '' }
+    case 'html':
+    case 'xml':
+    case 'vue':
+    case 'svelte':
+    case 'markdown':
+      return { open: '<!--', close: ' -->' }
+    case 'razor':
+      return { open: '@*', close: ' *@' }
+    default:
+      return { open: '//', close: '' }
+  }
+}
+
+function FoldPlaceholderLine({
+  lineNumber,
+  fold,
+  comment,
+  onToggle,
+}: {
+  lineNumber: number
+  fold: FoldRange
+  comment: CommentSyntax
+  onToggle: () => void
+}) {
+  const body = `${comment.open} ${fold.label}${comment.close}`
+  return (
+    <div
+      data-line={lineNumber}
+      className="code-line code-line-foldable"
+    >
+      <span className="code-line-no" aria-hidden>
+        {lineNumber}
+      </span>
+      <span className="code-fold-gutter">
+        <button
+          type="button"
+          className="code-fold-toggle code-fold-collapsed"
+          aria-label="Expand region"
+          aria-expanded={false}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggle()
+          }}
+        />
+      </span>
+      <span className="code-line-content code-fold-placeholder">
+        {fold.indent}
+        {body}
+      </span>
     </div>
   )
 }

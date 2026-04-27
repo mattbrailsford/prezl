@@ -68,7 +68,7 @@ errors.
 | `show` | screen selector | Open/close; removes region on non-matching screens |
 | `focus` | bare flag, or screen selector | Open/close; highlights region (bare = on every screen) |
 | `collapse` | bare flag, or screen selector | Open/close; folds region by default (bare = on every screen) |
-| `label` | quoted string | Companion to `collapse` — used as the folded placeholder |
+| `label` | quoted string | Companion to `collapse` — replaces the folded block with a `// label` comment line at the block's indent |
 | `file` | screen selector | Single-line, must be before any code |
 | `end` | bare flag, or bare id | Close tag |
 

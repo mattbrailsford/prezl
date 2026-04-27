@@ -218,8 +218,22 @@ Attribute semantics:
   explorer on non-matching screens. Must appear before any code.
   Cannot combine with other attributes.
 
-The collapse fold's `start` is the first content line (so the summary
-reads `type Foo = { … }` inline) and `end` is the last content line.
+The collapse fold's `start` is the first content line and `end` is
+the last. The viewer renders this two ways:
+
+- **No label** — the start line stays visible and an inline `⋯` is
+  appended after its content (`type Foo = { ⋯`); body and end are
+  hidden.
+- **With label** — the entire `[start, end]` block is hidden and a
+  single synthetic comment line stands in for it at the start line's
+  indent (e.g. `  // user fields`). The fold-toggle chevron rides on
+  the placeholder. Comment syntax is picked from the file's inferred
+  language (`commentSyntaxFor` in `CodeView.tsx`); it's purely
+  decorative — doesn't have to round-trip through `detectDirective`.
+
+The parser captures the start line's leading whitespace into
+`FoldRange.indent` so the placeholder can sit at the right depth
+without the viewer having to re-scan the source.
 
 Outer wins: if an outer `show` drops a region, nested `collapse`/`focus`
 never fire.

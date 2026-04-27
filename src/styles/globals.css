@@ -215,6 +215,14 @@
     font-style: italic;
   }
 
+  /* Whole-line stand-in for a labeled `@prezl collapse` fold. Reads like a
+     pseudo-code comment at the original block's indent — a brief description
+     where the body used to be. */
+  .code-fold-placeholder {
+    color: rgb(var(--color-app-muted));
+    font-style: italic;
+  }
+
   /* Whole-line focus highlight for @prezl focus regions. */
   .code-line-focused {
     background-color: rgba(var(--color-focus) / 0.12);

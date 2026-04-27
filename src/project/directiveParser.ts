@@ -1,6 +1,14 @@
 import { parseScreenList, type ScreenIndex } from './stageList'
 
-export type FoldRange = { start: number; end: number; label: string | null }
+export type FoldRange = {
+  start: number
+  end: number
+  label: string | null
+  /** Leading whitespace of the start line. The viewer uses this to render the
+   *  comment placeholder for labeled collapsed folds at the same depth as the
+   *  hidden block. */
+  indent: string
+}
 export type FocusRange = { start: number; end: number }
 
 export type RenderedFile = {
@@ -364,12 +372,17 @@ export function parseDirectives(
             evaluateMatch(top.collapseStages)
           if (stagesMatch) {
             // Fold's visible header is the first content line (e.g. the line
-            // with `{`). The viewer renders `{ … }` inline so the summary
-            // reads naturally.
+            // with `{`). For unlabeled folds the viewer keeps that header
+            // visible and appends `⋯` inline; for labeled folds it hides the
+            // whole [start, end] range and renders a comment placeholder at
+            // `indent` instead.
+            const startLineText = out[top.collapseContentStart - 1] ?? ''
+            const indent = startLineText.match(/^[ \t]*/)?.[0] ?? ''
             foldRanges.push({
               start: top.collapseContentStart,
               end: endLine,
               label: top.collapseLabel,
+              indent,
             })
           }
         }

@@ -71,8 +71,17 @@ const heavy = wire()
 
 This means: from the first `preview` screen onwards the region exists;
 on `preview.intro` specifically it's highlighted; it starts collapsed by
-default with the label `▶ Internals`; and the first content line is
-anchored as `heavyBits` for jumps from YAML or the symbol finder.
+default and renders as a single comment line — `// Internals` at the
+block's indent — that the audience can read like pseudo-code; and the
+first content line is anchored as `heavyBits` for jumps from YAML or
+the symbol finder.
+
+Without a `label`, a collapsed region just appends `⋯` to the start
+line and keeps that header visible (e.g. `type Foo = { ⋯`). With a
+`label`, the whole block — open line, body, close line — is replaced
+by the synthetic comment. The comment prefix follows the file's
+language (`//`, `#`, `--`, `<!-- … -->`, etc.), so it reads naturally
+in context.
 
 ## File-level gate
 

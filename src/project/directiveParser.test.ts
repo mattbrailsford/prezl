@@ -114,8 +114,23 @@ describe('directive parser', () => {
       ].join('\n')
       const result = parse(src, 'main')
       expect(result.foldRanges).toEqual([
-        { start: 2, end: 3, label: 'Guts' },
+        { start: 2, end: 3, label: 'Guts', indent: '' },
       ])
+    })
+
+    it('captures the start line indent on the fold range', () => {
+      const src = [
+        'function outer() {',
+        '  // @prezl collapse label="body"',
+        '  const x = 1',
+        '  const y = 2',
+        '  // @prezl end',
+        '}',
+      ].join('\n')
+      // start = the first emitted line inside the region (`  const x = 1`),
+      // so the indent is two spaces.
+      const result = parse(src, 'main')
+      expect(result.foldRanges[0]?.indent).toBe('  ')
     })
 
     it('stage-gated collapse only emits folds on matching stages', () => {
@@ -186,7 +201,7 @@ describe('directive parser', () => {
       const preview = parse(src, 'preview')
       expect(preview.text).toBe('body')
       expect(preview.foldRanges).toEqual([
-        { start: 1, end: 1, label: 'Heavy' },
+        { start: 1, end: 1, label: 'Heavy', indent: '' },
       ])
       expect(preview.focusRanges).toEqual([{ start: 1, end: 1 }])
       expect(preview.marks.heavy).toBe(1)
