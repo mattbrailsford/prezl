@@ -55,6 +55,10 @@
           "additionalProperties": { "$ref": "#/definitions/symbolTarget" }
         },
         "preview": { "$ref": "#/definitions/preview" },
+        "cover": {
+          "$ref": "#/definitions/cover",
+          "description": "Stage agenda — files (and optional anchors) the presenter wants to remember to discuss during this stage. Surfaced as a clickable checklist under the file tree."
+        },
         "steps": {
           "type": "array",
           "items": { "$ref": "#/definitions/screenStep" }
@@ -119,6 +123,39 @@
         { "type": "null" }
       ]
     },
+    "cover": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/coverItem" }
+    },
+    "coverOrNull": {
+      "oneOf": [
+        { "$ref": "#/definitions/cover" },
+        {
+          "type": "null",
+          "description": "Explicit `~` resets to the stage's default cover, breaking sticky-forward inheritance from the previous step."
+        }
+      ]
+    },
+    "coverItem": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shorthand: `path` or `path#anchorId`."
+        },
+        {
+          "type": "object",
+          "required": ["file"],
+          "additionalProperties": false,
+          "properties": {
+            "file": { "type": "string", "minLength": 1 },
+            "line": { "type": "integer", "minimum": 1 },
+            "id": { "type": "string", "minLength": 1 },
+            "label": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
     "urlPreview": {
       "type": "object",
       "required": ["type", "src"],
@@ -178,7 +215,11 @@
             "alias": { "type": "string", "minLength": 1 },
             "title": { "type": "string" },
             "open": { "$ref": "#/definitions/openTargetOrNull" },
-            "preview": { "$ref": "#/definitions/previewOrNull" }
+            "preview": { "$ref": "#/definitions/previewOrNull" },
+            "cover": {
+              "$ref": "#/definitions/coverOrNull",
+              "description": "Step-level cover override. Tri-state: omit to inherit sticky-forward from the previous step, set an array to override, or use `~` to reset to the stage's default cover."
+            }
           }
         }
       ]

@@ -15,6 +15,7 @@ import { activateDirectiveDecorations } from './providers/decorations'
 import { wrapRegionCommand } from './commands/wrapRegion'
 import {
   StagesTreeProvider,
+  openCoverItemCommand,
   openScreenCommand,
 } from './views/stagesTree'
 
@@ -66,6 +67,10 @@ export async function activate(
     vscode.commands.registerCommand('prezl.refreshStages', () => tree.refresh()),
     vscode.commands.registerCommand('prezl.wrapRegion', wrapRegionCommand),
     vscode.commands.registerCommand('prezl.openScreen', openScreenCommand),
+    vscode.commands.registerCommand(
+      'prezl.openCoverItem',
+      openCoverItemCommand,
+    ),
   )
 
   // Toggle the activity-bar view based on whether a manifest exists in

@@ -8,6 +8,13 @@ export type OpenTarget = {
   id: string | null
 } | null
 
+export type CoverItemInfo = {
+  file: string
+  line: number | null
+  id: string | null
+  label: string | null
+}
+
 export type StepInfo = {
   alias: string
   title?: string
@@ -15,6 +22,12 @@ export type StepInfo = {
    *  prior step / stage default. `null` means explicit clear. `undefined`
    *  means no opinion at any level (pane stays empty). */
   resolvedOpen: OpenTarget | undefined
+  /** Step-level cover only when the author explicitly wrote a `cover:`
+   *  array on this step — drives whether the tree view surfaces a per-step
+   *  agenda below the step. `undefined` covers both "inherited" and
+   *  "explicitly reset to stage default", which both render under the
+   *  stage instead. */
+  ownCover: CoverItemInfo[] | undefined
   /** Combined screen id "stage.step". */
   screenId: string
 }
@@ -26,6 +39,9 @@ export type StageInfo = {
   reset: boolean
   /** Stage's own `open:` (pre-step inheritance). */
   defaultOpen: OpenTarget | undefined
+  /** Stage's own `cover:` agenda. Surfaced as children of the stage in
+   *  the tree view; steps with an own override surface theirs instead. */
+  defaultCover: CoverItemInfo[] | undefined
   steps: StepInfo[]
   /** First screen id within this stage — `alias` for stepless, `alias.firstStep` otherwise. */
   firstScreenId: string
@@ -125,6 +141,7 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
     const alias = typeof s.alias === 'string' ? s.alias : null
     if (!alias) continue
     const defaultOpen = parseOpen(s.open)
+    const defaultCover = parseCover(s.cover)
     const stepsRaw = Array.isArray(s.steps) ? s.steps : []
     const steps: StepInfo[] = []
     const screenIds: string[] = []
@@ -132,7 +149,12 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
     for (const stRaw of stepsRaw) {
       if (typeof stRaw === 'string') {
         const screenId = `${alias}.${stRaw}`
-        steps.push({ alias: stRaw, resolvedOpen: prevOpen, screenId })
+        steps.push({
+          alias: stRaw,
+          resolvedOpen: prevOpen,
+          ownCover: undefined,
+          screenId,
+        })
         screenIds.push(screenId)
         ordered.push(screenId)
         continue
@@ -153,10 +175,19 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
       } else {
         resolved = prevOpen
       }
+      // Step cover is tri-state. Only surface a per-step agenda in the
+      // tree when the author wrote an explicit array — undefined (inherit)
+      // and null (reset to stage default) both fall through to the stage's
+      // own cover, which renders under the stage node.
+      let ownCover: CoverItemInfo[] | undefined
+      if ('cover' in st && Array.isArray(st.cover)) {
+        ownCover = parseCover(st.cover)
+      }
       steps.push({
         alias: stAlias,
         title: typeof st.title === 'string' ? st.title : undefined,
         resolvedOpen: resolved,
+        ownCover,
         screenId,
       })
       screenIds.push(screenId)
@@ -176,6 +207,7 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
       title: typeof s.title === 'string' ? s.title : undefined,
       reset: s.reset === true,
       defaultOpen,
+      defaultCover,
       steps,
       firstScreenId,
       screenIds,
@@ -189,6 +221,44 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
     name,
     stages,
     orderedScreenIds: ordered,
+  }
+}
+
+function parseCover(raw: unknown): CoverItemInfo[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: CoverItemInfo[] = []
+  for (const item of raw) {
+    const parsed = parseCoverItem(item)
+    if (parsed) out.push(parsed)
+  }
+  return out.length > 0 ? out : undefined
+}
+
+function parseCoverItem(raw: unknown): CoverItemInfo | null {
+  // Shorthand: bare path string, optionally `path#anchorId`. A malformed
+  // form (`#anchor`, `path#`) is treated as a bare path so a stray `#`
+  // doesn't break the tree silently — mirrors the runtime's tolerance.
+  if (typeof raw === 'string') {
+    if (!raw) return null
+    const hashIdx = raw.indexOf('#')
+    if (hashIdx < 0) {
+      return { file: raw, line: null, id: null, label: null }
+    }
+    const file = raw.slice(0, hashIdx)
+    const id = raw.slice(hashIdx + 1)
+    if (!file || !id) {
+      return { file: raw, line: null, id: null, label: null }
+    }
+    return { file, line: null, id, label: null }
+  }
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  if (typeof o.file !== 'string' || !o.file) return null
+  return {
+    file: o.file,
+    line: typeof o.line === 'number' ? o.line : null,
+    id: typeof o.id === 'string' ? o.id : null,
+    label: typeof o.label === 'string' ? o.label : null,
   }
 }
 
