@@ -5,6 +5,11 @@
   "version": "0.1.0",
   "publisher": "mattbrailsford",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattbrailsford/prezl.git",
+    "directory": "vscode-extension"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
