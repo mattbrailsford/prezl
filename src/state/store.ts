@@ -217,6 +217,8 @@ type AppActions = {
   switchScreenRelative: (delta: 1 | -1) => void
   openFile: (path: string) => void
   closeTab: (path: string) => void
+  closeOtherTabs: (path: string) => void
+  closeAllTabs: () => void
   setActiveFile: (path: string | null) => void
   setStatusMessage: (msg: string) => void
   setPreferences: (patch: Partial<Preferences>) => void
@@ -577,6 +579,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
         s.activeFile === path ? (openTabs[openTabs.length - 1] ?? null) : s.activeFile
       return { openTabs, activeFile }
     }),
+
+  closeOtherTabs: (path) =>
+    set((s) => {
+      if (!s.openTabs.includes(path)) return {}
+      return { openTabs: [path], activeFile: path }
+    }),
+
+  closeAllTabs: () => set({ openTabs: [], activeFile: null }),
 
   setActiveFile: (path) => {
     set((s) => ({

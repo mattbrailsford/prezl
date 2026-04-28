@@ -8,8 +8,30 @@ export function EditorTabs() {
   const activeFile = useAppStore((s) => s.activeFile)
   const setActiveFile = useAppStore((s) => s.setActiveFile)
   const closeTab = useAppStore((s) => s.closeTab)
+  const closeOtherTabs = useAppStore((s) => s.closeOtherTabs)
+  const closeAllTabs = useAppStore((s) => s.closeAllTabs)
   const explorerCollapsed = useAppStore((s) => s.preferences.explorerCollapsed)
   const setPreferences = useAppStore((s) => s.setPreferences)
+
+  const [contextMenu, setContextMenu] = useState<{
+    path: string
+    x: number
+    y: number
+  } | null>(null)
+
+  useEffect(() => {
+    if (!contextMenu) return
+    const onDown = () => setContextMenu(null)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [contextMenu])
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const activeTabRef = useRef<HTMLDivElement | null>(null)
@@ -136,6 +158,10 @@ export function EditorTabs() {
               <div
                 key={path}
                 ref={isActive ? activeTabRef : null}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setContextMenu({ path, x: e.clientX, y: e.clientY })
+                }}
                 className={`group flex h-11 shrink-0 items-center gap-2 border-r border-app-border px-3 text-base border-t-2 ${
                   isActive
                     ? `bg-app-surface text-app ${accent}`
@@ -183,6 +209,78 @@ export function EditorTabs() {
           }`}
         />
       </div>
+      {contextMenu && (
+        <TabContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          canCloseOthers={openTabs.length > 1}
+          onClose={() => {
+            closeTab(contextMenu.path)
+            setContextMenu(null)
+          }}
+          onCloseOthers={() => {
+            closeOtherTabs(contextMenu.path)
+            setContextMenu(null)
+          }}
+          onCloseAll={() => {
+            closeAllTabs()
+            setContextMenu(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function TabContextMenu({
+  x,
+  y,
+  canCloseOthers,
+  onClose,
+  onCloseOthers,
+  onCloseAll,
+}: {
+  x: number
+  y: number
+  canCloseOthers: boolean
+  onClose: () => void
+  onCloseOthers: () => void
+  onCloseAll: () => void
+}) {
+  return (
+    <div
+      role="menu"
+      onMouseDown={(e) => e.stopPropagation()}
+      className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border border-app-border bg-app-surface py-1 text-sm text-app shadow-lg"
+      style={{ left: x, top: y }}
+    >
+      <MenuItem onClick={onClose}>Close</MenuItem>
+      <MenuItem onClick={onCloseOthers} disabled={!canCloseOthers}>
+        Close Others
+      </MenuItem>
+      <MenuItem onClick={onCloseAll}>Close All</MenuItem>
+    </div>
+  )
+}
+
+function MenuItem({
+  onClick,
+  disabled,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      disabled={disabled}
+      className="block w-full px-3 py-1.5 text-left hover:bg-app-panel disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+    >
+      {children}
+    </button>
   )
 }
