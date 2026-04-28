@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Prezl Project",
+  "description": "Schema for prezl.yaml — mirrors src/project/schema.ts.",
+  "type": "object",
+  "required": ["name", "stages"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Project name shown in the top bar."
+    },
+    "logo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional path (relative to project root) to an image used in place of the Prezl mark."
+    },
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/projectFolder" }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/stage" }
+    }
+  },
+  "definitions": {
+    "projectFolder": {
+      "type": "object",
+      "required": ["name", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string" },
+        "color": {
+          "type": "string",
+          "description": "Color family override (violet, sky, yellow, orange, emerald, cyan, red, indigo, pink, amber, slate)."
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "required": ["alias"],
+      "additionalProperties": false,
+      "properties": {
+        "alias": { "type": "string", "minLength": 1 },
+        "branch": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "open": { "$ref": "#/definitions/openTargetOrNull" },
+        "symbols": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/symbolTarget" }
+        },
+        "preview": { "$ref": "#/definitions/preview" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/screenStep" }
+        },
+        "reset": {
+          "type": "boolean",
+          "description": "When true, entering this stage from another collapses tabs to the resolved open file and resets explorer expansion monotonically toward less clutter."
+        }
+      }
+    },
+    "openTarget": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shorthand: open this file at the top, no specific line."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "anyOf": [
+            { "required": ["file"] },
+            { "required": ["line"] },
+            { "required": ["id"] }
+          ],
+          "properties": {
+            "file": { "type": "string", "minLength": 1 },
+            "line": { "type": "integer", "minimum": 1 },
+            "id": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "openTargetOrNull": {
+      "oneOf": [
+        { "$ref": "#/definitions/openTarget" },
+        {
+          "type": "null",
+          "description": "Explicit `~` clears the open file — empty editor pane."
+        }
+      ]
+    },
+    "symbolTarget": {
+      "type": "object",
+      "required": ["file"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "preview": {
+      "oneOf": [
+        { "$ref": "#/definitions/urlPreview" },
+        { "$ref": "#/definitions/videoPreview" }
+      ]
+    },
+    "previewOrNull": {
+      "oneOf": [
+        { "$ref": "#/definitions/preview" },
+        { "type": "null" }
+      ]
+    },
+    "urlPreview": {
+      "type": "object",
+      "required": ["type", "src"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "url" },
+        "src": { "type": "string", "minLength": 1 },
+        "mode": {
+          "type": "string",
+          "enum": ["external", "window", "pane"]
+        }
+      }
+    },
+    "videoPreview": {
+      "type": "object",
+      "required": ["type", "src"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "video" },
+        "src": { "type": "string", "minLength": 1 },
+        "startAt": { "type": "number", "minimum": 0 },
+        "stopAt": { "type": "number", "minimum": 0 },
+        "cues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["time"],
+            "additionalProperties": false,
+            "properties": {
+              "time": { "type": "number", "minimum": 0 },
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "autoLaunch": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "const": "start" },
+            { "const": "end" }
+          ],
+          "description": "`true`/`'start'` opens at scope start; `'end'` opens at scope end (forward-advance). Once an `'end'` video has fired it won't re-fire in the same session."
+        }
+      }
+    },
+    "screenStep": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shorthand: step alias only, no overrides."
+        },
+        {
+          "type": "object",
+          "required": ["alias"],
+          "additionalProperties": false,
+          "properties": {
+            "alias": { "type": "string", "minLength": 1 },
+            "title": { "type": "string" },
+            "open": { "$ref": "#/definitions/openTargetOrNull" },
+            "preview": { "$ref": "#/definitions/previewOrNull" }
+          }
+        }
+      ]
+    }
+  }
+}

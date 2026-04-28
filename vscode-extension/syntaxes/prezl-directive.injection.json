@@ -1,0 +1,131 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "prezl.directive.injection",
+  "injectionSelector": "L:source, L:text.html, L:text.xml",
+  "patterns": [
+    { "include": "#line-directive" },
+    { "include": "#block-directive" },
+    { "include": "#html-directive" },
+    { "include": "#razor-directive" }
+  ],
+  "repository": {
+    "line-directive": {
+      "name": "comment.line.directive.prezl meta.directive.prezl",
+      "match": "^(\\s*)(//|#|--)\\s*(@(?:prezl|przl))\\b([^\\n]*)$",
+      "captures": {
+        "1": { "name": "punctuation.whitespace.comment.leading.prezl" },
+        "2": { "name": "punctuation.definition.comment.prezl" },
+        "3": { "name": "keyword.control.directive.prezl" },
+        "4": {
+          "patterns": [
+            { "include": "#body" }
+          ]
+        }
+      }
+    },
+    "block-directive": {
+      "name": "comment.block.directive.prezl meta.directive.prezl",
+      "begin": "(/\\*)\\s*(@(?:prezl|przl))\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.comment.prezl" },
+        "2": { "name": "keyword.control.directive.prezl" }
+      },
+      "end": "\\*/",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.comment.prezl" }
+      },
+      "patterns": [
+        { "include": "#body" }
+      ]
+    },
+    "html-directive": {
+      "name": "comment.block.directive.prezl meta.directive.prezl",
+      "begin": "(<!--)\\s*(@(?:prezl|przl))\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.comment.prezl" },
+        "2": { "name": "keyword.control.directive.prezl" }
+      },
+      "end": "-->",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.comment.prezl" }
+      },
+      "patterns": [
+        { "include": "#body" }
+      ]
+    },
+    "razor-directive": {
+      "name": "comment.block.directive.prezl meta.directive.prezl",
+      "begin": "(@\\*)\\s*(@(?:prezl|przl))\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.comment.prezl" },
+        "2": { "name": "keyword.control.directive.prezl" }
+      },
+      "end": "\\*@",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.comment.prezl" }
+      },
+      "patterns": [
+        { "include": "#body" }
+      ]
+    },
+    "body": {
+      "patterns": [
+        { "include": "#bracketSelector" },
+        { "include": "#quotedValue" },
+        { "include": "#attribute" },
+        { "include": "#equals" }
+      ]
+    },
+    "attribute": {
+      "match": "\\b(id|show|focus|collapse|label|file|end)\\b",
+      "name": "entity.other.attribute-name.prezl"
+    },
+    "equals": {
+      "match": "=",
+      "name": "punctuation.separator.key-value.prezl"
+    },
+    "quotedValue": {
+      "name": "string.quoted.double.prezl",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.prezl" }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.prezl" }
+      }
+    },
+    "bracketSelector": {
+      "name": "meta.selector.prezl",
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.selector.begin.prezl" }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.selector.end.prezl" }
+      },
+      "patterns": [
+        { "include": "#range" },
+        { "include": "#listSeparator" },
+        { "include": "#screenRef" }
+      ]
+    },
+    "range": {
+      "match": "\\.\\.\\.",
+      "name": "keyword.operator.range.prezl"
+    },
+    "listSeparator": {
+      "match": ",",
+      "name": "punctuation.separator.list.prezl"
+    },
+    "screenRef": {
+      "match": "([A-Za-z_][A-Za-z0-9_-]*)(?:(\\.)([A-Za-z_][A-Za-z0-9_-]*))?",
+      "captures": {
+        "1": { "name": "variable.other.stage.prezl" },
+        "2": { "name": "punctuation.accessor.prezl" },
+        "3": { "name": "variable.other.step.prezl" }
+      }
+    }
+  }
+}

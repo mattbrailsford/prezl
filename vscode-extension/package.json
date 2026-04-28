@@ -1,0 +1,234 @@
+{
+  "name": "prezl-vscode",
+  "displayName": "Prezl",
+  "description": "Authoring support for Prezl directives and prezl.yaml.",
+  "version": "0.1.0",
+  "publisher": "mattbrailsford",
+  "license": "ISC",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/prezl.yaml",
+    "workspaceContains:**/prezl.yml",
+    "onStartupFinished"
+  ],
+  "extensionDependencies": [
+    "redhat.vscode-yaml"
+  ],
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "prezl.directive.injection",
+        "path": "./syntaxes/prezl-directive.injection.json",
+        "injectTo": [
+          "source",
+          "text.html",
+          "text.xml"
+        ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "typescript",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "typescriptreact",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "javascript",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "javascriptreact",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "csharp",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "go",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "rust",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "python",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "ruby",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "css",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "scss",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "sql",
+        "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "yaml",
+        "path": "./snippets/prezl.code-snippets"
+      }
+    ],
+    "yamlValidation": [
+      {
+        "fileMatch": [
+          "prezl.yaml",
+          "prezl.yml"
+        ],
+        "url": "./schemas/prezl-yaml.schema.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "prezl.wrapRegion",
+        "title": "Prezl: Wrap Selection in Region"
+      },
+      {
+        "command": "prezl.refreshStages",
+        "title": "Prezl: Refresh Stages",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "prezl.wrapRegion",
+          "when": "editorHasSelection",
+          "group": "1_modification@10"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "prezl.refreshStages",
+          "when": "view == prezl.stages",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "prezl",
+          "title": "Prezl",
+          "icon": "assets/prezl-mark.svg"
+        }
+      ]
+    },
+    "views": {
+      "prezl": [
+        {
+          "id": "prezl.stages",
+          "name": "Stages",
+          "when": "prezl.hasProject"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Prezl",
+      "properties": {
+        "prezl.projectFile": {
+          "type": "string",
+          "default": "prezl.yaml",
+          "description": "Workspace-relative path to the Prezl project file. Falls back to prezl.yml if the configured name is not found."
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "prezl.directive.keyword",
+        "description": "Color for the @prezl directive keyword.",
+        "defaults": {
+          "dark": "#C586C0",
+          "light": "#AF00DB",
+          "highContrast": "#C586C0",
+          "highContrastLight": "#AF00DB"
+        }
+      },
+      {
+        "id": "prezl.directive.attribute",
+        "description": "Color for directive attribute names (id, show, focus, …).",
+        "defaults": {
+          "dark": "#9CDCFE",
+          "light": "#001080",
+          "highContrast": "#9CDCFE",
+          "highContrastLight": "#001080"
+        }
+      },
+      {
+        "id": "prezl.directive.string",
+        "description": "Color for quoted attribute values.",
+        "defaults": {
+          "dark": "#CE9178",
+          "light": "#A31515",
+          "highContrast": "#CE9178",
+          "highContrastLight": "#A31515"
+        }
+      },
+      {
+        "id": "prezl.directive.selector",
+        "description": "Color for stage / step references inside directive selectors.",
+        "defaults": {
+          "dark": "#4EC9B0",
+          "light": "#267F99",
+          "highContrast": "#4EC9B0",
+          "highContrastLight": "#267F99"
+        }
+      },
+      {
+        "id": "prezl.directive.value",
+        "description": "Color for bare directive values (e.g. ids, end targets).",
+        "defaults": {
+          "dark": "#DCDCAA",
+          "light": "#795E26",
+          "highContrast": "#DCDCAA",
+          "highContrastLight": "#795E26"
+        }
+      },
+      {
+        "id": "prezl.directive.punctuation",
+        "description": "Color for directive punctuation (=, brackets, commas, …).",
+        "defaults": {
+          "dark": "#D4D4D4",
+          "light": "#000000",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc -b --noEmit",
+    "package": "pnpm run build && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "yaml": "^2.8.3"
+  }
+}

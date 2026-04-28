@@ -1,0 +1,84 @@
+{
+  "Anchor (id only)": {
+    "prefix": "pid",
+    "description": "Prezl: anchor — `@prezl id=<name>`",
+    "body": [
+      "$LINE_COMMENT @prezl id=${1:name}"
+    ]
+  },
+  "Show region": {
+    "prefix": "pshow",
+    "description": "Prezl: show region — visible only on listed screens",
+    "body": [
+      "$LINE_COMMENT @prezl show=[${1:selector}]",
+      "${TM_SELECTED_TEXT:$0}",
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "Focus region (selector)": {
+    "prefix": "pfocus",
+    "description": "Prezl: focus region — highlight on listed screens",
+    "body": [
+      "$LINE_COMMENT @prezl focus=[${1:selector}]",
+      "${TM_SELECTED_TEXT:$0}",
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "Focus region (always)": {
+    "prefix": "pfocusall",
+    "description": "Prezl: focus region — always highlighted",
+    "body": [
+      "$LINE_COMMENT @prezl focus",
+      "${TM_SELECTED_TEXT:$0}",
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "Collapse region (selector)": {
+    "prefix": "pcollapse",
+    "description": "Prezl: collapse region — folded on listed screens",
+    "body": [
+      "$LINE_COMMENT @prezl collapse=[${1:selector}]",
+      "${TM_SELECTED_TEXT:$0}",
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "Collapse region (always)": {
+    "prefix": "pcollapseall",
+    "description": "Prezl: collapse region — always folded",
+    "body": [
+      "$LINE_COMMENT @prezl collapse",
+      "${TM_SELECTED_TEXT:$0}",
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "Collapse region with label": {
+    "prefix": "pcollapsel",
+    "description": "Prezl: collapse region with placeholder label",
+    "body": [
+      "$LINE_COMMENT @prezl collapse${1: =[${2:selector}]} label=\"${3:label}\"",
+      "${TM_SELECTED_TEXT:$0}",
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "File gate": {
+    "prefix": "pfile",
+    "description": "Prezl: file-level gate — file appears only on listed screens (must be first directive in file)",
+    "body": [
+      "$LINE_COMMENT @prezl file=[${1:selector}]"
+    ]
+  },
+  "End": {
+    "prefix": "pend",
+    "description": "Prezl: close most recent region",
+    "body": [
+      "$LINE_COMMENT @prezl end"
+    ]
+  },
+  "End (matched)": {
+    "prefix": "pendid",
+    "description": "Prezl: close region with explicit id match",
+    "body": [
+      "$LINE_COMMENT @prezl end=${1:id}"
+    ]
+  }
+}
