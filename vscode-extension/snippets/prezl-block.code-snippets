@@ -1,0 +1,84 @@
+{
+  "Anchor (id only)": {
+    "prefix": "pid",
+    "description": "Prezl: anchor — `@prezl id=<name>`",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl id=${1:name} $BLOCK_COMMENT_END"
+    ]
+  },
+  "Show region": {
+    "prefix": "pshow",
+    "description": "Prezl: show region — visible only on listed screens",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl show=[${1:selector}] $BLOCK_COMMENT_END",
+      "${TM_SELECTED_TEXT:$0}",
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "Focus region (selector)": {
+    "prefix": "pfocus",
+    "description": "Prezl: focus region — highlight on listed screens",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl focus=[${1:selector}] $BLOCK_COMMENT_END",
+      "${TM_SELECTED_TEXT:$0}",
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "Focus region (always)": {
+    "prefix": "pfocusall",
+    "description": "Prezl: focus region — always highlighted",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl focus $BLOCK_COMMENT_END",
+      "${TM_SELECTED_TEXT:$0}",
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "Collapse region (selector)": {
+    "prefix": "pcollapse",
+    "description": "Prezl: collapse region — folded on listed screens",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl collapse=[${1:selector}] $BLOCK_COMMENT_END",
+      "${TM_SELECTED_TEXT:$0}",
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "Collapse region (always)": {
+    "prefix": "pcollapseall",
+    "description": "Prezl: collapse region — always folded",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl collapse $BLOCK_COMMENT_END",
+      "${TM_SELECTED_TEXT:$0}",
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "Collapse region with label": {
+    "prefix": "pcollapsel",
+    "description": "Prezl: collapse region with placeholder label",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl collapse${1: =[${2:selector}]} label=\"${3:label}\" $BLOCK_COMMENT_END",
+      "${TM_SELECTED_TEXT:$0}",
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "File gate": {
+    "prefix": "pfile",
+    "description": "Prezl: file-level gate — file appears only on listed screens (must be first directive in file)",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl file=[${1:selector}] $BLOCK_COMMENT_END"
+    ]
+  },
+  "End": {
+    "prefix": "pend",
+    "description": "Prezl: close most recent region",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl end $BLOCK_COMMENT_END"
+    ]
+  },
+  "End (matched)": {
+    "prefix": "pendid",
+    "description": "Prezl: close region with explicit id match",
+    "body": [
+      "$BLOCK_COMMENT_START @prezl end=${1:id} $BLOCK_COMMENT_END"
+    ]
+  }
+}

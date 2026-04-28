@@ -77,10 +77,6 @@
         "path": "./snippets/prezl.code-snippets"
       },
       {
-        "language": "css",
-        "path": "./snippets/prezl.code-snippets"
-      },
-      {
         "language": "scss",
         "path": "./snippets/prezl.code-snippets"
       },
@@ -91,6 +87,26 @@
       {
         "language": "yaml",
         "path": "./snippets/prezl.code-snippets"
+      },
+      {
+        "language": "html",
+        "path": "./snippets/prezl-block.code-snippets"
+      },
+      {
+        "language": "xml",
+        "path": "./snippets/prezl-block.code-snippets"
+      },
+      {
+        "language": "css",
+        "path": "./snippets/prezl-block.code-snippets"
+      },
+      {
+        "language": "razor",
+        "path": "./snippets/prezl-block.code-snippets"
+      },
+      {
+        "language": "aspnetcorerazor",
+        "path": "./snippets/prezl-block.code-snippets"
       }
     ],
     "yamlValidation": [
