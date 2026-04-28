@@ -49,6 +49,7 @@ export default defineConfig({
             { text: 'Symbol navigation', link: '/guide/symbol-navigation' },
             { text: 'Previews', link: '/guide/previews' },
             { text: 'Multi-project layout', link: '/guide/multi-project' },
+            { text: 'VS Code extension', link: '/guide/vscode-extension' },
           ],
         },
         {

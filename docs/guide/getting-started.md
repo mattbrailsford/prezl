@@ -85,3 +85,5 @@ That's it. Keep reading for:
 - [Directives](./directives) — the `@prezl` comment grammar
 - [Previews](./previews) — URL and video scenes
 - [Symbol navigation](./symbol-navigation) — clickable jumps and `Ctrl+T`
+- [VS Code extension](./vscode-extension) — directive colouring, snippets,
+  and stages tree while authoring
