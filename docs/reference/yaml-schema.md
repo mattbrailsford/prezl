@@ -296,6 +296,13 @@ Opening the file ticks every cover row pointing at it, regardless of
 whether the presenter actually scrolled to a specific anchor — the
 goal is "did I cover this file" rather than per-anchor accounting.
 
+When stepping within a stage, a step that authors its own `cover:`
+(different reference from the previous step's resolved cover) clears
+the tick on any file appearing in the new cover, so each step's
+agenda starts fresh. Files visited under the previous step's framing
+that aren't in the new cover stay ticked. Steps that inherit the
+stage cover by sticky-forward (no override) don't trigger a reset.
+
 ## Notes
 
 - YAML anchors / references are supported by the `yaml` parser Prezl

@@ -91,6 +91,14 @@ per-anchor visit detection. Click routes through
 `navigateToFileLine` when the cover item resolves an `id` against the
 current symbol table, otherwise falls back to `openFile`.
 
+When stepping within a stage, a step transition whose cover *reference*
+differs from the previous step's clears any visited entries that appear
+in the new cover, so files listed under the new step's framing are
+prompted to be re-visited. Visited entries that aren't in the new
+cover stay ticked. Sticky-forward inheritance preserves cover identity
+across steps that don't override, so the common "every step shares the
+stage's cover" case never triggers a reset.
+
 ## Architecture at a glance
 
 ```

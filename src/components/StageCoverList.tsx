@@ -29,6 +29,7 @@ export function StageCoverList() {
   const visited = useAppStore((s) => s.visitedFilesInStage)
   const openFile = useAppStore((s) => s.openFile)
   const navigateToFileLine = useAppStore((s) => s.navigateToFileLine)
+  const requestExplorerReveal = useAppStore((s) => s.requestExplorerReveal)
   const symbolTable = useSymbolTable()
 
   if (!cover || cover.length === 0) return null
@@ -38,14 +39,20 @@ export function StageCoverList() {
       const target = symbolTable.get(item.id)
       if (target && target.file === item.file) {
         navigateToFileLine(item.file, target.line)
+        requestExplorerReveal()
         return
       }
     }
     if (item.line) {
       navigateToFileLine(item.file, item.line)
+      requestExplorerReveal()
       return
     }
     openFile(item.file)
+    // Always force the explorer to expand the file's folder chain, even when
+    // the click didn't change activeFile (clicking a cover entry whose file
+    // is already active otherwise leaves the auto-reveal effect inert).
+    requestExplorerReveal()
   }
 
   return (

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   DEFAULT_PREFERENCES,
+  type CoverItem,
   type Preferences,
   type Preview,
   type PrezlProject,
@@ -142,6 +143,13 @@ type AppState = {
    *  added to whenever activeFile changes. The cover list reads this to mark
    *  which entries have been visited in this run through the stage. */
   visitedFilesInStage: Set<string>
+  /** Monotonic counter bumped when something explicitly asks the explorer to
+   *  reveal the active file's folder chain (e.g. a cover-list click). The
+   *  auto-reveal effect on activeFile change handles the "new file becomes
+   *  active" case, but a click whose target is already activeFile leaves
+   *  activeFile unchanged and the effect doesn't re-fire — this token is the
+   *  separate signal that always fires regardless of activeFile equality. */
+  explorerRevealToken: number
 }
 
 /** Pure helper for visited-set transitions. `reset` clears the set first
@@ -160,6 +168,37 @@ function updateVisitedSet(
   const next = new Set(base)
   next.add(file)
   return next
+}
+
+/** Visited-set transition for screen changes. Layered on top of
+ *  `updateVisitedSet` to also handle the "cover changed within a stage" case:
+ *  when the new screen's cover reference differs from the previous (i.e. the
+ *  step authored its own cover or reset to a different stage default), any
+ *  files that appear in the new cover get cleared from visited so the
+ *  presenter is prompted to re-visit them under the new step's framing.
+ *  Files visited that aren't in the new cover stay ticked — they're not the
+ *  step's todo, so we don't dirty them. Cross-stage entry skips this and
+ *  goes straight to a full reset. */
+function updateVisitedForScreenChange(
+  current: Set<string>,
+  options: {
+    crossingStage: boolean
+    coverChanged: boolean
+    nextCover: CoverItem[] | undefined
+    addFile: string | null
+  },
+): Set<string> {
+  if (options.crossingStage) {
+    return options.addFile ? new Set([options.addFile]) : new Set()
+  }
+  let visited = current
+  if (options.coverChanged && options.nextCover) {
+    const newCoverFiles = new Set(options.nextCover.map((c) => c.file))
+    const filtered = new Set<string>()
+    for (const f of current) if (!newCoverFiles.has(f)) filtered.add(f)
+    if (filtered.size !== current.size) visited = filtered
+  }
+  return updateVisitedSet(visited, { addFile: options.addFile })
 }
 
 type AppActions = {
@@ -195,6 +234,9 @@ type AppActions = {
   goBack: () => void
   goForward: () => void
   consumePendingScrollTop: () => void
+  /** Bump explorerRevealToken so the explorer expands the active file's
+   *  folder chain, even when activeFile didn't change in this update. */
+  requestExplorerReveal: () => void
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => {
@@ -268,10 +310,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       openTabs,
       activeFile,
       pendingScrollTop: getScrollPosition(target.id, activeFile),
-      visitedFilesInStage: updateVisitedSet(state.visitedFilesInStage, {
-        reset: crossingStage,
-        addFile: activeFile,
-      }),
+      visitedFilesInStage: updateVisitedForScreenChange(
+        state.visitedFilesInStage,
+        {
+          crossingStage,
+          coverChanged: !crossingStage && previous?.cover !== target.cover,
+          nextCover: target.cover,
+          addFile: activeFile,
+        },
+      ),
     })
 
     if (crossingStage) {
@@ -306,6 +353,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   lastEndAutoLaunchedScreenId: null,
   explorerResetToken: 0,
   visitedFilesInStage: new Set(),
+  explorerRevealToken: 0,
 
   setProject: (project, rawFiles, binaryFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
@@ -442,10 +490,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       currentScreenId: target.id,
       openTabs: next.openTabs,
       activeFile: next.activeFile,
-      visitedFilesInStage: updateVisitedSet(state.visitedFilesInStage, {
-        reset: crossingStage,
-        addFile: next.activeFile,
-      }),
+      visitedFilesInStage: updateVisitedForScreenChange(
+        state.visitedFilesInStage,
+        {
+          crossingStage,
+          coverChanged: !crossingStage && previous?.cover !== target.cover,
+          nextCover: target.cover,
+          addFile: next.activeFile,
+        },
+      ),
       ...(resetting
         ? { explorerResetToken: state.explorerResetToken + 1 }
         : {}),
@@ -643,6 +696,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   },
 
   consumePendingScrollTop: () => set({ pendingScrollTop: null }),
+
+  requestExplorerReveal: () =>
+    set((s) => ({ explorerRevealToken: s.explorerRevealToken + 1 })),
   }
 })
 

@@ -212,6 +212,83 @@ describe('store — stage-level reset flag', () => {
     expect(visited.has('dashboard.ts')).toBe(true)
   })
 
+  it('step transition with a different cover clears visited entries that appear in the new cover', () => {
+    // Files visited under step a's cover should become un-ticked again when
+    // step b's cover (different reference) lists them — the new step is its
+    // own framing and the presenter should be prompted to revisit. Visited
+    // entries NOT in the new cover stay ticked.
+    const stages: Stage[] = [
+      {
+        alias: 'preview',
+        order: 1,
+        steps: [
+          { alias: 'a', cover: [{ file: 'dashboard.ts' }], open: { file: 'dashboard.ts' } },
+          {
+            alias: 'b',
+            cover: [{ file: 'dashboard.ts' }, { file: 'api.ts' }],
+            open: { file: 'api.ts' },
+          },
+        ],
+      },
+    ]
+    const project: PrezlProject = {
+      name: 'Test',
+      stages,
+      files: ['dashboard.ts', 'api.ts', 'unrelated.ts'],
+    }
+    const rawFiles = new Map([
+      ['dashboard.ts', ''],
+      ['api.ts', ''],
+      ['unrelated.ts', ''],
+    ])
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
+    expect(useAppStore.getState().currentScreenId).toBe('preview.a')
+    // Step a opens dashboard.ts, which is in step a's cover.
+    expect(useAppStore.getState().visitedFilesInStage.has('dashboard.ts')).toBe(true)
+    // Mark an unrelated file visited — should survive the cover-change reset.
+    useAppStore.getState().openFile('unrelated.ts')
+    expect(useAppStore.getState().visitedFilesInStage.has('unrelated.ts')).toBe(true)
+
+    useAppStore.getState().switchScreen('preview.b')
+    const visited = useAppStore.getState().visitedFilesInStage
+    // dashboard.ts is in step b's cover → cleared, so the presenter sees it
+    // un-ticked again and is prompted to revisit.
+    expect(visited.has('dashboard.ts')).toBe(false)
+    // api.ts is the new active file (and in the cover), so it's ticked fresh.
+    expect(visited.has('api.ts')).toBe(true)
+    // unrelated.ts isn't in the new cover, so it stays ticked.
+    expect(visited.has('unrelated.ts')).toBe(true)
+  })
+
+  it('step transition with the same cover reference does not clear visits', () => {
+    // Sticky-forward inheritance: step b inherits step a's cover by reference
+    // (no override). Same reference means no cover change, so visits survive.
+    const sharedCover = [{ file: 'dashboard.ts' }]
+    const stages: Stage[] = [
+      {
+        alias: 'preview',
+        order: 1,
+        cover: sharedCover,
+        steps: [
+          { alias: 'a', open: { file: 'dashboard.ts' } },
+          { alias: 'b', open: { file: 'dashboard.ts' } },
+        ],
+      },
+    ]
+    const project: PrezlProject = {
+      name: 'Test',
+      stages,
+      files: ['dashboard.ts'],
+    }
+    const rawFiles = new Map([['dashboard.ts', '']])
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
+    expect(useAppStore.getState().visitedFilesInStage.has('dashboard.ts')).toBe(true)
+
+    useAppStore.getState().switchScreen('preview.b')
+    // Same cover reference: dashboard.ts stays visited.
+    expect(useAppStore.getState().visitedFilesInStage.has('dashboard.ts')).toBe(true)
+  })
+
   it('step transition within a stage adds to the visited set without clearing', () => {
     const { project, rawFiles } = projectWithReset()
     useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')

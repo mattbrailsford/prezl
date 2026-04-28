@@ -214,6 +214,7 @@ export function ExplorerTree() {
   const openFile = useAppStore((s) => s.openFile)
   const setPreferences = useAppStore((s) => s.setPreferences)
   const explorerResetToken = useAppStore((s) => s.explorerResetToken)
+  const explorerRevealToken = useAppStore((s) => s.explorerRevealToken)
   const { visible: visibleFiles, focused: focusedFiles } = useFileVisibility()
   const pickAndOpen = usePickAndOpenProject()
 
@@ -261,7 +262,9 @@ export function ExplorerTree() {
 
   // Auto-reveal: whenever the active file changes (open, tab click, screen
   // open), expand the chain of folders leading to it. Never collapses — the
-  // presenter's manual toggles stick.
+  // presenter's manual toggles stick. Also re-fires when explorerRevealToken
+  // bumps so an explicit "reveal this file" request (e.g. a cover-list click
+  // whose target is already activeFile) still expands the chain.
   useEffect(() => {
     if (!activeFile) return
     const ancestors = ancestorFolderKeysForFile(activeFile, groups)
@@ -277,7 +280,7 @@ export function ExplorerTree() {
       }
       return changed ? next : prev
     })
-  }, [activeFile, groups])
+  }, [activeFile, groups, explorerRevealToken])
 
   // Stage-level `reset:` trigger. The store increments explorerResetToken
   // on cross-stage entry into an opted-in stage; here we re-ground the
