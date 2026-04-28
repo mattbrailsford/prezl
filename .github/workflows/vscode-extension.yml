@@ -1,0 +1,136 @@
+name: Release VS Code Extension
+
+# Independent of the Tauri app release. Triggered by `vscode-v*` tags so it
+# never collides with the app's `v*` tag glob in release.yml.
+#
+# Tag push: builds the VSIX and attaches it to a GitHub Release. Does NOT
+# publish to the Marketplace — that's a one-way street and we want a human
+# to confirm. To publish to the Marketplace, use workflow_dispatch with
+# publish_marketplace: true once the VSIX has been smoke-tested.
+
+on:
+  push:
+    tags:
+      - 'vscode-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. vscode-v0.1.0). Must already exist.'
+        required: true
+      publish_marketplace:
+        description: 'Publish to the VS Code Marketplace (requires VSCE_PAT secret).'
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Pass --pre-release to vsce when publishing.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Fail fast (before any build work) if the user asked for a Marketplace
+      # publish but the publisher token is missing. Otherwise we'd burn ~2
+      # minutes of CI on a build that the publish step would then refuse.
+      - name: Verify VSCE_PAT is set when publishing
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_marketplace == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::publish_marketplace was requested but the VSCE_PAT secret is not configured."
+            echo ""
+            echo "To publish to the VS Code Marketplace:"
+            echo "  1. Create an Azure DevOps Personal Access Token scoped to Marketplace > Manage,"
+            echo "     belonging to the 'mattbrailsford' publisher account."
+            echo "  2. Add it to this repo as a secret named VSCE_PAT:"
+            echo "     Settings → Secrets and variables → Actions → New repository secret."
+            echo "  3. Re-run this workflow."
+            echo ""
+            echo "If you only want to attach the VSIX to a GitHub Release (no Marketplace),"
+            echo "re-run with publish_marketplace unchecked, or just push the vscode-v* tag."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build extension
+        run: pnpm --filter prezl-vscode build
+
+      - name: Package VSIX
+        working-directory: vscode-extension
+        run: pnpm exec vsce package --no-dependencies
+
+      # Stash the resolved version + .vsix path for later steps. The package
+      # script always emits `<name>-<version>.vsix` in the extension folder.
+      - name: Resolve artifact path
+        id: artifact
+        shell: bash
+        run: |
+          version=$(node -p "require('./vscode-extension/package.json').version")
+          vsix="vscode-extension/prezl-vscode-${version}.vsix"
+          if [ ! -f "$vsix" ]; then
+            echo "Expected $vsix to exist after vsce package"
+            ls -la vscode-extension
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "vsix=$vsix"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload VSIX as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prezl-vscode-${{ steps.artifact.outputs.version }}
+          path: ${{ steps.artifact.outputs.vsix }}
+          if-no-files-found: error
+
+      # Create / update a GitHub Release for this tag and attach the VSIX so
+      # presenters and beta users can grab it without a Marketplace listing.
+      # `gh release create --notes` is a no-op if the release already exists,
+      # so we try-create then upload-with-clobber.
+      - name: Attach VSIX to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --title "Prezl VS Code Extension ${tag#vscode-}" \
+              --notes "VSIX attached. Install via \`code --install-extension prezl-vscode-*.vsix\`." \
+              ${{ github.event.inputs.prerelease == 'true' && '--prerelease' || '' }}
+          fi
+          gh release upload "$tag" "${{ steps.artifact.outputs.vsix }}" --clobber
+
+      - name: Publish to VS Code Marketplace
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_marketplace == 'true'
+        working-directory: vscode-extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          pnpm exec vsce publish \
+            --no-dependencies \
+            --packagePath "prezl-vscode-${{ steps.artifact.outputs.version }}.vsix" \
+            ${{ github.event.inputs.prerelease == 'true' && '--pre-release' || '' }}
