@@ -83,28 +83,52 @@ export function CodeView() {
     }
   }, [rendered, language])
 
-  // Collapsed fold state, keyed by `${start}-${end}` per fold range. Re-seeded
-  // from rendered.foldRanges on every (file, screen) change so directive-driven
-  // initial collapse always wins on every step transition, not just stage ones.
-  const fileStageKey = `${activeFile ?? ''}::${screen?.id ?? ''}`
+  // Collapsed fold state, keyed by `${start}-${end}` per fold range.
+  // Re-seeded from rendered.foldRanges on every (file, screen) change so
+  // directive-driven defaults reapply at every screen boundary. Presenter
+  // manual *expansions* (recorded in manuallyExpandedRef) persist across
+  // step transitions within the same (file, stage) — opening a default-
+  // collapsed fold mid-explanation shouldn't get re-collapsed by the next
+  // step advance. Crossing into a different stage or swapping files
+  // clears the manual overrides: stage moves are deliberate re-grounding
+  // (especially `reset: true`), and a different file is its own context.
+  // Symbol-jump auto-expansion (the scrollToLine path) deliberately does
+  // NOT update manuallyExpandedRef — it's transient navigation; the next
+  // step re-collapses per directive defaults.
+  const fileScreenKey = `${activeFile ?? ''}::${screen?.id ?? ''}`
+  const fileStageKey = `${activeFile ?? ''}::${screen?.stageAlias ?? ''}`
   const [collapsedFolds, setCollapsedFolds] = useState<Set<string>>(new Set())
-  const lastSeededKey = useRef<string | null>(null)
+  const lastSeededScreenKey = useRef<string | null>(null)
+  const lastStageKey = useRef<string | null>(null)
+  const manuallyExpandedRef = useRef<Set<string>>(new Set())
 
   useLayoutEffect(() => {
     if (!rendered) return
-    if (lastSeededKey.current === fileStageKey) return
-    lastSeededKey.current = fileStageKey
+    if (lastSeededScreenKey.current === fileScreenKey) return
+    if (lastStageKey.current !== fileStageKey) {
+      manuallyExpandedRef.current = new Set()
+      lastStageKey.current = fileStageKey
+    }
+    lastSeededScreenKey.current = fileScreenKey
     const initial = new Set<string>()
-    for (const r of rendered.foldRanges) initial.add(foldKey(r))
+    for (const r of rendered.foldRanges) {
+      const k = foldKey(r)
+      if (!manuallyExpandedRef.current.has(k)) initial.add(k)
+    }
     setCollapsedFolds(initial)
-  }, [rendered, fileStageKey])
+  }, [rendered, fileScreenKey, fileStageKey])
 
   const toggleFold = (range: FoldRange) => {
     const key = foldKey(range)
     setCollapsedFolds((prev) => {
       const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      if (next.has(key)) {
+        next.delete(key)
+        manuallyExpandedRef.current.add(key)
+      } else {
+        next.add(key)
+        manuallyExpandedRef.current.delete(key)
+      }
       return next
     })
   }
@@ -194,6 +218,12 @@ export function CodeView() {
       // line is technically "visible" — but a symbol jump targets that
       // header and the user's intent is to see the body, not just the
       // summary line.
+      // The `flash` flag also distinguishes intent for fold-persistence:
+      // flash=true is a transient user jump (symbol click) — auto-expand
+      // is per-screen only. flash=false is the screen.open path (the
+      // authored step intent), so containing folds get recorded in
+      // manuallyExpandedRef and stay open across subsequent step
+      // transitions within this (file, stage).
       const containing = rendered.foldRanges.filter(
         (r) => line >= r.start && line <= r.end,
       )
@@ -202,7 +232,11 @@ export function CodeView() {
           const next = new Set(prev)
           let changed = false
           for (const r of containing) {
-            if (next.delete(foldKey(r))) changed = true
+            const key = foldKey(r)
+            if (next.delete(key)) {
+              changed = true
+              if (!flash) manuallyExpandedRef.current.add(key)
+            }
           }
           return changed ? next : prev
         })
@@ -225,9 +259,9 @@ export function CodeView() {
     }
 
     // Branch A: (file, screen) just changed.
-    if (lastScrolledKey.current !== fileStageKey) {
+    if (lastScrolledKey.current !== fileScreenKey) {
       const prevFile = lastScrolledFile.current
-      lastScrolledKey.current = fileStageKey
+      lastScrolledKey.current = fileScreenKey
       lastScrolledFile.current = activeFile
 
       // Highest priority: a pending pixel scroll target from goBack/
@@ -295,7 +329,7 @@ export function CodeView() {
     consumePendingNavigation,
     pendingScrollTop,
     consumePendingScrollTop,
-    fileStageKey,
+    fileScreenKey,
   ])
 
   // Persist the current scrollTop per (screen, file) so goBack/goForward can

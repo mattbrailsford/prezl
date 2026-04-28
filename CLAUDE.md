@@ -265,10 +265,23 @@ tokenizations are synchronous.
 
 **Folding state is local to CodeView.** A `Set<string>` of fold keys
 (`${start}-${end}`) is re-seeded from `RenderedFile.foldRanges` on
-every `(file, screen)` change, so directive-driven default-collapsed
-folds always win on every step transition (not just stage ones). The
-presenter can toggle live; that toggle survives until the next
-screen/file switch.
+every `(file, screen)` change, so directive defaults reapply at every
+screen boundary. Manual presenter *expansions* persist across step
+transitions within the same `(file, stage)` via a separate
+`manuallyExpandedRef` set: the seeding pass adds defaults but skips
+keys the presenter has already opened. Crossing into a different
+stage (forward, back, dropdown, or `reset: true`) or swapping files
+clears the override set so the new context seeds cleanly.
+
+Auto-expansion inside `scrollToLine` is split by intent. When the
+caller passes `flash: true` (symbol click — explicit user jump), the
+containing-fold reveal is transient and the next screen re-collapses
+per defaults. When the caller passes `flash: false` (the `screen.open`
+path — the step's authored landing target), any containing folds it
+opens get recorded in `manuallyExpandedRef`, so subsequent step
+transitions within the same `(file, stage)` keep them open. The
+`flash` boolean does double duty: line-flash gating *and* the
+transient-vs-persistent expansion signal.
 
 **Symbol decorations are inline.** `useSymbolTable` returns a `Map<id,
 {file, line}>` of every anchor on the current screen. The renderer
