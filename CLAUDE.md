@@ -213,8 +213,9 @@ rendered text.
 // Pure anchor (no behaviours)
 // @prezl id=registerDashboard
 
-// File-level visibility (must be before any code)
+// File-level visibility (must be before any code; can carry sibling focus=)
 // @prezl file=[shell...]
+// @prezl file=[shell...] focus=[shell]
 ```
 
 Selectors accept screen ids, not just stage aliases:
@@ -240,8 +241,14 @@ Attribute semantics:
 - `label="..."` — label text for the collapsed fold's placeholder. Only
   valid when `collapse` is present.
 - `file=[selector]` — file-level gate; whole file absent from the
-  explorer on non-matching screens. Must appear before any code.
-  Cannot combine with other attributes.
+  explorer on non-matching screens. Must appear before any code. May
+  carry a sibling `focus(=[selector])?` to highlight the file's
+  explorer entry on matching screens — the leaf row tints to
+  `--color-focus` with a left stripe (mirrors `.code-line-focused`),
+  and any folder ancestor that contains a focused descendant gets a
+  quieter `text-focus/70` tint without auto-expanding. Focus is a
+  no-op when `file=` itself hides the file on the current screen
+  (focus implies visible). No other attributes combine with `file=`.
 
 The collapse fold's `start` is the first content line and `end` is
 the last. The viewer renders this two ways:
@@ -297,6 +304,16 @@ transitions within the same `(file, stage)` via a separate
 keys the presenter has already opened. Crossing into a different
 stage (forward, back, dropdown, or `reset: true`) or swapping files
 clears the override set so the new context seeds cleanly.
+
+The two key shapes diverge on purpose. `collapsedFolds` keys by
+*rendered* line numbers (what the renderer/`isLineHidden` operate on),
+but `manuallyExpandedRef` keys by *original-source* line numbers via
+`RenderedFile.originalLineMap` (`manualKey` in CodeView.tsx). A `show=`
+region inside or above a fold shifts the fold's rendered start/end
+across steps; the original-source positions don't, so a presenter-
+opened fold stays recognized even when its rendered range moves.
+Without this split, expanding fold A in step 1 would re-collapse on
+the step that toggles a `show=` region above it.
 
 Auto-expansion inside `scrollToLine` is split by intent. When the
 caller passes `flash: true` (symbol click — explicit user jump), the
@@ -570,13 +587,17 @@ it to verify behaviour after changes:
   declared, so the default "file tree only" state kicks in — empty
   editor pane (faded brand mark + project name) and hidden tab strip.
 - `shell`: `dashboard.ts` appears; `registerDashboard` is the focus
-  highlight.
+  highlight. The file's own `file=[shell...] focus=[shell]` directive
+  also tints the explorer leaf (and its `src/` folder) on this stage —
+  exercises the file-level focus path.
 - `preview` (3 steps — `intro` / `fetchImpl` / `chartHelpers`):
   - `preview.intro` — `dashboard.ts` open at `registerDashboard`,
     focus on `render()`. `Chart rendering helpers` collapsed at the
     bottom.
   - `preview.fetchImpl` — file swaps to `api.ts` via per-step `open`,
-    focus on `fetchDashboardData`. Carries a step-level
+    focus on `fetchDashboardData`; `api.ts`'s own
+    `file=[preview...] focus=[preview.fetchImpl]` also tints the
+    explorer leaf for this one screen. Carries a step-level
     `autoLaunch: 'end'` video preview — forward-advancing from this
     screen plays the wrap-up clip first and then advances to
     `chartHelpers` on the carry-on close (atEnd Space).

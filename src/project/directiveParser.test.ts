@@ -71,6 +71,46 @@ describe('directive parser', () => {
         /must appear before any code/,
       )
     })
+
+    it('sets focusedForScreen when sibling focus= matches the current screen', () => {
+      const src = [
+        '// @prezl file=[shell...] focus=[shell]',
+        'const x = 1',
+      ].join('\n')
+      expect(parse(src, 'shell').focusedForScreen).toBe(true)
+      expect(parse(src, 'preview').focusedForScreen).toBe(false)
+    })
+
+    it('treats bare focus as "focused on every screen the file is visible"', () => {
+      const src = [
+        '// @prezl file=[shell...] focus',
+        'const x = 1',
+      ].join('\n')
+      expect(parse(src, 'shell').focusedForScreen).toBe(true)
+      expect(parse(src, 'preview').focusedForScreen).toBe(true)
+      // Gated out by file= → focus is a no-op even with bare focus.
+      expect(parse(src, 'main').focusedForScreen).toBe(false)
+    })
+
+    it('drops focusedForScreen when file= hides the file on this screen', () => {
+      const src = [
+        '// @prezl file=[shell] focus=[main]',
+        'const x = 1',
+      ].join('\n')
+      // File is hidden on `main`, so the focus selector matching there is a no-op.
+      const main = parse(src, 'main')
+      expect(main.hiddenForStage).toBe(true)
+      expect(main.focusedForScreen).toBe(false)
+    })
+
+    it('rejects file= with attributes other than focus', () => {
+      const src = [
+        '// @prezl file=[shell] collapse',
+        'const x = 1',
+      ].join('\n')
+      const result = parse(src, 'shell')
+      expect(result.errors[0]?.message).toMatch(/only accepts a sibling focus/)
+    })
   })
 
   describe('show', () => {

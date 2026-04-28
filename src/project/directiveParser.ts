@@ -21,6 +21,11 @@ export type RenderedFile = {
   marks: Record<string, number>
   /** true if a `file=[stages]` directive opts this file out of the current stage. */
   hiddenForStage: boolean
+  /** true if a sibling `focus(=[stages])?` on the file= directive resolves
+   *  for the current screen. Always false when `hiddenForStage` is true —
+   *  focus implies visible. The explorer reads this to highlight the file's
+   *  tree entry (and its ancestor folders, quietly) on matching screens. */
+  focusedForScreen: boolean
   /** Errors encountered while parsing this file. */
   errors: DirectiveError[]
   /** Rendered line (1-based) -> original source line (1-based). */
@@ -44,7 +49,7 @@ type Attributes = {
 
 type Directive =
   | { kind: 'end'; id: string | null }
-  | { kind: 'file'; stages: string }
+  | { kind: 'file'; stages: string; focus: string | true | null }
   | { kind: 'anchor'; id: string }
   | {
       kind: 'region'
@@ -151,14 +156,25 @@ function classify(attrs: Attributes): Directive {
     if (typeof attrs.file !== 'string') {
       return { kind: 'invalid', message: 'file= requires a stage list' }
     }
-    const extra = Object.keys(attrs).filter((k) => k !== 'file')
+    // `focus` is the only other attribute valid alongside `file=` — it
+    // highlights the file's explorer entry on matching screens (and is a
+    // no-op when the file is gated out by its own `file=` selector).
+    const extra = Object.keys(attrs).filter(
+      (k) => k !== 'file' && k !== 'focus',
+    )
     if (extra.length > 0) {
       return {
         kind: 'invalid',
-        message: `@prezl file=... does not accept other attributes: ${extra.join(', ')}`,
+        message: `@prezl file=... only accepts a sibling focus=...; got: ${extra.join(', ')}`,
       }
     }
-    return { kind: 'file', stages: attrs.file }
+    const focus =
+      attrs.focus === true
+        ? true
+        : typeof attrs.focus === 'string'
+          ? attrs.focus
+          : null
+    return { kind: 'file', stages: attrs.file, focus }
   }
 
   const show = typeof attrs.show === 'string' ? attrs.show : null
@@ -230,6 +246,7 @@ export function parseDirectives(
   let dropDepth = 0
   let pendingMark: string | null = null
   let hiddenForStage = false
+  let focusedForScreen = false
   let sawAnyContent = false
 
   const evaluateMatch = (selector: string): boolean => {
@@ -285,6 +302,13 @@ export function parseDirectives(
         }
         validateStages(directive.stages, i + 1)
         if (!evaluateMatch(directive.stages)) hiddenForStage = true
+        if (directive.focus !== null) {
+          if (typeof directive.focus === 'string')
+            validateStages(directive.focus, i + 1)
+          const matched =
+            directive.focus === true || evaluateMatch(directive.focus)
+          if (matched) focusedForScreen = true
+        }
         break
       }
 
@@ -417,12 +441,17 @@ export function parseDirectives(
     })
   }
 
+  // Focus implies visible — a `focus=` on a file gated out by its own
+  // `file=` selector is a no-op.
+  if (hiddenForStage) focusedForScreen = false
+
   return {
     text: out.join('\n'),
     foldRanges,
     focusRanges,
     marks,
     hiddenForStage,
+    focusedForScreen,
     errors,
     originalLineMap,
   }

@@ -217,9 +217,22 @@
 
   /* Whole-line stand-in for a labeled `@prezl collapse` fold. Reads like a
      pseudo-code comment at the original block's indent — a brief description
-     where the body used to be. */
+     where the body used to be. The whole line is clickable to expand. */
   .code-fold-placeholder {
     color: rgb(var(--color-app-muted));
+    transition: color 160ms ease-out;
+  }
+
+  .code-line-fold-placeholder {
+    cursor: pointer;
+  }
+
+  .code-line-fold-placeholder:hover .code-fold-placeholder {
+    color: rgb(var(--color-text));
+  }
+
+  .code-line-fold-placeholder:hover .code-fold-toggle {
+    border-color: rgb(var(--color-app-accent));
   }
 
   /* Whole-line focus highlight for @prezl focus regions. */

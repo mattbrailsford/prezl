@@ -69,15 +69,18 @@ errors.
 | `focus` | bare flag, or screen selector | Open/close; highlights region (bare = on every screen) |
 | `collapse` | bare flag, or screen selector | Open/close; folds region by default (bare = on every screen) |
 | `label` | quoted string | Companion to `collapse` — replaces the folded block with a `// label` comment line at the block's indent |
-| `file` | screen selector | Single-line, must be before any code |
+| `file` | screen selector | Single-line, must be before any code; accepts a sibling `focus(=…)?` to tint the explorer entry |
 | `end` | bare flag, or bare id | Close tag |
 
 ## Directive kinds
 
 The parser classifies an attribute set into one of:
 
-1. **`file`** — `file=[…]` with no other attributes. Single-line;
-   must appear before any non-blank, non-comment line.
+1. **`file`** — `file=[…]`, optionally with a sibling `focus` (bare flag
+   or `focus=[…]`). Single-line; must appear before any non-blank,
+   non-comment line. The focus selector tints the file's explorer entry
+   on matching screens (folder ancestors get a quieter tint without
+   auto-expanding); it's a no-op when `file=` itself hides the file.
 2. **`end`** — has an `end` key. Pops the top of the directive stack.
    Optionally `end=id` for name-matched closing.
 3. **Anchor** — only an `id=`, no `show`/`focus`/`collapse`. Names the

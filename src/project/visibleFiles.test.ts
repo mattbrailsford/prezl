@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeVisibleFiles } from './visibleFiles'
+import { computeFileVisibility, computeVisibleFiles } from './visibleFiles'
 import { buildScreenIndex } from './stageList'
 
 const SCREENS = buildScreenIndex([
@@ -61,6 +61,44 @@ describe('visibleFiles', () => {
       screenIndex: SCREENS,
     })
     expect(result).toEqual(['logo.png', 'a.ts'])
+  })
+
+  it('surfaces files focused via file= sibling focus= on matching screens', () => {
+    const rawFiles = new Map([
+      ['a.ts', '// @prezl file=[shell...] focus=[shell]\nconst x = 1'],
+      ['b.ts', 'const y = 2'],
+    ])
+    const onShell = computeFileVisibility({
+      files: ['a.ts', 'b.ts'],
+      rawFiles,
+      currentScreenId: 'shell',
+      screenIndex: SCREENS,
+    })
+    expect(onShell.visible).toEqual(['a.ts', 'b.ts'])
+    expect([...onShell.focused]).toEqual(['a.ts'])
+
+    const onPreview = computeFileVisibility({
+      files: ['a.ts', 'b.ts'],
+      rawFiles,
+      currentScreenId: 'preview',
+      screenIndex: SCREENS,
+    })
+    expect(onPreview.visible).toEqual(['a.ts', 'b.ts'])
+    expect(onPreview.focused.size).toBe(0)
+  })
+
+  it('omits hidden files from the focused set even with matching focus selectors', () => {
+    const rawFiles = new Map([
+      ['a.ts', '// @prezl file=[shell] focus=[main]\nconst x = 1'],
+    ])
+    const onMain = computeFileVisibility({
+      files: ['a.ts'],
+      rawFiles,
+      currentScreenId: 'main',
+      screenIndex: SCREENS,
+    })
+    expect(onMain.visible).toEqual([])
+    expect(onMain.focused.size).toBe(0)
   })
 
   it('respects step-level resolution when stage selectors are bare', () => {

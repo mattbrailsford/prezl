@@ -95,6 +95,13 @@ export function CodeView() {
   // Symbol-jump auto-expansion (the scrollToLine path) deliberately does
   // NOT update manuallyExpandedRef — it's transient navigation; the next
   // step re-collapses per directive defaults.
+  //
+  // Note the two key shapes: `collapsedFolds` uses rendered line numbers
+  // (because that's what the renderer/isLineHidden operate on), but
+  // `manuallyExpandedRef` uses original-source line numbers via
+  // `originalLineMap`. A `show=` region inside or above a fold shifts the
+  // fold's rendered start/end across step transitions; the original-source
+  // numbers don't, so the manual override survives the shift.
   const fileScreenKey = `${activeFile ?? ''}::${screen?.id ?? ''}`
   const fileStageKey = `${activeFile ?? ''}::${screen?.stageAlias ?? ''}`
   const [collapsedFolds, setCollapsedFolds] = useState<Set<string>>(new Set())
@@ -112,22 +119,25 @@ export function CodeView() {
     lastSeededScreenKey.current = fileScreenKey
     const initial = new Set<string>()
     for (const r of rendered.foldRanges) {
-      const k = foldKey(r)
-      if (!manuallyExpandedRef.current.has(k)) initial.add(k)
+      if (!manuallyExpandedRef.current.has(manualKey(r, rendered.originalLineMap))) {
+        initial.add(foldKey(r))
+      }
     }
     setCollapsedFolds(initial)
   }, [rendered, fileScreenKey, fileStageKey])
 
   const toggleFold = (range: FoldRange) => {
+    if (!rendered) return
     const key = foldKey(range)
+    const mKey = manualKey(range, rendered.originalLineMap)
     setCollapsedFolds((prev) => {
       const next = new Set(prev)
       if (next.has(key)) {
         next.delete(key)
-        manuallyExpandedRef.current.add(key)
+        manuallyExpandedRef.current.add(mKey)
       } else {
         next.add(key)
-        manuallyExpandedRef.current.delete(key)
+        manuallyExpandedRef.current.delete(mKey)
       }
       return next
     })
@@ -235,7 +245,11 @@ export function CodeView() {
             const key = foldKey(r)
             if (next.delete(key)) {
               changed = true
-              if (!flash) manuallyExpandedRef.current.add(key)
+              if (!flash) {
+                manuallyExpandedRef.current.add(
+                  manualKey(r, rendered.originalLineMap),
+                )
+              }
             }
           }
           return changed ? next : prev
@@ -541,10 +555,18 @@ function FoldPlaceholderLine({
   onToggle: () => void
 }) {
   const body = `${comment.open} ${fold.label}${comment.close}`
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggle()
+  }
   return (
     <div
       data-line={lineNumber}
-      className="code-line code-line-foldable"
+      className="code-line code-line-foldable code-line-fold-placeholder"
+      onClick={handleToggle}
+      role="button"
+      tabIndex={-1}
+      aria-label={`Expand region: ${fold.label}`}
     >
       <span className="code-line-no" aria-hidden>
         {lineNumber}
@@ -555,10 +577,7 @@ function FoldPlaceholderLine({
           className="code-fold-toggle code-fold-collapsed"
           aria-label="Expand region"
           aria-expanded={false}
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggle()
-          }}
+          onClick={handleToggle}
         />
       </span>
       <span className="code-line-content code-fold-placeholder">
@@ -590,6 +609,20 @@ function isLineHidden(
 
 function foldKey(r: { start: number; end: number }): string {
   return `${r.start}-${r.end}`
+}
+
+/** Stable key for `manuallyExpandedRef`, in original-source line numbers.
+ *  Folds carry rendered line numbers, which shift when a `show=` region
+ *  appears or disappears between steps. The original source positions
+ *  don't, so a presenter-opened fold stays recognized even when its
+ *  rendered range moves. */
+function manualKey(
+  r: { start: number; end: number },
+  originalLineMap: number[],
+): string {
+  const os = originalLineMap[r.start - 1] ?? r.start
+  const oe = originalLineMap[r.end - 1] ?? r.end
+  return `${os}-${oe}`
 }
 
 const FLASH_ANIM_ID = 'prezl-line-flash'

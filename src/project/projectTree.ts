@@ -229,3 +229,39 @@ function walkForFile(nodes: TreeNode[], filePath: string): string[] | null {
   }
   return null
 }
+
+/**
+ * Collect every folder key that has at least one descendant file in the
+ * `focused` set. The explorer uses this to mark folders that contain a
+ * focused leaf with a quieter accent (without forcing them open). A single
+ * walk per render is cheap relative to per-node lookups.
+ */
+export function collectFoldersContainingFocused(
+  tree: GroupedTree,
+  focused: Set<string>,
+): Set<string> {
+  const result = new Set<string>()
+  if (focused.size === 0) return result
+  for (const group of tree) walkForFocused(group.children, focused, result)
+  return result
+}
+
+function walkForFocused(
+  nodes: TreeNode[],
+  focused: Set<string>,
+  acc: Set<string>,
+): boolean {
+  let any = false
+  for (const node of nodes) {
+    if (node.kind === 'file') {
+      if (focused.has(node.fullPath)) any = true
+      continue
+    }
+    const childHas = walkForFocused(node.children, focused, acc)
+    if (childHas) {
+      acc.add(node.key)
+      any = true
+    }
+  }
+  return any
+}

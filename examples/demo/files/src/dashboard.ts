@@ -1,4 +1,4 @@
-// @prezl file=[shell...]
+// @prezl file=[shell...] focus=[shell]
 
 import type { App } from './framework'
 // @prezl show=[preview...]

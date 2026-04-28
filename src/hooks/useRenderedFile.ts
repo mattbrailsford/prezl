@@ -1,7 +1,10 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/state/store'
 import { parseDirectives, type RenderedFile } from '@/project/directiveParser'
-import { computeVisibleFiles } from '@/project/visibleFiles'
+import {
+  computeFileVisibility,
+  type FileVisibility,
+} from '@/project/visibleFiles'
 import type { ScreenIndex } from '@/project/stageList'
 import type { Screen, Stage } from '@/types'
 
@@ -36,7 +39,10 @@ export function useCurrentStage(): Stage | null {
   })
 }
 
-export function useVisibleFiles(): string[] {
+/** Visible explorer paths plus the subset that carries an active file-level
+ *  focus on the current screen. `useVisibleFiles` is a thin slice on top for
+ *  consumers (symbol tables, etc.) that only need the array. */
+export function useFileVisibility(): FileVisibility {
   const files = useAppStore((s) => s.project?.files ?? EMPTY_ARRAY)
   const rawFiles = useAppStore((s) => s.rawFiles)
   const binaryFiles = useAppStore((s) => s.binaryFiles)
@@ -44,8 +50,8 @@ export function useVisibleFiles(): string[] {
   const screenIndex = useScreenIndex()
 
   return useMemo(() => {
-    if (!screen) return []
-    return computeVisibleFiles({
+    if (!screen) return EMPTY_VISIBILITY
+    return computeFileVisibility({
       files,
       rawFiles,
       binaryFiles,
@@ -54,6 +60,12 @@ export function useVisibleFiles(): string[] {
     })
   }, [files, rawFiles, binaryFiles, screen, screenIndex])
 }
+
+export function useVisibleFiles(): string[] {
+  return useFileVisibility().visible
+}
+
+const EMPTY_VISIBILITY: FileVisibility = { visible: [], focused: new Set() }
 
 /**
  * Build a project-wide lookup of marks from the current screen's rendered

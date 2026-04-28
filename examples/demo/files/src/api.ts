@@ -1,4 +1,4 @@
-// @prezl file=[preview...]
+// @prezl file=[preview...] focus=[preview.fetchImpl]
 
 type DashboardRow = {
   label: string

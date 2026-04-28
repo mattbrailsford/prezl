@@ -11,11 +11,12 @@ import {
   PanelLeftClose,
 } from 'lucide-react'
 import { useAppStore } from '@/state/store'
-import { useVisibleFiles } from '@/hooks/useRenderedFile'
+import { useFileVisibility } from '@/hooks/useRenderedFile'
 import { usePickAndOpenProject } from '@/hooks/useProjectLoader'
 import {
   ancestorChainForFile,
   ancestorFolderKeysForFile,
+  collectFoldersContainingFocused,
   groupFilesByProject,
   type TreeNode,
 } from '@/project/projectTree'
@@ -213,12 +214,20 @@ export function ExplorerTree() {
   const openFile = useAppStore((s) => s.openFile)
   const setPreferences = useAppStore((s) => s.setPreferences)
   const explorerResetToken = useAppStore((s) => s.explorerResetToken)
-  const visibleFiles = useVisibleFiles()
+  const { visible: visibleFiles, focused: focusedFiles } = useFileVisibility()
   const pickAndOpen = usePickAndOpenProject()
 
   const groups = useMemo(
     () => groupFilesByProject(visibleFiles, projects),
     [visibleFiles, projects],
+  )
+
+  // Folders whose subtree contains a focused leaf — used to apply a quieter
+  // accent without forcing the folder open. Computed once per render so each
+  // TreeItem is just a Set lookup.
+  const focusedAncestors = useMemo(
+    () => collectFoldersContainingFocused(groups, focusedFiles),
+    [groups, focusedFiles],
   )
 
   // Default: only top-level groups (project / catch-all) are expanded.
@@ -350,6 +359,8 @@ export function ExplorerTree() {
                 depth={0}
                 expanded={expanded}
                 activeFile={activeFile}
+                focusedFiles={focusedFiles}
+                focusedAncestors={focusedAncestors}
                 onOpen={openFile}
                 onToggleFolder={toggle}
               />
@@ -401,6 +412,8 @@ export function ExplorerTree() {
                         depth={0}
                         expanded={expanded}
                         activeFile={activeFile}
+                        focusedFiles={focusedFiles}
+                        focusedAncestors={focusedAncestors}
                         onOpen={openFile}
                         onToggleFolder={toggle}
                       />
@@ -422,6 +435,8 @@ function TreeItem({
   depth,
   expanded,
   activeFile,
+  focusedFiles,
+  focusedAncestors,
   onOpen,
   onToggleFolder,
 }: {
@@ -429,6 +444,8 @@ function TreeItem({
   depth: number
   expanded: Set<string>
   activeFile: string | null
+  focusedFiles: Set<string>
+  focusedAncestors: Set<string>
   onOpen: (path: string) => void
   onToggleFolder: (key: string) => void
 }) {
@@ -438,13 +455,20 @@ function TreeItem({
     const isOpen = expanded.has(node.key)
     const Chevron = isOpen ? ChevronDown : ChevronRight
     const FolderIcon = isOpen ? FolderOpen : Folder
+    // Quieter "contains focused descendant" accent — folder name tints toward
+    // the focus colour but stays readable; chevron/icon use the same tint so
+    // the row reads as a single soft cue rather than a stripe.
+    const containsFocus = focusedAncestors.has(node.key)
+    const folderClasses = containsFocus
+      ? 'text-focus/70 hover:bg-app-panel/60 hover:text-focus'
+      : 'text-app-muted hover:bg-app-panel/60 hover:text-app'
     return (
       <li>
         <button
           type="button"
           onClick={() => onToggleFolder(node.key)}
           style={{ paddingLeft: indentPx }}
-          className="flex w-full items-center gap-2 py-1 pr-2 text-left text-app-muted hover:bg-app-panel/60 hover:text-app"
+          className={`flex w-full items-center gap-2 py-1 pr-2 text-left ${folderClasses}`}
         >
           <Chevron className="size-5 shrink-0" />
           <FolderIcon className="size-5 shrink-0" />
@@ -459,6 +483,8 @@ function TreeItem({
                 depth={depth + 1}
                 expanded={expanded}
                 activeFile={activeFile}
+                focusedFiles={focusedFiles}
+                focusedAncestors={focusedAncestors}
                 onOpen={onOpen}
                 onToggleFolder={onToggleFolder}
               />
@@ -470,17 +496,30 @@ function TreeItem({
   }
 
   const isActive = activeFile === node.fullPath
+  const isFocused = focusedFiles.has(node.fullPath)
+  // Focus stacks on top of active: keep the panel bg from active, swap text
+  // to the focus colour, add a left stripe so the cue survives the dim hover
+  // states. Mirrors the in-editor focus stripe (.code-line-focused).
+  const stateClasses = isFocused
+    ? isActive
+      ? 'bg-app-panel text-focus'
+      : 'text-focus hover:bg-app-panel/60'
+    : isActive
+      ? 'bg-app-panel text-app'
+      : 'text-app-muted hover:bg-app-panel/60 hover:text-app'
+  const focusStripe = isFocused
+    ? { boxShadow: 'inset 2px 0 0 rgb(var(--color-focus))' }
+    : undefined
   return (
     <li>
       <button
         type="button"
         onClick={() => onOpen(node.fullPath)}
-        style={{ paddingLeft: indentPx + 28 /* align past chevron */ }}
-        className={`flex w-full items-center gap-2 py-1 pr-2 text-left transition-colors ${
-          isActive
-            ? 'bg-app-panel text-app'
-            : 'text-app-muted hover:bg-app-panel/60 hover:text-app'
-        }`}
+        style={{
+          paddingLeft: indentPx + 28 /* align past chevron */,
+          ...focusStripe,
+        }}
+        className={`flex w-full items-center gap-2 py-1 pr-2 text-left transition-colors ${stateClasses}`}
       >
         <FileGlyph name={node.name} />
         <span className="truncate">{node.name}</span>

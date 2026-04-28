@@ -27,7 +27,7 @@ The five attributes:
 | `show=[selector]` | range open/close | Region exists on listed screens; **removed** on others (line numbers shift). |
 | `focus` or `focus=[selector]` | range open/close | Region is highlighted (always, or on listed screens). |
 | `collapse` or `collapse=[selector]` | range open/close | Region is folded by default (always, or on listed screens). Combine with `label="…"`. |
-| `file=[selector]` | single-line, top of file | Whole file is visible only on listed screens. |
+| `file=[selector]` | single-line, top of file | Whole file is visible only on listed screens. May carry a sibling `focus(=[selector])?` to highlight the file's explorer entry. |
 
 Close tags:
 
@@ -94,6 +94,20 @@ At the top of a file:
 On screens not in that selector, the file — and any folder that becomes
 empty because of it — disappears from the explorer. Use for files that
 don't exist yet at earlier stages of the story.
+
+The same directive can carry a sibling `focus(=[selector])?` to highlight
+the file's explorer entry on matching screens — useful for drawing the
+audience's eye to "this is the file we're touching now":
+
+```ts
+// @prezl file=[shell...] focus=[shell]
+```
+
+Folders that contain a focused file get a quieter tint without being
+auto-expanded, so a presenter who has collapsed a deep folder still sees
+"there's something noteworthy in here" without clutter snapping back open.
+Focus implies visible: a `focus=` selector that fires on a screen where
+the file is gated out by `file=` is silently a no-op.
 
 ## Marking anchors
 
