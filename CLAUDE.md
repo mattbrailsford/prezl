@@ -8,6 +8,34 @@ behaviour, `docs/internal/design-principles.md` for the framing
 (controlled illusion, code-first, presentation-safe defaults), and
 `README.md` for a user-facing overview.
 
+## Companion: VS Code extension
+
+`vscode-extension/` ships authoring support for the same scheme the app
+consumes. Any change to the prezl scheme **must** be mirrored there in
+the same change — otherwise authors get stale validation, completions,
+or syntax highlighting against directives the runtime now accepts (or
+rejects). Touch points:
+
+- **`prezl.yaml` schema** — `vscode-extension/schemas/prezl-yaml.schema.json`
+  must track every field added/removed/retyped in `src/project/schema.ts`
+  (stage/step keys like `open`, `preview`, `cover`, `reset`, `steps`,
+  shorthand forms, tri-state `null` resets, etc.).
+- **Directive grammar** — `vscode-extension/syntaxes/prezl-directive.injection.json`
+  (TextMate injection) and `vscode-extension/src/directiveIndex.ts` /
+  `scanner.ts` parse the same `@prezl` / `@przl` directives as
+  `src/project/directiveParser.ts`. New attributes, selector forms, or
+  prefixes need updates on both sides.
+- **Snippets** — `vscode-extension/snippets/prezl.code-snippets` and
+  `prezl-block.code-snippets`. If a new directive shape is worth
+  authoring, add a snippet too.
+- **Stages view** — `vscode-extension/src/views/` reads `prezl.yaml` to
+  build the activity-bar tree; new stage-level fields that affect
+  navigation (e.g. steps, cover) may need surfacing here.
+
+Bump `vscode-extension/package.json` `version` when shipping a
+user-visible scheme change so the marketplace picks it up via the
+`vscode-v*` release pipeline (see the `vscode-release` skill).
+
 ## Dev commands
 
 - `pnpm tauri dev` — launch app with HMR. First launch compiles Rust (~90s);
