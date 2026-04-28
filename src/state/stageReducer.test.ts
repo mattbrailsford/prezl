@@ -72,6 +72,20 @@ describe('reconcileScreenSwitch', () => {
     expect(result.activeFile).toBe('src/a.ts')
   })
 
+  it('does not force-reopen a file the presenter closed when the next screen has no open intent', () => {
+    // Authored example: step 1 opens foo.ts, step 2 omits `open:` (resolves
+    // to undefined under the no-opinion semantics). If the presenter closed
+    // foo.ts during step 1, advancing to step 2 must NOT reopen it.
+    const result = reconcileScreenSwitch({
+      screen: screen(),
+      visibleFiles: ['src/foo.ts', 'src/bar.ts'],
+      openTabs: ['src/bar.ts'],
+      activeFile: 'src/bar.ts',
+    })
+    expect(result.openTabs).toEqual(['src/bar.ts'])
+    expect(result.activeFile).toBe('src/bar.ts')
+  })
+
   it('clears every tab and active file when screen.open is explicitly null', () => {
     // Author wrote `open: ~` — "no file open" intro state. The
     // first-visible-file fallback must be skipped so the editor pane

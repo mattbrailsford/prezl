@@ -45,18 +45,27 @@ export type ScreenListResult =
  * `steps:` produce one implicit screen (id = stage.alias, stepAlias = null);
  * stages with `steps:` produce one screen per step (id = `stage.step`).
  *
- * Resolution rules for step `open` / `preview` (both tri-state):
- *  - omitted (`undefined`) → sticky-forward from the previous step's
- *    resolved value; the stage's default seeds step 1
- *  - explicit `null` → reset to the stage's default, breaking sticky
- *    inheritance (also resets the chain so subsequent missing values
- *    inherit *this* step's resolved value, i.e., the stage default)
- *  - a value → that value is used and starts a new sticky chain
+ * Resolution rules:
  *
- * Step `open` has one extra wrinkle: a partial object that omits `file`
- * (`{ id: 'foo' }` or `{ line: 42 }`) inherits the file from the previous
- * resolved open. Lets a stepped stage walking through a single file say
- * "jump to id X" without restating the path on every step.
+ * Step `open` is tri-state but **does not** sticky-forward across omitted
+ * steps. The runtime treats an undefined `open` as "no opinion at this
+ * screen" so the reducer's prior-active-file rule preserves whatever the
+ * presenter is doing — including respecting a manually-closed file.
+ *  - omitted (`undefined`) → step 1 seeds from `stage.open` (entering the
+ *    stage is the author's "land here" intent); subsequent omitted steps
+ *    resolve to `undefined` so nothing is forced open or closed
+ *  - explicit `null` → reset to `stage.open` (which itself may be a value,
+ *    `null`, or `undefined`)
+ *  - a partial object (`{ id }` / `{ line }` with no `file`) → fill `file`
+ *    from the most recent resolved open that had one. The latest-authored
+ *    file is tracked separately from `screen.open`, so this still works
+ *    across an omitted step in between
+ *  - a full value → use as-is
+ *
+ * Step `preview` and `cover` keep classic sticky-forward (omitted →
+ * inherit prev). Preview re-fire is gated by reference identity in the
+ * store, so an inherited preview doesn't relaunch the modal. Cover is a
+ * passive list, so re-applying it has no presenter-disruptive effect.
  *
  * Step alias collisions inside a stage throw — the schema layer should
  * have caught this; failing loud here keeps debugging simple.
@@ -88,9 +97,16 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
       stageScreens.push(screen)
     } else {
       const seen = new Set<string>()
-      let prevOpen: OpenTarget | null | undefined = stage.open
+      // `prevOpenWithFile` tracks the most recent resolved open that has a
+      // `file`, used purely as the source for partial-`{id}`/`{line}` step
+      // inheritance. It does NOT chain into omitted steps' resolved opens
+      // (those resolve to `undefined`), so an authored partial after an
+      // omitted gap still inherits the right file.
+      let prevOpenWithFile: OpenTarget | undefined =
+        stage.open && stage.open.file ? stage.open : undefined
       let prevPreview: Preview | undefined = stage.preview
       let prevCover: CoverItem[] | undefined = stage.cover
+      let isFirstStep = true
       for (const step of stage.steps) {
         if (seen.has(step.alias)) {
           throw new Error(
@@ -98,18 +114,23 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
           )
         }
         seen.add(step.alias)
-        // Tri-state: undefined → inherit (prev), null → reset (stage), value → use.
-        // For value, also handle the partial-open shortcut: if the author
-        // wrote `{ id: ... }` or `{ line: ... }` without a `file`, fill in
-        // the file from the previous resolved open so step 2 onward can
-        // jump to a new anchor in the same file without restating the path.
+        // Tri-state for `open`:
+        //   undefined → step 1 seeds from stage.open; subsequent steps get
+        //               undefined ("no opinion"; reducer preserves runtime)
+        //   null      → reset to stage.open
+        //   partial   → fill `file` from prevOpenWithFile so an authored
+        //               `{ id }` step still has a target file across an
+        //               omitted gap
+        //   value     → use as-is
         const open: OpenTarget | null | undefined =
           step.open === undefined
-            ? prevOpen
+            ? isFirstStep
+              ? stage.open
+              : undefined
             : step.open === null
               ? stage.open
-              : step.open.file === undefined && prevOpen?.file
-                ? { ...step.open, file: prevOpen.file }
+              : step.open.file === undefined && prevOpenWithFile?.file
+                ? { ...step.open, file: prevOpenWithFile.file }
                 : step.open
         const preview =
           step.preview === undefined
@@ -136,9 +157,10 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         ordered.push(screen)
         byId[screen.id] = screen
         stageScreens.push(screen)
-        prevOpen = open
+        if (open && open.file) prevOpenWithFile = open
         prevPreview = preview
         prevCover = cover
+        isFirstStep = false
       }
     }
     byStage[stage.alias] = {

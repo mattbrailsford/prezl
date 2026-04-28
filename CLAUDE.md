@@ -61,16 +61,38 @@ like slide builds in Keynote); selecting a stage jumps to its first
 step. A step indicator (`n / N`) appears in the TopBar only for stages
 with multiple screens — single-step stages look unchanged.
 
-Step `open` and `preview` inherit **sticky-forward**: missing values
-fall through to the previous step's resolved value, with the stage's
-defaults seeding step 1. Once a step swaps files or previews,
-subsequent empty steps stay there until the next override. Both
-fields are tri-state in `buildScreenIndex`: `undefined` = inherit from
-prev, explicit `null` = reset to the stage's default (breaks the chain
-so subsequent inherits pick up the reset value, not the original
-override), value = use it. The reset form lets a later step drop an
-earlier step's override (e.g. a trailing-video preview) without
-restating the stage's default.
+Step `preview` inherits **sticky-forward**: missing values fall through
+to the previous step's resolved value, with the stage's default seeding
+step 1. Re-firing the modal is gated by reference identity in the store,
+so an inherited preview doesn't relaunch. Tri-state in
+`buildScreenIndex`: `undefined` = inherit from prev, explicit `null` =
+reset to the stage's default (breaks the chain so subsequent inherits
+pick up the reset value, not the original override), value = use it.
+The reset form lets a later step drop an earlier step's override (e.g. a
+trailing-video preview) without restating the stage's default.
+
+Step `open` is also tri-state but **does not** sticky-forward across
+omitted steps:
+
+- `undefined` (omitted) — step 1 seeds from `stage.open` (entering the
+  stage IS the author's "land here" intent); subsequent omitted steps
+  resolve to `undefined` so the reducer treats them as "no opinion."
+  The reducer's prior-active-file rule keeps the file active without
+  force-reopening it, so a presenter-initiated close (or any other
+  manual editor change) survives the step transition.
+- `null` — reset to `stage.open` (which itself may be a value, `null`,
+  or `undefined`).
+- partial (`{ id }` / `{ line }` with no `file`) — fill `file` from the
+  most recent resolved open that had one, tracked separately via
+  `prevOpenWithFile` so an authored partial after an omitted gap still
+  has a target file.
+- value — use as-is.
+
+If the author wants every step to actively clear the editor, they have
+to write `open: ~` on each step explicitly — there's no inherited-`null`
+shortcut. In practice presenter state during a "supposed to be empty"
+stage rarely diverges from the intent, so the no-opinion default is the
+right tradeoff.
 
 Branch reload (file contents) only happens when crossing a stage
 boundary; within-stage step changes are pure parser re-runs, so they
@@ -106,7 +128,9 @@ with `#anchorId` for "open at this anchor". Object form
 (`{ file, id?, line?, label? }`) adds a custom row label. Steps may
 override the stage list with a step-level `cover:` (sticky-forward
 inheritance, tri-state with `null` = reset to stage default — same
-shape as `open` and `preview`). Cover does **not** propagate across
+shape as `preview`; `open` shares the tri-state shape but its
+omitted-step semantics are different, see "The screen model"). Cover
+does **not** propagate across
 stage boundaries; each stage is its own agenda.
 
 Visited tracking lives in `visitedFilesInStage: Set<string>` on the
@@ -173,13 +197,16 @@ src/
                         merge; the schema rejects an empty `{}`), or
                         explicit `null`
                         (`~` in YAML) meaning "actively clear — no file
-                        open." Omitting `open:` is sticky-forward (inherit
-                        prior screen's resolved file via the reducer's
-                        prior-active-file rule); with nothing prior the
-                        pane stays empty (no auto-fallback to the first
-                        explorer file — that fallback was deliberately
-                        removed so the default first-stage UX is "just
-                        the file tree"). Empty pane renders EmptyEditorPane
+                        open." Omitting `open:` on a step (other than
+                        step 1, which seeds from `stage.open`) resolves
+                        to `undefined` — the reducer's prior-active-file
+                        rule keeps the runtime state, so a presenter close
+                        survives across the transition without being
+                        force-reopened. With nothing prior the pane stays
+                        empty (no auto-fallback to the first explorer
+                        file — that fallback was deliberately removed so
+                        the default first-stage UX is "just the file
+                        tree"). Empty pane renders EmptyEditorPane
                         (faded brand mark + project name) and EditorTabs
                         hides itself (kept only when the explorer is also
                         collapsed, so the expand-explorer button stays

@@ -71,7 +71,12 @@ describe('buildScreenIndex', () => {
     expect(STEPPED.byStage.demo).toMatchObject({ first: 6, last: 6 })
   })
 
-  it('inherits step open from previous step (sticky carry-forward)', () => {
+  it("step 1's omitted open seeds from the stage default; later omitted steps are no-opinion", () => {
+    // Step 1 entering a stepped stage IS the author's "land here" intent
+    // for the stage, so we honor stage.open. But step 2's omitted open is
+    // "I don't care" — the reducer's prior-active-file rule keeps the file
+    // active, AND a presenter-initiated close survives the step transition
+    // (no force-reopen).
     const stages: Stage[] = [
       {
         alias: 'shell',
@@ -87,7 +92,7 @@ describe('buildScreenIndex', () => {
     const idx = buildScreenIndex(stages)
     expect(idx.byId['shell.one'].open?.file).toBe('a.ts')
     expect(idx.byId['shell.two'].open?.file).toBe('b.ts')
-    expect(idx.byId['shell.three'].open?.file).toBe('b.ts')
+    expect(idx.byId['shell.three'].open).toBeUndefined()
   })
 
   it('preserves preview reference identity across inherited steps', () => {
@@ -200,10 +205,12 @@ describe('buildScreenIndex', () => {
     expect(idx.byId.intro.open).toBeNull()
   })
 
-  it('inherits a stage-level null open through steps with no override', () => {
-    // Sticky-forward inheritance must carry null the same way it carries a
-    // value, so a stepped intro stage stays "no file open" across every
-    // step until something explicitly changes it.
+  it('a stage-level null open seeds step 1; later omitted steps are no-opinion', () => {
+    // Step 1 inherits the stage's explicit `null` so the reducer clears any
+    // tabs that bled in from a prior stage. Step 2's omitted open is
+    // no-opinion at runtime — if the presenter happens to have opened
+    // something during step 1, it stays open instead of getting force-closed
+    // again.
     const stages: Stage[] = [
       {
         alias: 'intro',
@@ -214,10 +221,10 @@ describe('buildScreenIndex', () => {
     ]
     const idx = buildScreenIndex(stages)
     expect(idx.byId['intro.one'].open).toBeNull()
-    expect(idx.byId['intro.two'].open).toBeNull()
+    expect(idx.byId['intro.two'].open).toBeUndefined()
   })
 
-  it('a step can open a file under a null-open stage and later steps inherit it', () => {
+  it('a step under a null-open stage can open a file; later omitted steps are no-opinion', () => {
     const stepOpen = { file: 'a.ts' }
     const stages: Stage[] = [
       {
@@ -234,7 +241,31 @@ describe('buildScreenIndex', () => {
     const idx = buildScreenIndex(stages)
     expect(idx.byId['intro.tree'].open).toBeNull()
     expect(idx.byId['intro.reveal'].open).toBe(stepOpen)
-    expect(idx.byId['intro.follow'].open).toBe(stepOpen)
+    // follow has no opinion — the reducer's prior-active-file rule keeps
+    // a.ts active without force-reopening it after a presenter close.
+    expect(idx.byId['intro.follow'].open).toBeUndefined()
+  })
+
+  it('a partial step open inherits file across an omitted-open gap', () => {
+    // Even though the omitted step in between resolves to undefined at the
+    // screen level, the partial-open file inheritance reaches back to the
+    // most recent resolved open that had a file.
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        open: { file: 'a.ts' },
+        steps: [
+          { alias: 'one' },
+          { alias: 'two' },
+          { alias: 'three', open: { id: 'foo' } },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.one'].open?.file).toBe('a.ts')
+    expect(idx.byId['shell.two'].open).toBeUndefined()
+    expect(idx.byId['shell.three'].open).toEqual({ file: 'a.ts', id: 'foo' })
   })
 
   it('a step can reset back to a null-open stage default', () => {
