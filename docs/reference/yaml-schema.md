@@ -156,7 +156,7 @@ step.
       open: { file: src/api.ts, id: fetchDashboardData }
     - alias: chartHelpers
       open: src/dashboard.ts         # `open:` shorthand also works here
-      title: Chart helpers           # optional — currently unused in UI
+      title: Chart helpers           # optional — shown next to the step counter in the TopBar
 ```
 
 Each step entry is either:
