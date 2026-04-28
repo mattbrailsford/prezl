@@ -122,6 +122,17 @@ export function inferLanguage(path: string | null): string {
     case 'sql':
       return 'sql'
     case 'xml':
+    case 'csproj':
+    case 'vbproj':
+    case 'fsproj':
+    case 'props':
+    case 'targets':
+    case 'xaml':
+    case 'resx':
+    case 'config':
+    case 'xsd':
+    case 'xslt':
+    case 'svg':
       return 'xml'
     case 'vue':
       return 'vue'
