@@ -128,8 +128,12 @@ its own, the reset leaves the field unset.
 | Move mouse | Fade in Close (×) + Pause chip |
 | Stop moving (1.2 s) | Chrome fades back out |
 | `Space` / `PageDown` / pause chip | Play / pause. At `stopAt`: close and continue. |
+| Drag on the video | Scrub relative to the current playhead — drag right to go forward, left to go back. A progress bar with cue markers appears at the bottom while you drag, and fades back out on release. |
 | Restart chip click | Replay from `startAt` — deliberate, nav keys won't do this |
 | `Esc` / `PageUp` / × button | Close the preview |
+
+Scrubbing back across a cue re-arms it, so the next forward pass fires
+the cue again — handy for showing the same beat twice.
 
 The clicker mapping is intentional — a presenter remote typically
 emits PageUp / PageDown, so the same button that advances screens on

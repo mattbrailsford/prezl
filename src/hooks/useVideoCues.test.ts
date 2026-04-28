@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { prepareCues, selectNextCue } from './useVideoCues'
+import { prepareCues, pruneConsumedAfterSeek, selectNextCue } from './useVideoCues'
 import type { VideoCue } from '@/types'
 
 const cues = (...times: number[]): VideoCue[] => times.map((time) => ({ time }))
@@ -51,5 +51,29 @@ describe('selectNextCue', () => {
   it('respects a custom tolerance', () => {
     expect(selectNextCue(1.5, sorted, new Set(), 0.5)).toBe(0)
     expect(selectNextCue(1.5, sorted, new Set(), 0.1)).toBeNull()
+  })
+})
+
+describe('pruneConsumedAfterSeek', () => {
+  const sorted = cues(2, 5, 10)
+
+  it('returns the same set when nothing has been consumed', () => {
+    const empty = new Set<number>()
+    expect(pruneConsumedAfterSeek(empty, sorted, 7)).toBe(empty)
+  })
+
+  it('keeps cues that are now behind the playhead', () => {
+    const consumed = new Set([0, 1])
+    expect(pruneConsumedAfterSeek(consumed, sorted, 7)).toEqual(new Set([0, 1]))
+  })
+
+  it('un-consumes cues that are now ahead of the playhead', () => {
+    const consumed = new Set([0, 1, 2])
+    expect(pruneConsumedAfterSeek(consumed, sorted, 4)).toEqual(new Set([0]))
+  })
+
+  it('un-consumes a cue we landed exactly on so it re-fires', () => {
+    const consumed = new Set([0])
+    expect(pruneConsumedAfterSeek(consumed, sorted, 2)).toEqual(new Set())
   })
 })

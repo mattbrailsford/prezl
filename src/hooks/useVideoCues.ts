@@ -40,6 +40,26 @@ export function prepareCues(
     .sort((a, b) => a.time - b.time)
 }
 
+/**
+ * After a seek, drop any consumed cue whose time is now ahead of the playhead
+ * so it'll fire again when we cross it forward. A cue exactly at the new
+ * currentTime is treated as "ahead" — scrubbing right onto a cue should
+ * re-trigger it on the next tick.
+ */
+export function pruneConsumedAfterSeek(
+  consumed: Set<number>,
+  sortedCues: VideoCue[],
+  currentTime: number,
+): Set<number> {
+  if (consumed.size === 0) return consumed
+  const next = new Set<number>()
+  consumed.forEach((idx) => {
+    const cue = sortedCues[idx]
+    if (cue && cue.time < currentTime) next.add(idx)
+  })
+  return next
+}
+
 type UseVideoCuesArgs = {
   videoRef: RefObject<HTMLVideoElement | null>
   cues: VideoCue[] | undefined
@@ -96,7 +116,28 @@ export function useVideoCues({
       }
     }
 
+    // Scrubbing back across a cue (or below stopAt) should re-arm it. The
+    // browser fires `seeked` after every completed seek — including the
+    // many small seeks emitted while dragging the scrub bar — so this
+    // hooks naturally into both presenter scrubbing and any programmatic
+    // time changes.
+    const onSeeked = () => {
+      const t = video.currentTime
+      consumedRef.current = pruneConsumedAfterSeek(
+        consumedRef.current,
+        sortedCues,
+        t,
+      )
+      if (stopAt !== undefined && t < stopAt) {
+        stopFiredRef.current = false
+      }
+    }
+
     video.addEventListener('timeupdate', onTimeUpdate)
-    return () => video.removeEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('seeked', onSeeked)
+    return () => {
+      video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('seeked', onSeeked)
+    }
   }, [sortedCues, stopAt, videoRef, onCueReached, onStopAt])
 }
