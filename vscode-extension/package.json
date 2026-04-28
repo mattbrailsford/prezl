@@ -240,7 +240,8 @@
     "build": "node esbuild.config.mjs",
     "watch": "node esbuild.config.mjs --watch",
     "typecheck": "tsc -b --noEmit",
-    "package": "pnpm run build && vsce package --no-dependencies"
+    "package": "pnpm run build && vsce package --no-dependencies",
+    "package:dev": "pnpm run build && node scripts/package-dev.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

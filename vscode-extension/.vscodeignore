@@ -5,6 +5,7 @@ src/**
 **/*.ts
 **/tsconfig.json
 esbuild.config.mjs
+scripts/**
 node_modules/**
 !node_modules/yaml/**
 !node_modules/yaml/package.json
