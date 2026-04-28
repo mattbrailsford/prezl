@@ -86,6 +86,7 @@ export async function loadProjectFromDisk(
       preview: s.preview,
       steps: s.steps,
       reset: s.reset,
+      cover: s.cover,
     })),
     rootPath: backend.root,
     files,

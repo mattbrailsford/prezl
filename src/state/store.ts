@@ -137,6 +137,29 @@ type AppState = {
    *  change. The store can't drive the explorer's expanded set directly —
    *  it's local component state — so a token is the lightest signal. */
   explorerResetToken: number
+  /** File paths the presenter has had open since entering the current stage.
+   *  Cleared on every cross-stage transition (forward, back, dropdown);
+   *  added to whenever activeFile changes. The cover list reads this to mark
+   *  which entries have been visited in this run through the stage. */
+  visitedFilesInStage: Set<string>
+}
+
+/** Pure helper for visited-set transitions. `reset` clears the set first
+ *  (used on cross-stage entry); `addFile` adds a path if non-null and not
+ *  already present. Returns the input reference unchanged when nothing
+ *  needs to change so Zustand can skip subscriber notifications. */
+function updateVisitedSet(
+  current: Set<string>,
+  options: { reset?: boolean; addFile?: string | null },
+): Set<string> {
+  const base = options.reset ? new Set<string>() : current
+  const file = options.addFile ?? null
+  if (!file) return base
+  if (base === current && current.has(file)) return current
+  if (base !== current && base.has(file)) return base
+  const next = new Set(base)
+  next.add(file)
+  return next
 }
 
 type AppActions = {
@@ -245,6 +268,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       openTabs,
       activeFile,
       pendingScrollTop: getScrollPosition(target.id, activeFile),
+      visitedFilesInStage: updateVisitedSet(state.visitedFilesInStage, {
+        reset: crossingStage,
+        addFile: activeFile,
+      }),
     })
 
     if (crossingStage) {
@@ -278,6 +305,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   pendingScrollTop: null,
   lastEndAutoLaunchedScreenId: null,
   explorerResetToken: 0,
+  visitedFilesInStage: new Set(),
 
   setProject: (project, rawFiles, binaryFiles, initialStageAlias) => {
     const screenIndex = buildScreenIndex(project.stages)
@@ -331,6 +359,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       historyIndex: initialHistory.length - 1,
       pendingScrollTop: null,
       lastEndAutoLaunchedScreenId: null,
+      visitedFilesInStage: updateVisitedSet(new Set(), {
+        reset: true,
+        addFile: firstFile,
+      }),
     })
   },
 
@@ -352,6 +384,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       historyIndex: -1,
       pendingScrollTop: null,
       lastEndAutoLaunchedScreenId: null,
+      visitedFilesInStage: new Set(),
     })
   },
 
@@ -409,6 +442,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       currentScreenId: target.id,
       openTabs: next.openTabs,
       activeFile: next.activeFile,
+      visitedFilesInStage: updateVisitedSet(state.visitedFilesInStage, {
+        reset: crossingStage,
+        addFile: next.activeFile,
+      }),
       ...(resetting
         ? { explorerResetToken: state.explorerResetToken + 1 }
         : {}),
@@ -473,6 +510,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     set((s) => ({
       openTabs: s.openTabs.includes(path) ? s.openTabs : [...s.openTabs, path],
       activeFile: path,
+      visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
+        addFile: path,
+      }),
     }))
     recordCurrent()
   },
@@ -486,7 +526,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     }),
 
   setActiveFile: (path) => {
-    set({ activeFile: path })
+    set((s) => ({
+      activeFile: path,
+      visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
+        addFile: path,
+      }),
+    }))
     recordCurrent()
   },
 
@@ -554,6 +599,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       openTabs: s.openTabs.includes(file) ? s.openTabs : [...s.openTabs, file],
       activeFile: file,
       pendingNavigation: { file, line },
+      visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
+        addFile: file,
+      }),
     }))
     recordCurrent()
   },

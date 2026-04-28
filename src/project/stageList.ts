@@ -21,7 +21,7 @@
  * context.
  */
 
-import type { OpenTarget, Preview, Screen, Stage } from '@/types'
+import type { CoverItem, OpenTarget, Preview, Screen, Stage } from '@/types'
 
 export type ScreenIndex = {
   /** id ("shell" or "shell.intro") -> resolved Screen */
@@ -81,6 +81,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         title: stage.title,
         open: stage.open,
         preview: stage.preview,
+        cover: stage.cover,
       }
       ordered.push(screen)
       byId[screen.id] = screen
@@ -89,6 +90,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
       const seen = new Set<string>()
       let prevOpen: OpenTarget | null | undefined = stage.open
       let prevPreview: Preview | undefined = stage.preview
+      let prevCover: CoverItem[] | undefined = stage.cover
       for (const step of stage.steps) {
         if (seen.has(step.alias)) {
           throw new Error(
@@ -115,6 +117,12 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
             : step.preview === null
               ? stage.preview
               : step.preview
+        const cover: CoverItem[] | undefined =
+          step.cover === undefined
+            ? prevCover
+            : step.cover === null
+              ? stage.cover
+              : step.cover
         const screen: Screen = {
           id: `${stage.alias}.${step.alias}`,
           stageAlias: stage.alias,
@@ -123,12 +131,14 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
           title: step.title,
           open,
           preview,
+          cover,
         }
         ordered.push(screen)
         byId[screen.id] = screen
         stageScreens.push(screen)
         prevOpen = open
         prevPreview = preview
+        prevCover = cover
       }
     }
     byStage[stage.alias] = {

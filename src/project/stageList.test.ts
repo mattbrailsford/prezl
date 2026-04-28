@@ -314,6 +314,92 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['intro.one'].open).toEqual({ id: 'foo' })
   })
 
+  it('a stage cover propagates to the no-step screen', () => {
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        cover: [{ file: 'a.ts' }, { file: 'b.ts', id: 'foo' }],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId.shell.cover).toEqual([
+      { file: 'a.ts' },
+      { file: 'b.ts', id: 'foo' },
+    ])
+  })
+
+  it('every step in a stage inherits the stage cover by default', () => {
+    const stageCover = [{ file: 'a.ts' }, { file: 'b.ts' }]
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        cover: stageCover,
+        steps: [{ alias: 'one' }, { alias: 'two' }],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    // Reference identity preserved across inherited steps — same as preview.
+    expect(idx.byId['shell.one'].cover).toBe(stageCover)
+    expect(idx.byId['shell.two'].cover).toBe(stageCover)
+  })
+
+  it('a step can override the stage cover and later steps inherit the override', () => {
+    const stageCover = [{ file: 'a.ts' }]
+    const stepCover = [{ file: 'b.ts' }, { file: 'c.ts' }]
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        cover: stageCover,
+        steps: [
+          { alias: 'one' },
+          { alias: 'two', cover: stepCover },
+          { alias: 'three' },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.one'].cover).toBe(stageCover)
+    expect(idx.byId['shell.two'].cover).toBe(stepCover)
+    expect(idx.byId['shell.three'].cover).toBe(stepCover)
+  })
+
+  it('a step can reset cover back to the stage default', () => {
+    const stageCover = [{ file: 'a.ts' }]
+    const stepCover = [{ file: 'b.ts' }]
+    const stages: Stage[] = [
+      {
+        alias: 'shell',
+        order: 1,
+        cover: stageCover,
+        steps: [
+          { alias: 'one', cover: stepCover },
+          { alias: 'two', cover: null },
+          { alias: 'three' },
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.one'].cover).toBe(stepCover)
+    expect(idx.byId['shell.two'].cover).toBe(stageCover)
+    // sticky-forward continues from the reset value (stage default), not the
+    // earlier override.
+    expect(idx.byId['shell.three'].cover).toBe(stageCover)
+  })
+
+  it('cover does not propagate across stage boundaries', () => {
+    const aCover = [{ file: 'a.ts' }]
+    const stages: Stage[] = [
+      { alias: 'first', order: 1, cover: aCover },
+      { alias: 'second', order: 2 },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId.first.cover).toBe(aCover)
+    expect(idx.byId.second.cover).toBeUndefined()
+  })
+
   it('reset on a step whose stage has no default leaves the field unset', () => {
     const stepBPreview = {
       type: 'video' as const,

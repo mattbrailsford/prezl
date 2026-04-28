@@ -20,6 +20,14 @@ stages:
     open:
       file: src/dashboard.ts
       id: registerDashboard
+    # Stage agenda — surfaced under the explorer as a clickable checklist.
+    # Items tick once their file has been opened during this stage's tenure.
+    cover:
+      - src/dashboard.ts#registerDashboard
+      - src/api.ts#fetchDashboardData
+      - file: src/dashboard.ts
+        id: renderCharts
+        label: Chart helpers
     steps:
       - alias: intro
         title: Overview

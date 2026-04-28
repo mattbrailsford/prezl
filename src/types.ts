@@ -25,6 +25,18 @@ export type SymbolTarget = {
   id?: string
 }
 
+/** One entry in a stage/step's `cover:` list — a file the presenter wants to
+ *  remember to discuss. `file` is the only required field. `id` (or `line`)
+ *  optionally targets a specific anchor inside the file; click handlers route
+ *  through the symbol table to scroll there. `label` overrides the display
+ *  text in the cover list (otherwise the file's basename is shown). */
+export type CoverItem = {
+  file: string
+  id?: string
+  line?: number
+  label?: string
+}
+
 export type UrlPreview = {
   type: 'url'
   src: string
@@ -68,6 +80,11 @@ export type Step = {
   title?: string
   open?: OpenTarget | null
   preview?: Preview | null
+  /** Step-level override for the stage's cover list. `undefined` inherits
+   *  sticky-forward from the previous step; explicit `null` resets to the
+   *  stage's `cover` (or unset if the stage has none); a value replaces
+   *  the inherited list outright. */
+  cover?: CoverItem[] | null
 }
 
 export type Stage = {
@@ -89,6 +106,12 @@ export type Stage = {
   /** Optional ordered list of intra-stage steps. A stage with no steps has
    *  one implicit screen whose id is the bare stage alias. */
   steps?: Step[]
+  /** Files the presenter wants to remember to discuss while in this stage.
+   *  Surfaced as a clickable list under the explorer, with a check mark when
+   *  the file has been opened during the current stage's tenure. Sticky-
+   *  inherited across step transitions like `open`/`preview`; not inherited
+   *  across stage boundaries. */
+  cover?: CoverItem[]
   /** When true, cross-stage entry into this stage clears every non-active
    *  tab and collapses every explorer folder outside the active file's
    *  ancestor chain. Step transitions within the stage and back-nav don't
@@ -115,6 +138,10 @@ export type Screen = {
    *  first visible file). */
   open?: OpenTarget | null
   preview?: Preview
+  /** Resolved cover list after step→stage inheritance. Empty/unset on
+   *  screens whose stage declared no `cover:` and whose steps didn't add
+   *  one either. */
+  cover?: CoverItem[]
 }
 
 export type PrezlProject = {

@@ -20,6 +20,7 @@ import {
   type TreeNode,
 } from '@/project/projectTree'
 import { fileTypeStyle } from '@/project/fileTypeStyles'
+import { StageCoverList } from './StageCoverList'
 
 type Palette = {
   border: string
@@ -411,6 +412,7 @@ export function ExplorerTree() {
           })
         )}
       </div>
+      <StageCoverList />
     </nav>
   )
 }

@@ -256,6 +256,46 @@ boundary deliberately don't trigger the reset — it's a re-grounding
 act for new phases of the talk, not something to fire mid-build or
 when stepping back.
 
+#### Stage `cover:` — presenter agenda
+
+A list of files (and optional anchors) the presenter wants to remember
+to discuss while in this stage. Surfaced as a small clickable section
+under the file tree; rows tick once their file has been opened during
+the current stage's tenure.
+
+```yaml
+- alias: preview
+  cover:
+    - src/dashboard.ts                         # bare path
+    - src/api.ts#fetchDashboardData            # path#anchorId shorthand
+    - file: src/dashboard.ts                   # full object form
+      id: renderCharts
+      label: Chart helpers                     # optional — overrides the row's basename
+```
+
+Each item is either:
+
+- a **bare path string** — opens the file at the top
+- a **`path#id` string** — opens the file and scrolls to the
+  `@prezl id=<name>` anchor
+- the **object form** with `file` (required), `id?`, `line?`, `label?`
+
+`label` overrides the row's display text (otherwise the file's
+basename is shown). `id` resolves through the same project-wide symbol
+table the click-to-jump path uses.
+
+**Inheritance.** Steps inherit `cover` from the stage and from
+preceding steps with sticky carry-forward, exactly like `open` and
+`preview`. A step can override the list with its own `cover:`, or
+reset to the stage default with `cover: ~`. Cover does not propagate
+across stage boundaries — each stage is its own agenda.
+
+**Visited tracking.** "Visited" is keyed by file path and cleared on
+every cross-stage transition (forward, back, or via the dropdown).
+Opening the file ticks every cover row pointing at it, regardless of
+whether the presenter actually scrolled to a specific anchor — the
+goal is "did I cover this file" rather than per-anchor accounting.
+
 ## Notes
 
 - YAML anchors / references are supported by the `yaml` parser Prezl

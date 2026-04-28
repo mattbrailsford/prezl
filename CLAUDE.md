@@ -66,6 +66,31 @@ on step transitions within the stage). Two effects:
   hidden content. The store fires the reset by bumping
   `explorerResetToken`; ExplorerTree's reset effect keys on that.
 
+## Stage cover (presenter agenda)
+
+A stage can declare a `cover:` array of files (and optional anchors) the
+presenter wants to remember to discuss during that stage. Surfaced as a
+small clickable list under the file tree (`StageCoverList`); items tick
+once their file has been opened during the current stage's tenure.
+
+Authoring shorthand: a list of bare path strings, optionally suffixed
+with `#anchorId` for "open at this anchor". Object form
+(`{ file, id?, line?, label? }`) adds a custom row label. Steps may
+override the stage list with a step-level `cover:` (sticky-forward
+inheritance, tri-state with `null` = reset to stage default — same
+shape as `open` and `preview`). Cover does **not** propagate across
+stage boundaries; each stage is its own agenda.
+
+Visited tracking lives in `visitedFilesInStage: Set<string>` on the
+store. Cleared on every cross-stage entry (forward, back, dropdown);
+added to whenever `activeFile` changes (via `switchScreen`,
+`openFile`, `setActiveFile`, `navigateToFileLine`, and the back/forward
+`applyHistoryLocation` path). The list is by file, so opening the
+target file ticks every cover item pointing at it — there's no
+per-anchor visit detection. Click routes through
+`navigateToFileLine` when the cover item resolves an `id` against the
+current symbol table, otherwise falls back to `openFile`.
+
 ## Architecture at a glance
 
 ```

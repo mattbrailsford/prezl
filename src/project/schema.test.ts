@@ -151,6 +151,90 @@ describe('schema — stage open: null', () => {
   })
 })
 
+describe('schema — cover list', () => {
+  it('accepts a list of bare path strings as shorthand', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          alias: 'shell',
+          cover: ['src/dashboard.ts', 'src/api.ts'],
+        },
+      ],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].cover).toEqual([
+        { file: 'src/dashboard.ts' },
+        { file: 'src/api.ts' },
+      ])
+    }
+  })
+
+  it('parses path#id shorthand into file + id', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        { alias: 'shell', cover: ['src/dashboard.ts#registerDashboard'] },
+      ],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].cover).toEqual([
+        { file: 'src/dashboard.ts', id: 'registerDashboard' },
+      ])
+    }
+  })
+
+  it('accepts the full object form with label', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          alias: 'shell',
+          cover: [
+            { file: 'src/api.ts', id: 'fetchData', label: 'Data fetching' },
+          ],
+        },
+      ],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stages[0].cover?.[0]).toEqual({
+        file: 'src/api.ts',
+        id: 'fetchData',
+        label: 'Data fetching',
+      })
+    }
+  })
+
+  it('accepts cover: null on a step (reset to stage default)', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          alias: 'shell',
+          cover: ['a.ts'],
+          steps: [{ alias: 'one' }, { alias: 'two', cover: null }],
+        },
+      ],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      const step = result.data.stages[0].steps?.[1] as { cover?: unknown }
+      expect(step?.cover).toBeNull()
+    }
+  })
+
+  it('rejects an empty cover item path', () => {
+    const result = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'shell', cover: [''] }],
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
 describe('schema — stage reset flag', () => {
   it('accepts reset: true on a stage', () => {
     const result = prezlProjectSchema.safeParse({

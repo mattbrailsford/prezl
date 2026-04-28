@@ -197,6 +197,34 @@ describe('store — stage-level reset flag', () => {
     expect(useAppStore.getState().explorerResetToken).toBe(tokenAfterInitial)
   })
 
+  it('cross-stage entry clears the visited-cover set and seeds the new active file', () => {
+    const { project, rawFiles } = projectWithReset()
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'main')
+    // visit an extra file on main, then walk into preview.
+    useAppStore.getState().openFile('extra.ts')
+    expect(useAppStore.getState().visitedFilesInStage).toContain('extra.ts')
+
+    useAppStore.getState().switchScreen('preview.a')
+    const visited = useAppStore.getState().visitedFilesInStage
+    // main's visits are gone; the new stage's resolved active file is in.
+    expect(visited.has('extra.ts')).toBe(false)
+    expect(visited.has('main.ts')).toBe(false)
+    expect(visited.has('dashboard.ts')).toBe(true)
+  })
+
+  it('step transition within a stage adds to the visited set without clearing', () => {
+    const { project, rawFiles } = projectWithReset()
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
+    // Initial screen preview.a opens dashboard.ts.
+    expect(useAppStore.getState().visitedFilesInStage.has('dashboard.ts')).toBe(
+      true,
+    )
+    useAppStore.getState().switchScreen('preview.b')
+    const visited = useAppStore.getState().visitedFilesInStage
+    expect(visited.has('dashboard.ts')).toBe(true) // survived step transition
+    expect(visited.has('api.ts')).toBe(true) // step b's open
+  })
+
   it('back-nav into a reset stage does not trigger a reset', () => {
     const { project, rawFiles } = projectWithReset()
     useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')

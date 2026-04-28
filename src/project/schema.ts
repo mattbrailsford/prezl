@@ -52,6 +52,36 @@ const symbolTarget = z.object({
   id: z.string().min(1).optional(),
 })
 
+/** `cover` items are presenter reminders — files (and optional anchors) to
+ *  discuss during a stage. Authoring shorthand is just a path string, with
+ *  an optional `#anchorId` suffix for "open this file at this anchor".
+ *  The object form adds `line` and a custom `label` for the cover list row. */
+const coverItem = z.union([
+  z
+    .string()
+    .min(1)
+    .transform((s) => {
+      const hashIdx = s.indexOf('#')
+      if (hashIdx < 0) return { file: s }
+      const file = s.slice(0, hashIdx)
+      const id = s.slice(hashIdx + 1)
+      if (!file || !id) {
+        // Treat malformed shorthand as a bare path; better to under-resolve
+        // than blow up validation on a stray '#' in a path.
+        return { file: s }
+      }
+      return { file, id }
+    }),
+  z.object({
+    file: z.string().min(1),
+    line: z.number().int().positive().optional(),
+    id: z.string().min(1).optional(),
+    label: z.string().min(1).optional(),
+  }),
+])
+
+const cover = z.array(coverItem)
+
 const urlPreview = z.object({
   type: z.literal('url'),
   src: z.string().url().or(z.string().regex(/^\.{0,2}\//)),
@@ -113,6 +143,10 @@ const screenStep = z.union([
     title: z.string().optional(),
     open: openTarget.nullable().optional(),
     preview: preview.nullable().optional(),
+    /** Step-level cover override. Tri-state like open/preview: undefined =
+     *  inherit prev step (sticky-forward), null = reset to the stage's
+     *  default cover, value = use this list. */
+    cover: cover.nullable().optional(),
   }),
 ])
 
@@ -124,6 +158,10 @@ const stage = z.object({
   symbols: z.record(z.string(), symbolTarget).optional(),
   preview: preview.optional(),
   steps: z.array(screenStep).optional(),
+  /** Stage-level "agenda" — files the presenter should remember to cover.
+   *  Sticky-inherited across steps within the stage; not propagated across
+   *  stage boundaries. */
+  cover: cover.optional(),
   /** When true, entering this stage from another stage clears workspace
    *  clutter that built up during the previous phase. Tabs collapse to
    *  just the resolved `open` file. The explorer is reset *monotonically
