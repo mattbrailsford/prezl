@@ -27,10 +27,26 @@ clicker never gets stuck on the previous interaction.
 
 | Shortcut | Action |
 | --- | --- |
-| `Ctrl+Enter` | Run (equivalent to clicking the Run button) |
+| `F5` / `Ctrl+Enter` | Run (equivalent to clicking the Run button) |
 | `F11` | Toggle fullscreen |
 
-Run is suppressed while a preview is already in flight.
+Run is suppressed while a preview is already in flight. When the
+current screen has more than one preview the keyboard shortcut opens
+the picker; pressing it again with the picker open closes it.
+
+`F5` is captured globally so the WebView's default page-refresh
+behaviour doesn't fire — `Ctrl+R` still does native refresh.
+
+### Inside the preview picker
+
+Shown when the screen has more than one preview entry; the keyboard
+shortcut goes here before deciding what to launch.
+
+| Shortcut | Action |
+| --- | --- |
+| `↑` / `↓` | Move selection |
+| `Enter` | Run the selected preview |
+| `Esc` | Close the picker without running |
 
 ### Inside a video preview
 

@@ -56,31 +56,54 @@ entry is the starting stage, and screen-range directives like
                              #            by directives like [shell...]
   branch: feature/dashboard  # optional — label only (e.g. git branch name)
   title: Add dashboard       # optional — dropdown label
-  open:                      # optional — initial scroll target
-    file: src/dashboard.ts   #   optional inside the object form (see below)
-    line: 1                  #   scroll target; line OR id, not both
-    id: registerDashboard    #   resolves to a `@prezl id=<name>` anchor
+  open: src/dashboard.ts     # optional — string shorthand or object (see below)
   steps: [ … ]               # optional — see Steps below
   symbols: {}                # reserved, not currently consumed
-  preview:                   # optional — see Previews guide
+  preview:                   # optional — single preview (object shorthand)
     type: url | video
     …
+  previews:                  # optional — list of previews (alternative form)
+    - …
+  cover: [ … ]               # optional — presenter agenda
   reset: true                # optional — declutter on cross-stage entry
 ```
 
 The dropdown label cascades `title` → `branch` → `alias`, so a stage
 with just an alias still shows up sensibly.
 
+`preview:` and `previews:` are mutually exclusive — picking one or the
+other is a parse error. Use whichever reads better; the runtime
+normalises both into the same internal list.
+
 #### `open:` shorthand
 
-When you only need "open this file at line 1," pass the path as a string:
+The string form accepts a small grammar of optional suffixes. All four
+are valid:
 
 ```yaml
-open: src/dashboard.ts       # equivalent to { file: src/dashboard.ts, line: 1 }
+open: src/dashboard.ts                       # bare path (no specific line)
+open: src/dashboard.ts#registerDashboard     # path#id — jump to symbol anchor
+open: src/dashboard.ts@42                    # path@line — jump to line
+open: src/dashboard.ts#registerDashboard@42  # all three — id wins for scroll
 ```
 
-The full object form is only needed when you want to jump to a specific
-`line:` or symbol `id:`.
+Suffixes peel from the rightmost separator and bail out cleanly when
+the result wouldn't make sense (npm-scoped paths like
+`node_modules/@types/foo.ts` keep the `@` intact; `@head` is left as
+part of the path because it isn't all digits; `@0` likewise — line
+must be a positive integer).
+
+The full object form `{ file?, line?, id? }` is for cases the shorthand
+can't express — most often a partial `{ id: foo }` step that inherits
+its file from the previous resolved open.
+
+A bare path string with no suffixes opens the file with no specific
+scroll target — the viewer keeps the previous scrollTop if the file is
+unchanged across the screen switch, otherwise starts at the top with
+default-collapsed folds collapsed. Setting `@1` explicitly routes
+through `scrollToLine` instead, which auto-expands any fold containing
+the target line — useful only when the author wants that expansion to
+fire.
 
 #### Partial `open:` — inherit the file from the most recent authored open
 
@@ -110,8 +133,9 @@ The empty object `{}` is rejected — at least one of `file`, `line`, or
 
 #### Empty pane and `open: ~`
 
-Omitting `open:` is **sticky-forward**: the screen inherits whatever
-the presenter is already on. With nothing to inherit (e.g. the first
+Omitting `open:` at the **stage** level lets the presenter's current
+state carry forward — there's no force-reopen on stage entry beyond
+what the author asked for. With nothing to inherit (e.g. the first
 stage of the deck), the editor pane is empty and only the file tree
 is visible — the default opening state. The tab strip hides itself
 (unless the explorer is also collapsed, in which case the strip stays
@@ -134,9 +158,11 @@ audience back on the project structure:
   open: ~                    # explicit "no file" — overrides inheritance
 ```
 
-Stepped stages propagate `open` (file or null) through every step that
-doesn't override it. A later step can introduce a file with its own
-`open:` and subsequent steps inherit that, just like any other override.
+Inside a stepped stage, only step 1 seeds from `stage.open` — later
+steps that omit `open:` resolve to "no opinion" and the runtime keeps
+whatever the presenter is currently looking at. See
+[`open` inside steps](#stage-steps--sub-navigation-within-a-stage)
+below for the full set of rules.
 
 #### Stage `steps:` — sub-navigation within a stage
 
@@ -148,23 +174,24 @@ step.
 
 ```yaml
 - alias: preview
-  open: { file: src/dashboard.ts, id: registerDashboard }
+  open: src/dashboard.ts#registerDashboard
   preview:
     type: url
     src: https://example.com/demo
   steps:
-    - intro                          # bare-string shorthand
+    - intro                                    # bare-string shorthand
     - alias: fetchImpl
-      open: { file: src/api.ts, id: fetchDashboardData }
+      open: src/api.ts#fetchDashboardData
     - alias: chartHelpers
-      open: src/dashboard.ts         # `open:` shorthand also works here
-      title: Chart helpers           # optional — shown next to the step counter in the TopBar
+      open: src/dashboard.ts#renderCharts
+      title: Chart helpers                     # optional — shown next to the step counter in the TopBar
 ```
 
 Each step entry is either:
 
 - a **bare string** — shorthand for `{ alias: <string> }`, no overrides
-- the **object form** with `alias` (required), `title?`, `open?`, `preview?`
+- the **object form** with `alias` (required), `title?`, `open?`,
+  `preview?` / `previews?`, `cover?`
 
 Each screen's id is `<stageAlias>.<stepAlias>`, e.g. `preview.intro`,
 `preview.fetchImpl`. A stage with no `steps:` has one implicit screen
@@ -172,80 +199,113 @@ whose id is just the bare alias (e.g. `shell`).
 
 **Inheritance differs by field.**
 
-- **`preview` and `cover`** sticky-carry-forward. Missing values
-  inherit the previous step's resolved value, with the stage's
-  defaults seeding step 1. Once a step changes one, subsequent empty
-  steps stay there until the next explicit override.
-- **`open`** does **not** sticky-forward across omitted steps. Step 1
-  seeds from `stage.open` (entering the stage IS the author's "land
-  here" intent), but subsequent omitted steps resolve to *no opinion*
-  — the runtime preserves the presenter's current state, so a
+- **`previews` and `cover`** resolve **stage→step only** — there's no
+  step-to-step chain. An omitted step uses the *stage default*; a
+  step's own value replaces it for that screen; `~` (YAML null)
+  explicitly clears it for that screen. Adding a value on step 2
+  does **not** carry into step 3 — step 3 falls back to whatever the
+  stage declared.
+- **`open`** does *not* sticky-forward either, but the runtime treats
+  an omitted `open` as "no opinion at this screen," preserving
+  whatever the presenter is currently looking at. Step 1 seeds from
+  `stage.open` (entering the stage IS the author's "land here"
+  intent), but subsequent omitted steps resolve to *no opinion* — a
   manual close (or any other editor change) survives the step
   transition. Authoring "every step actively clears the editor"
-  requires writing `open: ~` on each step explicitly. A partial
-  step `open` (`{ id }` or `{ line }` with no `file`) still inherits
-  its file from the most recent authored open with one — see
+  requires writing `open: ~` on each step explicitly. A partial step
+  `open` (`{ id }` or `{ line }` with no `file`) still inherits its
+  file from the most recent authored open with one — see
   [Partial `open:`](#partial-open-inherit-the-file-from-the-most-recent-authored-open)
   above.
 
-**Reset escape hatch.** Setting `open: ~`, `preview: ~`, or `cover: ~`
-(YAML null) on a step reverts that field to the **stage's default**.
+**The `~` shorthand on a step.**
 
-- For `preview` and `cover`, the reset breaks the sticky chain so
-  subsequent empty steps inherit the reset value (the stage default),
-  not the prior override.
-- For `open`, the reset drops a step-level override and re-applies
-  `stage.open` for that screen. Use it when an earlier step changed
-  files and a later step should re-land on the stage's authored target.
+- For `previews` and `cover`, `~` means *explicitly empty for this
+  step* — the screen has no previews / no cover even though the stage
+  does.
+- For `open`, `~` resets to `stage.open`. Use it when an earlier step
+  changed files and a later step should re-land on the stage's
+  authored target.
 
 **Aliases must be unique within a stage.** The schema rejects duplicates.
 
-#### Stage `preview:` — URL
+#### Stage `preview:` / `previews:`
+
+Two field names, both accepted; using both on the same stage/step is a
+parse error. `preview:` takes a single object (shorthand for one
+preview); `previews:` takes a list. Both normalise internally to
+`Preview[]`.
 
 ```yaml
+# Singular shorthand
 preview:
   type: url
   src: https://example.com/demo
-  mode: external              # optional — default: external
+
+# Plural list — Run button shows a picker for >1
+previews:
+  - title: Live demo
+    type: url
+    src: https://example.com/demo
+  - title: Recorded walkthrough
+    type: video
+    src: ./videos/demo.mp4
+    startAt: 4.5
+    stopAt: 32.0
+    autoLaunch: end
 ```
 
-`src` must be `http://` or `https://`. Only `external` mode is supported
-today (opens in the OS default browser).
-
-#### Stage `preview:` — video
+##### URL preview
 
 ```yaml
-preview:
-  type: video
-  src: ./videos/demo.mp4      # path relative to project root, or absolute http(s)
-  startAt: 4.5                # optional — seconds
-  stopAt: 32.0                # optional — pauses playback, shows Restart chip
-  autoLaunch: start           # optional — 'start' (or true), or 'end'
-  cues:                       # optional — auto-pause timestamps
-    - { time: 12.0, label: "Optional label for future use" }
+type: url
+src: https://example.com/demo
+mode: external                 # optional — default: external
+```
+
+`src` must be `http://` or `https://`. Only `external` mode is
+supported today (opens in the OS default browser).
+
+##### Video preview
+
+```yaml
+type: video
+src: ./videos/demo.mp4         # path relative to project root, or absolute http(s)
+startAt: 4.5                   # optional — seconds
+stopAt: 32.0                   # optional — pauses playback, shows Restart chip
+autoLaunch: start              # optional — 'start' (or true), or 'end'
+cues:                          # optional — auto-pause timestamps
+  - { time: 12.0, label: "Optional label for future use" }
 ```
 
 Cues pause playback with a subtle Play chip; Space / PageDown /
 chip-click resumes. Each cue fires once per session.
 
-`autoLaunch` opens the modal automatically without a *Run* click.
-Each mode fires once per *scope* — the run of screens sharing the
-same preview, formed when steps inherit a stage's preview or carry
-forward a step-level override. Two modes:
+##### Optional `title:` (any preview kind)
+
+`title:` on any preview entry serves as the row label in the picker
+(falls back to the URL or video basename). Useful when two entries
+share a `src` and the picker would otherwise show duplicate labels.
+
+##### `autoLaunch` invariants
+
+`autoLaunch` opens the modal automatically without a *Run* click. Two
+modes; across a list, **at most one entry may have `autoLaunch:
+'start'` and at most one `'end'`** — the schema rejects more.
 
 - **`start`** (or shorthand `true`) — the "lead with a video"
-  pattern: the modal opens on the first screen of the scope (the
-  screen where the preview newly appears).
+  pattern: the modal opens on cross-screen entry to a screen whose
+  autoStart entry is *new* relative to the previous screen.
 - **`end`** — the "trail with a video" pattern: the modal opens on
-  the last screen of the scope, when the presenter forward-advances
-  out of it. The screen advance pauses, the video plays, and a
-  carry-on close (atEnd Space, or natural video end) advances the
-  deck in the same press.
+  forward-advance *out of* a screen whose autoEnd entry differs by
+  reference from the next screen's. The screen advance pauses, the
+  video plays, and a carry-on close (atEnd Space, or natural video
+  end) advances the deck in the same press.
 
-An explicitly redeclared preview on a later step starts a new scope
-with its own start/end fires. Going backward never re-fires, and
-once an `end` video has fired for its scope it won't replay in the
-same session.
+Consecutive inheriting steps share the same list reference, so an
+inherited autoLaunch entry doesn't re-fire on every step. Going
+backward never re-fires, and once an `'end'` video has fired for its
+scope it won't replay in the same session.
 
 #### Stage `reset:` — declutter on cross-stage entry
 
@@ -281,28 +341,25 @@ the current stage's tenure.
 - alias: preview
   cover:
     - src/dashboard.ts                         # bare path
-    - src/api.ts#fetchDashboardData            # path#anchorId shorthand
+    - src/api.ts#fetchDashboardData            # path#id shorthand
+    - src/api.ts@42                            # path@line shorthand
     - file: src/dashboard.ts                   # full object form
       id: renderCharts
       label: Chart helpers                     # optional — overrides the row's basename
 ```
 
-Each item is either:
-
-- a **bare path string** — opens the file at the top
-- a **`path#id` string** — opens the file and scrolls to the
-  `@prezl id=<name>` anchor
-- the **object form** with `file` (required), `id?`, `line?`, `label?`
+Each item is either a string shorthand (the same `path[#id][@line]`
+mini-grammar `open` accepts) or the object form with `file` (required),
+`id?`, `line?`, `label?`.
 
 `label` overrides the row's display text (otherwise the file's
 basename is shown). `id` resolves through the same project-wide symbol
 table the click-to-jump path uses.
 
-**Inheritance.** Steps inherit `cover` from the stage and from
-preceding steps with sticky carry-forward, exactly like `open` and
-`preview`. A step can override the list with its own `cover:`, or
-reset to the stage default with `cover: ~`. Cover does not propagate
-across stage boundaries — each stage is its own agenda.
+**Inheritance.** Steps resolve `cover` stage→step only, exactly like
+`previews`. An omitted step uses the stage default; a step's own value
+replaces it; `cover: ~` clears it for that step. Cover does not
+propagate across stage boundaries — each stage is its own agenda.
 
 **Visited tracking.** "Visited" is keyed by file path and cleared on
 every cross-stage transition (forward, back, or via the dropdown).
@@ -315,7 +372,8 @@ When stepping within a stage, a step that authors its own `cover:`
 the tick on any file appearing in the new cover, so each step's
 agenda starts fresh. Files visited under the previous step's framing
 that aren't in the new cover stay ticked. Steps that inherit the
-stage cover by sticky-forward (no override) don't trigger a reset.
+stage cover (no override) all resolve to the same list reference, so
+they don't trigger a reset.
 
 ## Notes
 

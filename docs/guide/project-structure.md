@@ -39,9 +39,7 @@ stages:
   - alias: main
     branch: main
     title: Starting point
-    open:
-      file: src/main.ts
-      line: 1
+    open: src/main.ts
 ```
 
 - `name` — shown in the Prezl titlebar.
@@ -73,7 +71,7 @@ resolution.
 | --- | --- |
 | Project metadata (name) | Top-level keys of `prezl.yaml` |
 | Stages | `stages:` in `prezl.yaml` |
-| Preview actions (URL / video) | On each stage, under `preview:` |
+| Preview actions (URL / video) | On each stage, under `preview:` (one) or `previews:` (a list) |
 | Which files are visible on which stage | `@prezl file=[...]` directives in each file |
 | Which regions appear / fold / highlight | Inline `@prezl show / collapse / focus` directives |
 | Named anchors for jumps | `@prezl id=<name>` directives inside code |
