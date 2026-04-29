@@ -11,11 +11,11 @@ export function StepIndicator() {
   const screen = useCurrentScreen()
   const screenIndex = useScreenIndex()
   if (!screen) return null
-  const stageScreens = screenIndex.byStage[screen.stageAlias]?.screens ?? []
+  const stageScreens = screenIndex.byStage[screen.stageId]?.screens ?? []
   if (stageScreens.length < 2) return null
   const idx = stageScreens.findIndex((s) => s.id === screen.id)
   if (idx < 0) return null
-  const label = screen.title ?? screen.stepAlias ?? ''
+  const label = screen.title ?? screen.stepId ?? ''
   return (
     <span
       className="flex items-center gap-2 rounded bg-app-panel px-2 py-0.5 text-sm text-app-muted"

@@ -4,19 +4,19 @@ import { useCurrentScreen } from '@/hooks/useRenderedFile'
 
 export function RunButton() {
   const currentScreen = useCurrentScreen()
-  const previewKind = useAppStore((s) => s.previewState.kind)
-  const runPreview = useAppStore((s) => s.runPreview)
-  const closePreview = useAppStore((s) => s.closePreview)
-  const previewCount = currentScreen?.previews?.length ?? 0
-  const hasPreview = previewCount > 0
+  const demoKind = useAppStore((s) => s.demoState.kind)
+  const runDemo = useAppStore((s) => s.runDemo)
+  const closeDemo = useAppStore((s) => s.closeDemo)
+  const demoCount = currentScreen?.demos?.length ?? 0
+  const hasDemo = demoCount > 0
 
   // Launching: fake-build sequence in-flight; disabled with spinner.
-  if (previewKind === 'launching') {
+  if (demoKind === 'launching') {
     return (
       <button
         type="button"
         disabled
-        title="Launching preview…"
+        title="Launching demo…"
         className="inline-flex items-center gap-2 rounded border border-app-border bg-app-panel px-3 py-1 text-base text-app-muted opacity-70"
       >
         <Loader2 className="size-5 animate-spin" />
@@ -26,12 +26,12 @@ export function RunButton() {
   }
 
   // Video modal is open — button becomes Stop.
-  if (previewKind === 'video') {
+  if (demoKind === 'video') {
     return (
       <button
         type="button"
-        onClick={closePreview}
-        title="Stop preview (Esc)"
+        onClick={closeDemo}
+        title="Stop demo (Esc)"
         className="inline-flex items-center gap-2 rounded border border-red-500/60 bg-red-500/15 px-3 py-1 text-base text-red-400 hover:bg-red-500/25"
       >
         <Square className="size-5 fill-current" />
@@ -41,17 +41,17 @@ export function RunButton() {
   }
 
   // Idle (or picker open — clicking again should re-toggle the picker).
-  const disabled = !hasPreview
+  const disabled = !hasDemo
   const title = disabled
-    ? 'No preview configured'
-    : previewCount > 1
-      ? `Run preview (F5 / Ctrl+Enter) — ${previewCount} options`
-      : 'Run preview (F5 / Ctrl+Enter)'
+    ? 'No demo configured'
+    : demoCount > 1
+      ? `Run demo (F5 / Ctrl+Enter) — ${demoCount} options`
+      : 'Run demo (F5 / Ctrl+Enter)'
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={() => runPreview()}
+      onClick={() => runDemo()}
       title={title}
       className="inline-flex items-center gap-2 rounded border border-app-border bg-app-panel px-3 py-1 text-base text-app hover:bg-app-border disabled:cursor-not-allowed disabled:opacity-40"
     >

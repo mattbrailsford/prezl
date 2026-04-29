@@ -37,10 +37,10 @@ export type CoverItem = {
   title?: string
 }
 
-export type UrlPreview = {
+export type UrlDemo = {
   type: 'url'
   /** Optional human label. Used as the picker row label when a screen has
-   *  more than one preview; falls back to the URL itself. */
+   *  more than one demo; falls back to the URL itself. */
   title?: string
   src: string
   mode?: 'external' | 'window' | 'pane'
@@ -48,13 +48,13 @@ export type UrlPreview = {
 
 export type VideoCue = {
   time: number
-  label?: string
+  title?: string
 }
 
-export type VideoPreview = {
+export type VideoDemo = {
   type: 'video'
   /** Optional human label. Used as the picker row label when a screen has
-   *  more than one preview; falls back to the file basename. */
+   *  more than one demo; falls back to the file basename. */
   title?: string
   src: string
   startAt?: number
@@ -69,7 +69,7 @@ export type VideoPreview = {
   autoLaunch?: 'start' | 'end'
 }
 
-export type Preview = UrlPreview | VideoPreview
+export type Demo = UrlDemo | VideoDemo
 
 /** A "step" inside a stage — the unit a presenter advances through within
  *  what the audience perceives as a single slide. Steps don't appear in the
@@ -78,24 +78,24 @@ export type Preview = UrlPreview | VideoPreview
  *  `open` is tri-state with runtime persistence — see the resolver in
  *  `stageList.ts` for the rules.
  *
- *  `preview` and `cover` resolve stage→step only (no step-to-step chain):
+ *  `demo` and `cover` resolve stage→step only (no step-to-step chain):
  *  `undefined` means "use the stage's default", `null` means "explicitly
- *  empty (this step has no previews/cover even if the stage does)", and a
+ *  empty (this step has no demos/cover even if the stage does)", and a
  *  value means "use this list". Each step's resolution is independent of
- *  prior steps — declaring a preview on step 2 does NOT carry into step 3
+ *  prior steps — declaring a demo on step 2 does NOT carry into step 3
  *  unless step 3 redeclares (or omits to inherit the stage default). */
 export type Step = {
-  alias: string
+  id: string
   title?: string
   open?: OpenTarget | null
-  previews?: Preview[] | null
+  demos?: Demo[] | null
   cover?: CoverItem[] | null
 }
 
 export type Stage = {
   /** Canonical stage identifier — referenced by directives and the symbol
    *  table. Required. */
-  alias: string
+  id: string
   /** Optional git branch name for display only ("feature/dashboard-shell").
    *  Stages don't actually map to git branches at runtime; this is just the
    *  human-readable label that travels with the stage. */
@@ -107,15 +107,15 @@ export type Stage = {
    *  preserves whatever was active on the prior screen. */
   open?: OpenTarget | null
   symbols?: Record<string, SymbolTarget>
-  /** Zero or more previews available on this stage. The YAML accepts
-   *  either `preview:` (single object shorthand) or `previews:` (explicit
+  /** Zero or more demos available on this stage. The YAML accepts
+   *  either `demo:` (single object shorthand) or `demos:` (explicit
    *  list); both normalise to this internal array. The Run button shows a
-   *  picker when more than one is configured; a step that omits previews
+   *  picker when more than one is configured; a step that omits demos
    *  inherits this list. At most one entry may have `autoLaunch: 'start'`
    *  and at most one `autoLaunch: 'end'` (validated at parse time). */
-  previews?: Preview[]
+  demos?: Demo[]
   /** Optional ordered list of intra-stage steps. A stage with no steps has
-   *  one implicit screen whose id is the bare stage alias. */
+   *  one implicit screen whose id is the bare stage id. */
   steps?: Step[]
   /** Files the presenter wants to remember to discuss while in this stage.
    *  Surfaced as a clickable list under the explorer, with a check mark when
@@ -131,12 +131,12 @@ export type Stage = {
 }
 
 /** Flat addressable unit the presenter advances through. Either a stage
- *  with no steps (`id === stageAlias`, `stepAlias === null`) or one entry
- *  in a stage's `steps:` array (`id === "${stageAlias}.${stepAlias}"`). */
+ *  with no steps (`id === stageId`, `stepId === null`) or one entry
+ *  in a stage's `steps:` array (`id === "${stageId}.${stepId}"`). */
 export type Screen = {
   id: string
-  stageAlias: string
-  stepAlias: string | null
+  stageId: string
+  stepId: string | null
   /** Flat 0-based index across the whole deck — defines navigation order
    *  and is what selector ranges resolve against. */
   order: number
@@ -148,13 +148,13 @@ export type Screen = {
    *  the reducer preserves whatever was active or falls back to the
    *  first visible file). */
   open?: OpenTarget | null
-  /** Resolved preview list for this screen. `undefined` when there's nothing
+  /** Resolved demo list for this screen. `undefined` when there's nothing
    *  to run; otherwise a non-empty list. Reference identity matters: when
    *  consecutive screens share the same list reference (e.g. inherited from
    *  the stage), the autoLaunch logic treats them as "still in scope" and
    *  doesn't re-fire. */
-  previews?: Preview[]
-  /** Resolved cover list. Same identity rule as `previews` — consecutive
+  demos?: Demo[]
+  /** Resolved cover list. Same identity rule as `demos` — consecutive
    *  inherited screens share the reference, so visited tracking persists
    *  across them naturally. */
   cover?: CoverItem[]
@@ -172,18 +172,18 @@ export type PrezlProject = {
   files: string[]
 }
 
-export type PreviewState =
+export type DemoState =
   | { kind: 'closed' }
   /** Run button (or Ctrl+Enter) was triggered on a screen whose resolved
-   *  preview list has more than one entry; the user has to pick which one
-   *  to launch. Selection routes through `runPreview(chosen)`. */
-  | { kind: 'picker'; previews: Preview[] }
-  | { kind: 'launching'; preview: Preview }
+   *  demo list has more than one entry; the user has to pick which one
+   *  to launch. Selection routes through `runDemo(chosen)`. */
+  | { kind: 'picker'; demos: Demo[] }
+  | { kind: 'launching'; demo: Demo }
   /** `trailing` is set when the modal was opened via `autoLaunch: 'end'` —
    *  the carry-on close path (atEnd + Space) advances the deck instead of
    *  just dismissing the modal. Esc / mid-play closes always stay put. */
-  | { kind: 'video'; preview: VideoPreview; trailing?: boolean }
-  | { kind: 'url'; preview: UrlPreview }
+  | { kind: 'video'; demo: VideoDemo; trailing?: boolean }
+  | { kind: 'url'; demo: UrlDemo }
 
 export type Preferences = {
   uiScale: number

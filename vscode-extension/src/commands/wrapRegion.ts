@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { allScreenAliases, findManifest, loadProject } from '../project'
+import { allScreenIds, findManifest, loadProject } from '../project'
 
 type RegionKind = 'show' | 'focus' | 'collapse'
 
@@ -80,7 +80,7 @@ async function pickSelector(
   const folder = vscode.workspace.getWorkspaceFolder(docUri)
   const manifest = folder ? await findManifest(folder) : null
   const project = manifest ? await loadProject(manifest) : null
-  const aliases = project ? allScreenAliases(project) : []
+  const ids = project ? allScreenIds(project) : []
 
   const items: vscode.QuickPickItem[] = []
   if (kind !== 'show') {
@@ -90,18 +90,18 @@ async function pickSelector(
       detail: 'Inserts `@prezl ' + kind + '` with no selector.',
     })
   }
-  for (const alias of aliases) {
+  for (const id of ids) {
     items.push({
-      label: alias,
-      description: alias.includes('.') ? 'screen' : 'stage',
+      label: id,
+      description: id.includes('.') ? 'screen' : 'stage',
     })
   }
 
   const qp = vscode.window.createQuickPick()
   qp.title = `Selector for ${kind}=[…]`
   qp.placeholder =
-    aliases.length > 0
-      ? 'Pick a stage/screen, or type your own (e.g. shell.intro, shell...preview)'
+    ids.length > 0
+      ? 'Pick a stage/screen, or type your own (e.g. shell.intro, shell...demo)'
       : 'No prezl.yaml found — type the selector manually'
   qp.items = items
   qp.canSelectMany = false

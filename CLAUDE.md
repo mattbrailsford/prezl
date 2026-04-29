@@ -18,7 +18,7 @@ rejects). Touch points:
 
 - **`prezl.yaml` schema** — `vscode-extension/schemas/prezl-yaml.schema.json`
   must track every field added/removed/retyped in `src/project/schema.ts`
-  (stage/step keys like `open`, `preview`, `cover`, `reset`, `steps`,
+  (stage/step keys like `open`, `demo`, `cover`, `reset`, `steps`,
   shorthand forms, tri-state `null` resets, etc.).
 - **Directive grammar** — `vscode-extension/syntaxes/prezl-directive.injection.json`
   (TextMate injection) and `vscode-extension/src/directiveIndex.ts` /
@@ -51,22 +51,22 @@ kill the stray `node` / `prezl.exe` via PowerShell.
 ## The screen model
 
 A **screen** is the addressable unit the presenter advances through.
-- A stage with no `steps:` has one implicit screen, id = stage alias.
-- A stage with `steps:` produces one screen per step, id = `<stageAlias>.<stepAlias>`.
+- A stage with no `steps:` has one implicit screen, id = stage id.
+- A stage with `steps:` produces one screen per step, id = `<stageId>.<stepId>`.
 
 Stages and steps collapse into one flat ordered list (`screenIndex.ordered`).
 Space/PageDown walks this list end-to-end, including across stage
 boundaries. The dropdown still lists stages only (steps are internal,
 like slide builds in Keynote); selecting a stage jumps to its first
-step. A step indicator (`n / N` plus the step's `title` / alias if
+step. A step indicator (`n / N` plus the step's `title` / id if
 set) appears in the TopBar only for stages with multiple screens —
 single-step stages look unchanged.
 
-Step `previews` and `cover` resolve **stage→step only** — there's no
+Step `demos` and `cover` resolve **stage→step only** — there's no
 step-to-step chain. Each step independently uses the stage default
 unless it declares its own:
 
-- `undefined` (omitted) → use the stage's `previews` / `cover`
+- `undefined` (omitted) → use the stage's `demos` / `cover`
 - explicit `null` (`~` in YAML) → explicitly empty (this step has none
   even if the stage does); resolves to `undefined` at the screen level
 - value → use as-is
@@ -74,7 +74,7 @@ unless it declares its own:
 Reference identity is preserved across consecutive inherited steps —
 `buildScreenIndex` hands the same stage list reference to each — which
 is what the autoLaunch logic and visited-tracking key off. So an
-inherited preview list doesn't re-fire `autoLaunch: 'start'` on every
+inherited demo list doesn't re-fire `autoLaunch: 'start'` on every
 step, and an inherited `cover` doesn't reset visited tracking.
 
 Step `open` is also tri-state but **does not** sticky-forward across
@@ -98,19 +98,19 @@ Branch reload (file contents) only happens when crossing a stage
 boundary; within-stage step changes are pure parser re-runs, so they
 feel snappier than stage switches.
 
-## Previews (Run button)
+## Demos (Run button)
 
-A stage or step declares previews via one of two YAML keys:
+A stage or step declares demos via one of two YAML keys:
 
-- `preview:` — single object shorthand (one preview)
-- `previews:` — explicit array (zero or more)
+- `demo:` — single object shorthand (one demo)
+- `demos:` — explicit array (zero or more)
 
 Both are accepted; using both on the same stage/step is a parse-time
-error (`preventBothPreviewFields` superRefine). The loader's
-`resolvePreviewField` normalises whichever the author wrote into a
-single internal `Stage.previews` / `Step.previews` of type
-`Preview[] | null | undefined`. The runtime exposes
-`Screen.previews: Preview[] | undefined`. Two invariants on the
+error (`preventBothDemoFields` superRefine). The loader's
+`resolveDemoField` normalises whichever the author wrote into a
+single internal `Stage.demos` / `Step.demos` of type
+`Demo[] | null | undefined`. The runtime exposes
+`Screen.demos: Demo[] | undefined`. Two invariants on the
 resolved list, enforced at parse time:
 
 - ≤1 entry with `autoLaunch: 'start'`
@@ -125,17 +125,17 @@ Run button behaviour (also wired into Ctrl+Enter, F5, and Ctrl+F5 —
 F5 keeps presenter-clicker compatibility; Ctrl+F5 catches the muscle-
 memory hard-refresh; Ctrl+R still does native refresh):
 
-- Empty list → button disabled, status toast "No preview configured".
-- Exactly one → launch directly (URL preview opens externally; video
-  preview opens the modal).
-- More than one → set `previewState` to `{ kind: 'picker', previews }`,
-  which mounts `PreviewPicker`. The picker is a SymbolFinder-style
+- Empty list → button disabled, status toast "No demo configured".
+- Exactly one → launch directly (URL demo opens externally; video
+  demo opens the modal).
+- More than one → set `demoState` to `{ kind: 'picker', demos }`,
+  which mounts `DemoPicker`. The picker is a SymbolFinder-style
   modal: arrow keys cycle, Enter selects, Esc / click-outside closes.
-  The selected preview routes through `runPreview(chosen)`, which
+  The selected demo routes through `runDemo(chosen)`, which
   bypasses the picker check and goes straight to launching.
 
-Only one preview is ever active at a time. The store's `runPreview`
-guards against re-entry while a modal is up. Opening another preview
+Only one demo is ever active at a time. The store's `runDemo`
+guards against re-entry while a modal is up. Opening another demo
 via picker selection only succeeds because the picker is itself a
 non-launched state — selection transitions `picker` → `launching` →
 `video` / closed.
@@ -147,18 +147,18 @@ mode, scanned per screen via `findAutoLaunchVideo(screen, mode)`:
   entry differs by reference from the previous screen's autoStart entry
   (or the previous screen had none) AND we're moving forward. Same
   entry across screens means "still in scope", so a stage-level
-  autoStart preview doesn't relaunch on each step inside the stage.
+  autoStart demo doesn't relaunch on each step inside the stage.
 - **end**: fires on forward-advance out of a screen when the current
   screen has an autoEnd entry whose reference differs from the next
   screen's autoEnd (or the next screen has none) AND
   `lastEndAutoLaunchedScreenId` doesn't match — the latter prevents
   the immediate "advance after watching" press from re-firing the
   trailing video. Deck-advance on close is gated on the modal having
-  been opened via autoLaunch=end (`previewState.trailing === true`); a
-  manual Run-launch of a preview that happens to have `autoLaunch:
+  been opened via autoLaunch=end (`demoState.trailing === true`); a
+  manual Run-launch of a demo that happens to have `autoLaunch:
   'end'` does NOT advance the deck on close.
 
-The previewState `picker` variant absorbs Space/PageDown/PageUp the
+The demoState `picker` variant absorbs Space/PageDown/PageUp the
 same way the video modal does — `useStageShortcuts` checks for both
 `'video'` and `'picker'` and bails. So screen nav doesn't bleed
 through behind the picker.
@@ -194,12 +194,12 @@ order. Object form `{ file, id?, line?, title? }` covers what shorthand
 can't (custom row `title`, or a partial `{ id }` in `open` that inherits
 the file from the previous resolved open). Single-item shorthand: a
 bare string/object is equivalent to a one-element list — mirrors the
-`preview:` / `previews:` pair. See `docs/reference/yaml-schema.md` for
+`demo:` / `demos:` pair. See `docs/reference/yaml-schema.md` for
 the full grammar (npm-scoped path edge cases like `@types/foo.ts`,
 `@head` literal preservation, etc.).
 
 Steps may override the stage cover list with a step-level `cover:` —
-same stage→step resolution as `previews` (omit → stage default, `~` →
+same stage→step resolution as `demos` (omit → stage default, `~` →
 explicitly empty, value → use it; no step-to-step chain). `open`
 shares the tri-state shape but its omitted-step semantics are
 different — see "The screen model". Cover does **not** propagate
@@ -247,13 +247,13 @@ src/
                       Collapse-All-Folders + Hide-Explorer; group-header
                       state preserved on collapse-all), CodeView,
                       EditorTabs, StageCoverList, BackToPresentationButton,
-                      BootCurtain, preview/ (PreviewPicker, VideoPreview),
+                      BootCurtain, demo/ (DemoPicker, VideoDemo),
                       etc.
   project/            schema.ts (Zod for prezl.yaml/.yml — loader tries
-                      .yaml first; tri-state open/previews/cover — see
+                      .yaml first; tri-state open/demos/cover — see
                       "The screen model"), loader.ts (load_project +
                       file-list + read orchestration), stageList.ts
-                      (buildScreenIndex with step→stage open/preview
+                      (buildScreenIndex with step→stage open/demo
                       inheritance, parseScreenList for bare/dotted/range
                       selectors), directiveParser.ts (per-screen parse:
                       text + foldRanges + focusRanges + marks +
@@ -263,7 +263,7 @@ src/
   state/
     store.ts          Zustand; setProject builds/caches ScreenIndex.
                       switchStage = sugar for
-                      switchScreen(firstScreenOf(alias));
+                      switchScreen(firstScreenOf(id));
                       switchScreenRelative(±1) walks the flat ordered
                       list. "Switching to X..." status only fires across
                       stage boundaries.
@@ -276,7 +276,7 @@ src/
                       (Space/PageDown/Ctrl+Space — walks every screen
                       across stage boundaries), useMouseHistoryNav
                       (XButton1/2 → goBack/goForward; capture-phase;
-                      suppressed while video preview is open),
+                      suppressed while video demo is open),
                       useRunShortcut (Ctrl+Enter / F5), useRenderedFile
                       (useScreenIndex / useCurrentScreen /
                       useCurrentStage / useVisibleFiles / useSymbolTable
@@ -306,12 +306,12 @@ rendered text.
 // @prezl file=[shell...] focus=[shell]
 ```
 
-Selectors accept screen ids, not just stage aliases:
+Selectors accept screen ids, not just stage ids:
 
 - `[shell]` — every screen of the shell stage
 - `[shell.intro]` — exactly one screen
 - `[shell.intro...preview.fetch]` — closed range, crosses stage boundaries
-- `[shell...preview]` — bare aliases in a range resolve to first/last
+- `[shell...preview]` — bare ids in a range resolve to first/last
   screen of the stage on each side
 - `[shell, preview.intro]` — explicit list, mix bare and dotted
 
@@ -408,10 +408,10 @@ default page-refresh.
 through.
 
 **Video modal absorbs the clicker.** While open, `useStageShortcuts`
-explicitly skips (`preview.kind === 'video'` or `'picker'`) and the
+explicitly skips (`demoState.kind === 'video'` or `'picker'`) and the
 modal handles: Space/PageDown play-pause until the clip ends (`stopAt`
 or natural `ended`), then close — and advance the deck if
-`previewState.trailing` (the trailing video IS the leaving act);
+`demoState.trailing` (the trailing video IS the leaving act);
 Escape/PageUp close without advancing. So PageDown drives playback
 inside the video and screen nav outside; PageUp closes the video or
 walks backward.
@@ -585,6 +585,6 @@ must come before any early return.
 to verify parser/renderer changes. The `preview` stage is the
 heaviest: step→stage open inheritance, per-step `open` swapping the
 file, an `autoLaunch: 'end'` trailing video, file-level focus tinting,
-and a `preview: ~` reset of an inherited override. Switching screens
+and a `demo: ~` reset of an inherited override. Switching screens
 should re-apply folds and never flash. Per-stage walkthrough:
 `examples/demo/README.md`.

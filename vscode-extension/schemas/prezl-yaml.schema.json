@@ -43,14 +43,14 @@
     },
     "stage": {
       "type": "object",
-      "required": ["alias"],
+      "required": ["id"],
       "additionalProperties": false,
       "not": {
-        "required": ["preview", "previews"],
-        "description": "Use either `preview:` (single object) or `previews:` (array), not both."
+        "required": ["demo", "demos"],
+        "description": "Use either `demo:` (single object) or `demos:` (array), not both."
       },
       "properties": {
-        "alias": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 },
         "branch": { "type": "string", "minLength": 1 },
         "title": { "type": "string" },
         "open": { "$ref": "#/definitions/openTargetOrNull" },
@@ -58,13 +58,13 @@
           "type": "object",
           "additionalProperties": { "$ref": "#/definitions/symbolTarget" }
         },
-        "preview": {
-          "$ref": "#/definitions/previewItem",
-          "description": "Single-preview shorthand. For multiple previews use `previews:` (array) instead."
+        "demo": {
+          "$ref": "#/definitions/demoItem",
+          "description": "Single-demo shorthand. For multiple demos use `demos:` (array) instead."
         },
-        "previews": {
-          "$ref": "#/definitions/previewArray",
-          "description": "List of previews available on this stage. The Run button opens a picker when more than one is configured. At most one entry may have `autoLaunch: 'start'` and at most one `'end'`."
+        "demos": {
+          "$ref": "#/definitions/demoArray",
+          "description": "List of demos available on this stage. The Run button opens a picker when more than one is configured. At most one entry may have `autoLaunch: 'start'` and at most one `'end'`."
         },
         "cover": {
           "$ref": "#/definitions/cover",
@@ -122,31 +122,31 @@
         "id": { "type": "string", "minLength": 1 }
       }
     },
-    "previewItem": {
+    "demoItem": {
       "oneOf": [
-        { "$ref": "#/definitions/urlPreview" },
-        { "$ref": "#/definitions/videoPreview" }
+        { "$ref": "#/definitions/urlDemo" },
+        { "$ref": "#/definitions/videoDemo" }
       ]
     },
-    "previewArray": {
+    "demoArray": {
       "type": "array",
-      "items": { "$ref": "#/definitions/previewItem" }
+      "items": { "$ref": "#/definitions/demoItem" }
     },
-    "previewItemOrNull": {
+    "demoItemOrNull": {
       "oneOf": [
-        { "$ref": "#/definitions/previewItem" },
+        { "$ref": "#/definitions/demoItem" },
         {
           "type": "null",
-          "description": "Explicit `~` clears this step's previews even when the stage has a default — there's no step-to-step inheritance, so omit instead if you want the stage default."
+          "description": "Explicit `~` clears this step's demos even when the stage has a default — there's no step-to-step inheritance, so omit instead if you want the stage default."
         }
       ]
     },
-    "previewArrayOrNull": {
+    "demoArrayOrNull": {
       "oneOf": [
-        { "$ref": "#/definitions/previewArray" },
+        { "$ref": "#/definitions/demoArray" },
         {
           "type": "null",
-          "description": "Explicit `~` clears this step's previews even when the stage has a default — there's no step-to-step inheritance, so omit instead if you want the stage default."
+          "description": "Explicit `~` clears this step's demos even when the stage has a default — there's no step-to-step inheritance, so omit instead if you want the stage default."
         }
       ]
     },
@@ -193,7 +193,7 @@
         }
       ]
     },
-    "urlPreview": {
+    "urlDemo": {
       "type": "object",
       "required": ["type", "src"],
       "additionalProperties": false,
@@ -202,7 +202,7 @@
         "title": {
           "type": "string",
           "minLength": 1,
-          "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one preview. Falls back to the URL."
+          "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one demo. Falls back to the URL."
         },
         "src": { "type": "string", "minLength": 1 },
         "mode": {
@@ -211,7 +211,7 @@
         }
       }
     },
-    "videoPreview": {
+    "videoDemo": {
       "type": "object",
       "required": ["type", "src"],
       "additionalProperties": false,
@@ -220,7 +220,7 @@
         "title": {
           "type": "string",
           "minLength": 1,
-          "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one preview. Falls back to the file basename."
+          "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one demo. Falls back to the file basename."
         },
         "src": { "type": "string", "minLength": 1 },
         "startAt": { "type": "number", "minimum": 0 },
@@ -228,13 +228,22 @@
         "cues": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": ["time"],
-            "additionalProperties": false,
-            "properties": {
-              "time": { "type": "number", "minimum": 0 },
-              "label": { "type": "string" }
-            }
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "description": "Seconds shorthand for `{ time: <number> }`."
+              },
+              {
+                "type": "object",
+                "required": ["time"],
+                "additionalProperties": false,
+                "properties": {
+                  "time": { "type": "number", "minimum": 0 },
+                  "title": { "type": "string" }
+                }
+              }
+            ]
           }
         },
         "autoLaunch": {
@@ -252,31 +261,31 @@
         {
           "type": "string",
           "minLength": 1,
-          "description": "Shorthand: step alias only, no overrides."
+          "description": "Shorthand: step id only, no overrides."
         },
         {
           "type": "object",
-          "required": ["alias"],
+          "required": ["id"],
           "additionalProperties": false,
           "not": {
-            "required": ["preview", "previews"],
-            "description": "Use either `preview:` (single object) or `previews:` (array), not both."
+            "required": ["demo", "demos"],
+            "description": "Use either `demo:` (single object) or `demos:` (array), not both."
           },
           "properties": {
-            "alias": { "type": "string", "minLength": 1 },
+            "id": { "type": "string", "minLength": 1 },
             "title": { "type": "string" },
             "open": { "$ref": "#/definitions/openTargetOrNull" },
-            "preview": {
-              "$ref": "#/definitions/previewItemOrNull",
-              "description": "Single-preview shorthand for the step. Omit to inherit the stage default; use `~` to explicitly clear (this step has no previews even if the stage does); for multiple previews use `previews:` (array). No step-to-step chain — declaring on step 2 does not carry into step 3."
+            "demo": {
+              "$ref": "#/definitions/demoItemOrNull",
+              "description": "Single-demo shorthand for the step. Omit to inherit the stage default; use `~` to explicitly clear (this step has no demos even if the stage does); for multiple demos use `demos:` (array). No step-to-step chain — declaring on step 2 does not carry into step 3."
             },
-            "previews": {
-              "$ref": "#/definitions/previewArrayOrNull",
-              "description": "Plural list form for step-level preview override. Same resolution as `preview` — omit → stage default, value → override, `~` → explicitly empty."
+            "demos": {
+              "$ref": "#/definitions/demoArrayOrNull",
+              "description": "Plural list form for step-level demo override. Same resolution as `demo` — omit → stage default, value → override, `~` → explicitly empty."
             },
             "cover": {
               "$ref": "#/definitions/coverOrNull",
-              "description": "Step-level cover override. Same resolution as previews: omit → stage default, value → override, `~` → explicitly empty."
+              "description": "Step-level cover override. Same resolution as demos: omit → stage default, value → override, `~` → explicitly empty."
             }
           }
         }

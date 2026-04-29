@@ -3,16 +3,16 @@ import {
   DEFAULT_PREFERENCES,
   type CoverItem,
   type Preferences,
-  type Preview,
+  type Demo,
   type PrezlProject,
-  type PreviewState,
+  type DemoState,
   type Screen,
-  type VideoPreview,
+  type VideoDemo,
 } from '@/types'
 import { applyStageEntryReset, reconcileScreenSwitch } from './stageReducer'
 import { buildScreenIndex, type ScreenIndex } from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
-import { launchUrlPreview } from '@/project/previewLauncher'
+import { launchUrlDemo } from '@/project/demoLauncher'
 import type { LoadError } from '@/project/schema'
 
 const BUILD_DELAY_MS = 600
@@ -69,14 +69,14 @@ function pushHistoryEntry(
   return { history: truncated, historyIndex: truncated.length - 1 }
 }
 
-/** Find the (single by invariant) video entry in a screen's preview list
+/** Find the (single by invariant) video entry in a screen's demo list
  *  that opts into a given autoLaunch mode. Returns `null` when none. */
 function findAutoLaunchVideo(
   screen: Screen | null | undefined,
   mode: 'start' | 'end',
-): VideoPreview | null {
-  if (!screen?.previews) return null
-  for (const p of screen.previews) {
+): VideoDemo | null {
+  if (!screen?.demos) return null
+  for (const p of screen.demos) {
     if (p.type === 'video' && p.autoLaunch === mode) return p
   }
   return null
@@ -84,13 +84,13 @@ function findAutoLaunchVideo(
 
 /**
  * Decide whether moving from `previousScreen` to `targetScreen` should fire
- * a video preview's `autoLaunch: 'start'` (the lead-with-video pattern).
- * Returns the preview to launch, or `null`. Three conditions must all hold:
+ * a video demo's `autoLaunch: 'start'` (the lead-with-video pattern).
+ * Returns the demo to launch, or `null`. Three conditions must all hold:
  *
- *   1. The target has a video preview entry with `autoLaunch: 'start'`.
+ *   1. The target has a video demo entry with `autoLaunch: 'start'`.
  *   2. That entry's reference differs from the previous screen's autoStart
  *      entry — `buildScreenIndex` reuses the same list (and thus the same
- *      entry) when a step inherits its preview from the stage, so equal
+ *      entry) when a step inherits its demo from the stage, so equal
  *      references mean "still in scope", which is exactly when we want to
  *      suppress re-firing.
  *   3. We're moving forward (or it's the first screen). Going backward
@@ -99,7 +99,7 @@ function findAutoLaunchVideo(
 function autoLaunchStartFor(
   previousScreen: Screen | null,
   targetScreen: Screen,
-): VideoPreview | null {
+): VideoDemo | null {
   const autoStart = findAutoLaunchVideo(targetScreen, 'start')
   if (!autoStart) return null
   const prevAutoStart = findAutoLaunchVideo(previousScreen, 'start')
@@ -112,7 +112,7 @@ type AppState = {
   project: PrezlProject | null
   rawFiles: Map<string, string>
   /** Paths the backend couldn't read as UTF-8. Listed in the explorer with a
-   *  "Can't preview this file type" placeholder. */
+   *  "Can't demo this file type" placeholder. */
   binaryFiles: Set<string>
   /** Cached screen index built once per project load. Null when no project. */
   screenIndex: ScreenIndex | null
@@ -120,7 +120,7 @@ type AppState = {
   openTabs: string[]
   activeFile: string | null
   statusMessage: string
-  previewState: PreviewState
+  demoState: DemoState
   preferences: Preferences
   loading: boolean
   loadError: LoadError | null
@@ -222,11 +222,11 @@ type AppActions = {
     project: PrezlProject,
     rawFiles: Map<string, string>,
     binaryFiles: Set<string>,
-    initialStageAlias?: string,
+    initialStageId?: string,
   ) => void
   clearProject: () => void
   /** Jump to the first screen of a stage (the stage selector calls this). */
-  switchStage: (alias: string) => void
+  switchStage: (id: string) => void
   /** Jump to a specific screen by full id ("shell" or "shell.intro"). */
   switchScreen: (id: string) => void
   /** Walk the flat ordered screen list — stage shortcuts call this. */
@@ -240,13 +240,13 @@ type AppActions = {
   setPreferences: (patch: Partial<Preferences>) => void
   setLoading: (loading: boolean) => void
   setLoadError: (err: LoadError | null) => void
-  /** With no argument: inspects the current screen's resolved preview list.
+  /** With no argument: inspects the current screen's resolved demo list.
    *  Empty/undefined → status toast and bail. Exactly one entry → launch it
-   *  directly. More than one → set previewState to `picker` so the modal
-   *  opens. With an explicit preview argument (e.g. a picker selection)
+   *  directly. More than one → set demoState to `picker` so the modal
+   *  opens. With an explicit demo argument (e.g. a picker selection)
    *  launches that one directly. */
-  runPreview: (preview?: Preview) => Promise<void>
-  closePreview: () => void
+  runDemo: (demo?: Demo) => Promise<void>
+  closeDemo: () => void
   navigateToFileLine: (file: string, line: number) => void
   consumePendingNavigation: () => void
   openSymbolFinder: () => void
@@ -281,7 +281,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
    *  Mirrors the visible-files / tab-reconcile work of switchScreen, but
    *  forces activeFile to the recorded file (overriding screen.open's intent
    *  — the user explicitly asked to go back to *this* file) and skips the
-   *  video-preview autoLaunch (going back shouldn't replay a video). */
+   *  video-demo autoLaunch (going back shouldn't replay a video). */
   const applyHistoryLocation = (loc: HistoryLocation): void => {
     const state = get()
     const project = state.project
@@ -293,11 +293,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const previous = state.currentScreenId
       ? (screenIndex.byId[state.currentScreenId] ?? null)
       : null
-    const crossingStage = previous?.stageAlias !== target.stageAlias
+    const crossingStage = previous?.stageId !== target.stageId
 
     if (crossingStage) {
-      const stage = project.stages.find((s) => s.alias === target.stageAlias)
-      const label = stage?.branch ?? stage?.title ?? target.stageAlias
+      const stage = project.stages.find((s) => s.id === target.stageId)
+      const label = stage?.branch ?? stage?.title ?? target.stageId
       set({ statusMessage: `Switching to ${label}...` })
     }
 
@@ -362,7 +362,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   openTabs: [],
   activeFile: null,
   statusMessage: 'Ready',
-  previewState: { kind: 'closed' },
+  demoState: { kind: 'closed' },
   preferences: DEFAULT_PREFERENCES,
   loading: false,
   loadError: null,
@@ -378,11 +378,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   visitedFilesInStage: new Set(),
   explorerRevealToken: 0,
 
-  setProject: (project, rawFiles, binaryFiles, initialStageAlias) => {
+  setProject: (project, rawFiles, binaryFiles, initialStageId) => {
     const screenIndex = buildScreenIndex(project.stages)
     const initialScreen: Screen | null =
-      (initialStageAlias
-        ? firstScreenOfStage(screenIndex, initialStageAlias)
+      (initialStageId
+        ? firstScreenOfStage(screenIndex, initialStageId)
         : null) ??
       screenIndex.ordered[0] ??
       null
@@ -402,17 +402,17 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const intended = initialScreen?.open?.file
     const firstFile =
       intended && visibleFiles.includes(intended) ? intended : null
-    // Always reset previewState on project load so a stale modal from a
+    // Always reset demoState on project load so a stale modal from a
     // previous project never bleeds through. If the initial screen carries
     // an autoLaunch video, open it directly here — switchScreen isn't
     // called for the initial screen, so its autolaunch hook wouldn't fire
     // on cold start.
-    let previewState: PreviewState = { kind: 'closed' }
+    let demoState: DemoState = { kind: 'closed' }
     const initialAutoStart = initialScreen
       ? autoLaunchStartFor(null, initialScreen)
       : null
     if (initialAutoStart) {
-      previewState = { kind: 'video', preview: initialAutoStart }
+      demoState = { kind: 'video', demo: initialAutoStart }
     }
     scrollPositions.clear()
     const initialHistory: HistoryLocation[] = initialScreen
@@ -427,7 +427,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       openTabs: firstFile ? [firstFile] : [],
       activeFile: firstFile,
       statusMessage: 'Ready',
-      previewState,
+      demoState,
       loadError: null,
       history: initialHistory,
       historyIndex: initialHistory.length - 1,
@@ -451,7 +451,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       openTabs: [],
       activeFile: null,
       statusMessage: 'Ready',
-      previewState: { kind: 'closed' },
+      demoState: { kind: 'closed' },
       loadError: null,
       launchedFromSlide: false,
       history: [],
@@ -462,10 +462,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     })
   },
 
-  switchStage: (alias) => {
+  switchStage: (id) => {
     const state = get()
     if (!state.screenIndex) return
-    const first = firstScreenOfStage(state.screenIndex, alias)
+    const first = firstScreenOfStage(state.screenIndex, id)
     if (!first) return
     get().switchScreen(first.id)
   },
@@ -481,14 +481,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const previous = state.currentScreenId
       ? (screenIndex.byId[state.currentScreenId] ?? null)
       : null
-    const crossingStage = previous?.stageAlias !== target.stageAlias
+    const crossingStage = previous?.stageId !== target.stageId
     const targetStage = crossingStage
-      ? project.stages.find((s) => s.alias === target.stageAlias)
+      ? project.stages.find((s) => s.id === target.stageId)
       : undefined
 
     if (crossingStage) {
       const label =
-        targetStage?.branch ?? targetStage?.title ?? target.stageAlias
+        targetStage?.branch ?? targetStage?.title ?? target.stageId
       set({ statusMessage: `Switching to ${label}...` })
     }
 
@@ -529,12 +529,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
         ? { explorerResetToken: state.explorerResetToken + 1 }
         : {}),
     })
-    // Don't stomp on an already-open preview (rare — modal absorbs Space —
+    // Don't stomp on an already-open demo (rare — modal absorbs Space —
     // but defensive against stage-dropdown jumps mid-modal).
-    if (get().previewState.kind === 'closed') {
+    if (get().demoState.kind === 'closed') {
       const autoStart = autoLaunchStartFor(previous, target)
       if (autoStart) {
-        set({ previewState: { kind: 'video', preview: autoStart } })
+        set({ demoState: { kind: 'video', demo: autoStart } })
       }
     }
     if (crossingStage) {
@@ -553,15 +553,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const ordered = state.screenIndex.ordered
     const idx = ordered.findIndex((s) => s.id === state.currentScreenId)
     if (idx < 0) return
-    // Trail-with-video: forward-leaving a screen whose preview list contains
+    // Trail-with-video: forward-leaving a screen whose demo list contains
     // an `autoLaunch: 'end'` video opens it instead of advancing. Fires only
     // when the next screen's autoEnd entry differs by reference (or absent)
-    // — when a step inherits the stage's preview list both screens share
+    // — when a step inherits the stage's demo list both screens share
     // the same entry, so the trailing video doesn't re-fire on every step.
     // lastEndAutoLaunchedScreenId then suppresses the re-fire on the
     // immediate "advance after watching" press. Stays inert when a modal is
     // already up — defensive against rapid input.
-    if (delta === 1 && state.previewState.kind === 'closed') {
+    if (delta === 1 && state.demoState.kind === 'closed') {
       const current = ordered[idx]
       const next = ordered[idx + 1] ?? null
       const autoEnd = findAutoLaunchVideo(current, 'end')
@@ -573,7 +573,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
         state.lastEndAutoLaunchedScreenId !== current.id
       ) {
         set({
-          previewState: { kind: 'video', preview: autoEnd, trailing: true },
+          demoState: { kind: 'video', demo: autoEnd, trailing: true },
           lastEndAutoLaunchedScreenId: current.id,
         })
         return
@@ -629,70 +629,70 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   setLoading: (loading) => set({ loading }),
   setLoadError: (loadError) => set({ loadError }),
 
-  runPreview: async (chosen?: Preview) => {
+  runDemo: async (chosen?: Demo) => {
     const state = get()
-    if (state.previewState.kind !== 'closed' && !chosen) {
+    if (state.demoState.kind !== 'closed' && !chosen) {
       // Don't restart a modal that's already up unless the picker is
       // explicitly resolving a selection.
       return
     }
-    let preview: Preview
+    let demo: Demo
     if (chosen) {
-      preview = chosen
+      demo = chosen
     } else {
       const screen =
         state.screenIndex && state.currentScreenId
           ? (state.screenIndex.byId[state.currentScreenId] ?? null)
           : null
-      const list = screen?.previews ?? []
+      const list = screen?.demos ?? []
       if (list.length === 0) {
-        set({ statusMessage: 'No preview configured' })
+        set({ statusMessage: 'No demo configured' })
         window.setTimeout(() => {
-          if (get().statusMessage === 'No preview configured') {
+          if (get().statusMessage === 'No demo configured') {
             set({ statusMessage: 'Ready' })
           }
         }, 1500)
         return
       }
       if (list.length > 1) {
-        set({ previewState: { kind: 'picker', previews: list } })
+        set({ demoState: { kind: 'picker', demos: list } })
         return
       }
-      preview = list[0]
+      demo = list[0]
     }
 
     set({
-      previewState: { kind: 'launching', preview },
+      demoState: { kind: 'launching', demo },
       statusMessage: 'Preparing...',
     })
     await sleep(BUILD_DELAY_MS)
-    if (get().previewState.kind !== 'launching') return
+    if (get().demoState.kind !== 'launching') return
     set({ statusMessage: 'Ready' })
     await sleep(LAUNCH_DELAY_MS)
-    if (get().previewState.kind !== 'launching') return
-    set({ statusMessage: 'Launching preview...' })
+    if (get().demoState.kind !== 'launching') return
+    set({ statusMessage: 'Launching demo...' })
 
-    if (preview.type === 'url') {
+    if (demo.type === 'url') {
       try {
-        await launchUrlPreview(preview)
-        set({ previewState: { kind: 'closed' }, statusMessage: 'Ready' })
+        await launchUrlDemo(demo)
+        set({ demoState: { kind: 'closed' }, statusMessage: 'Ready' })
       } catch (e) {
         set({
-          previewState: { kind: 'closed' },
-          statusMessage: `Preview failed: ${(e as Error).message}`,
+          demoState: { kind: 'closed' },
+          statusMessage: `Demo failed: ${(e as Error).message}`,
         })
       }
       return
     }
 
     set({
-      previewState: { kind: 'video', preview },
+      demoState: { kind: 'video', demo },
       statusMessage: 'Ready',
     })
   },
 
-  closePreview: () =>
-    set({ previewState: { kind: 'closed' }, statusMessage: 'Ready' }),
+  closeDemo: () =>
+    set({ demoState: { kind: 'closed' }, statusMessage: 'Ready' }),
 
   navigateToFileLine: (file, line) => {
     set((s) => ({
@@ -751,9 +751,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
 
 function firstScreenOfStage(
   screenIndex: ScreenIndex,
-  alias: string,
+  id: string,
 ): Screen | null {
-  const bounds = screenIndex.byStage[alias]
+  const bounds = screenIndex.byStage[id]
   if (!bounds) return null
   return bounds.screens[0] ?? null
 }

@@ -2,8 +2,8 @@ import { AppShell } from './components/AppShell'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { LoadErrorOverlay } from './components/LoadErrorOverlay'
 import { BootCurtain } from './components/BootCurtain'
-import { VideoPreview } from './components/preview/VideoPreview'
-import { PreviewPicker } from './components/preview/PreviewPicker'
+import { VideoDemo } from './components/demo/VideoDemo'
+import { DemoPicker } from './components/demo/DemoPicker'
 import { SymbolFinder } from './components/SymbolFinder'
 import { useAppStore } from './state/store'
 import { usePreferencesPersistence } from './hooks/usePreferencesPersistence'
@@ -31,8 +31,8 @@ export function App() {
   return (
     <>
       {project ? <AppShell /> : <WelcomeScreen />}
-      <VideoPreview />
-      <PreviewPicker />
+      <VideoDemo />
+      <DemoPicker />
       <SymbolFinder />
       <LoadErrorOverlay />
       {isRouting && <BootCurtain />}

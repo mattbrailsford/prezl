@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Preview } from '@/types'
+import type { Demo } from '@/types'
 
 const projectFolder = z.object({
   name: z.string().min(1),
@@ -135,31 +135,36 @@ const coverItem = z.union([
 ])
 
 /** Cover lists accept either a single item (string shorthand or object
- *  form, parallel to preview's single-object shorthand) or an explicit
+ *  form, parallel to demo's single-object shorthand) or an explicit
  *  array. Both normalise to `CoverItem[]`. */
 const cover = z.union([
   coverItem.transform((item) => [item]),
   z.array(coverItem),
 ])
 
-const urlPreview = z.object({
+const urlDemo = z.object({
   type: z.literal('url'),
   /** Optional human label, surfaced as the row label in the Run picker
-   *  when the screen has more than one preview. Falls back to the URL. */
+   *  when the screen has more than one demo. Falls back to the URL. */
   title: z.string().min(1).optional(),
   src: z.string().url().or(z.string().regex(/^\.{0,2}\//)),
   mode: z.enum(['external', 'window', 'pane']).optional(),
 })
 
-const videoCue = z.object({
-  time: z.number().nonnegative(),
-  label: z.string().optional(),
-})
+/** A cue is either a bare number (seconds shorthand) or the full
+ *  `{ time, title? }` object. Both normalise to the object form. */
+const videoCue = z.union([
+  z.number().nonnegative().transform((time) => ({ time })),
+  z.object({
+    time: z.number().nonnegative(),
+    title: z.string().optional(),
+  }),
+])
 
-const videoPreview = z.object({
+const videoDemo = z.object({
   type: z.literal('video'),
   /** Optional human label, surfaced as the row label in the Run picker
-   *  when the screen has more than one preview. Falls back to the file
+   *  when the screen has more than one demo. Falls back to the file
    *  basename. */
   title: z.string().min(1).optional(),
   src: z.string().min(1),
@@ -167,13 +172,13 @@ const videoPreview = z.object({
   stopAt: z.number().nonnegative().optional(),
   cues: z.array(videoCue).optional(),
   /** Open the video modal automatically at the start ("lead with video")
-   *  or end ("trail with video") of the preview's *scope* — the run of
-   *  screens sharing this preview reference, formed by sticky-forward
+   *  or end ("trail with video") of the demo's *scope* — the run of
+   *  screens sharing this demo reference, formed by sticky-forward
    *  inheritance across steps. `true` is shorthand for `'start'`; `false`
    *  and missing both mean no autolaunch.
    *
    *  - `'start'`: opens on the first screen of the scope (i.e., the
-   *    screen where this preview newly appears).
+   *    screen where this demo newly appears).
    *  - `'end'`: opens on the last screen of the scope, when the
    *    presenter forward-advances out of it. The screen advance pauses,
    *    the video plays, and a subsequent carry-on close (atEnd Space,
@@ -191,14 +196,14 @@ const videoPreview = z.object({
     }),
 })
 
-const previewItem = z.discriminatedUnion('type', [urlPreview, videoPreview])
+const demoItem = z.discriminatedUnion('type', [urlDemo, videoDemo])
 
-/** Plural form: an authored array of preview entries. The autoLaunch
+/** Plural form: an authored array of demo entries. The autoLaunch
  *  invariant — ≤1 entry with `'start'` and ≤1 with `'end'` — is enforced
  *  here so the error points at the offending list, not somewhere
  *  downstream. */
-const previewArray = z
-  .array(previewItem)
+const demoArray = z
+  .array(demoItem)
   .superRefine((items, ctx) => {
     const startCount = items.filter(
       (i) => i.type === 'video' && i.autoLaunch === 'start',
@@ -206,7 +211,7 @@ const previewArray = z
     if (startCount > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'at most one preview can have autoLaunch: start',
+        message: 'at most one demo can have autoLaunch: start',
       })
     }
     const endCount = items.filter(
@@ -215,63 +220,63 @@ const previewArray = z
     if (endCount > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'at most one preview can have autoLaunch: end',
+        message: 'at most one demo can have autoLaunch: end',
       })
     }
   })
 
-/** Field-shape mixin: returns the two YAML keys (`preview:` singular
- *  shorthand, `previews:` list) so they can be spread into a stage/step
+/** Field-shape mixin: returns the two YAML keys (`demo:` singular
+ *  shorthand, `demos:` list) so they can be spread into a stage/step
  *  schema. Steps allow `null` (explicitly empty for this step); stages
- *  don't (omitting is the only "no preview" path at stage level). */
-function previewFields(options: { allowNull: boolean }) {
+ *  don't (omitting is the only "no demo" path at stage level). */
+function demoFields(options: { allowNull: boolean }) {
   return {
-    preview: options.allowNull
-      ? previewItem.nullable().optional()
-      : previewItem.optional(),
-    previews: options.allowNull
-      ? previewArray.nullable().optional()
-      : previewArray.optional(),
+    demo: options.allowNull
+      ? demoItem.nullable().optional()
+      : demoItem.optional(),
+    demos: options.allowNull
+      ? demoArray.nullable().optional()
+      : demoArray.optional(),
   }
 }
 
-/** Adds the "use either `preview:` or `previews:`, not both" check to a
- *  stage/step schema. The actual merge into a single `previews` field
+/** Adds the "use either `demo:` or `demos:`, not both" check to a
+ *  stage/step schema. The actual merge into a single `demos` field
  *  happens in the loader so the parsed shape stays plain Zod-inferred. */
-function preventBothPreviewFields<T extends z.ZodObject<z.ZodRawShape>>(
+function preventBothDemoFields<T extends z.ZodObject<z.ZodRawShape>>(
   schema: T,
 ) {
   return schema.superRefine((obj, ctx) => {
-    const o = obj as { preview?: unknown; previews?: unknown }
-    if (o.preview !== undefined && o.previews !== undefined) {
+    const o = obj as { demo?: unknown; demos?: unknown }
+    if (o.demo !== undefined && o.demos !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'use either `preview:` (single) or `previews:` (list), not both',
-        path: ['previews'],
+          'use either `demo:` (single) or `demos:` (list), not both',
+        path: ['demos'],
       })
     }
   })
 }
 
-/** Resolve the dual `preview:` (single) / `previews:` (list) fields on a
- *  parsed stage or step into a single normalised `Preview[] | null |
+/** Resolve the dual `demo:` (single) / `demos:` (list) fields on a
+ *  parsed stage or step into a single normalised `Demo[] | null |
  *  undefined`. The schema's superRefine has already rejected the case
  *  where both are set, so this is a straight precedence check. */
-export function resolvePreviewField(parsed: {
-  preview?: Preview | null
-  previews?: Preview[] | null
-}): Preview[] | null | undefined {
-  if (parsed.preview !== undefined) {
-    return parsed.preview === null ? null : [parsed.preview]
+export function resolveDemoField(parsed: {
+  demo?: Demo | null
+  demos?: Demo[] | null
+}): Demo[] | null | undefined {
+  if (parsed.demo !== undefined) {
+    return parsed.demo === null ? null : [parsed.demo]
   }
-  return parsed.previews
+  return parsed.demos
 }
 
-/** `steps:` entries accept either a bare alias string (shorthand for a
- *  step with only an alias and no overrides) or the full object form.
+/** `steps:` entries accept either a bare id string (shorthand for a
+ *  step with only an id and no overrides) or the full object form.
  *
- *  Resolution for `previews` and `cover` is stage→step only (no step-to-
+ *  Resolution for `demos` and `cover` is stage→step only (no step-to-
  *  step chain). Omit to use the stage's default, give a value to override
  *  for this step, or write `null` (`~` in YAML) to explicitly clear (this
  *  step has nothing even though the stage does). Each step is independent;
@@ -280,21 +285,21 @@ export function resolvePreviewField(parsed: {
  *  `open` is different: it's tri-state with runtime persistence — see the
  *  resolver in `stageList.ts` for the rules. */
 const screenStep = z.union([
-  z.string().min(1).transform((alias) => ({ alias })),
-  preventBothPreviewFields(
+  z.string().min(1).transform((id) => ({ id })),
+  preventBothDemoFields(
     z.object({
-      alias: z.string().min(1),
+      id: z.string().min(1),
       title: z.string().optional(),
       open: openTarget.nullable().optional(),
       cover: cover.nullable().optional(),
-      ...previewFields({ allowNull: true }),
+      ...demoFields({ allowNull: true }),
     }),
   ),
 ])
 
-const stage = preventBothPreviewFields(
+const stage = preventBothDemoFields(
   z.object({
-    alias: z.string().min(1),
+    id: z.string().min(1),
     branch: z.string().min(1).optional(),
     title: z.string().optional(),
     open: openTarget.nullable().optional(),
@@ -315,7 +320,7 @@ const stage = preventBothPreviewFields(
      *  Cross-stage entry only; step transitions within the stage and
      *  back-nav don't trigger it. */
     reset: z.boolean().optional(),
-    ...previewFields({ allowNull: false }),
+    ...demoFields({ allowNull: false }),
   }),
 )
 

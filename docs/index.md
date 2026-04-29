@@ -7,7 +7,7 @@ hero:
   tagline: >-
     Prezl is a presentation tool that looks and feels like a real code
     editor. Step through your codebase one moment at a time — reveal
-    files, focus regions, and trigger previews exactly when you need
+    files, focus regions, and trigger demos exactly when you need
     them.
   actions:
     - theme: brand

@@ -5,8 +5,8 @@ import type { Screen } from '@/types'
 function screen(partial: Partial<Screen> = {}): Screen {
   return {
     id: 'x',
-    stageAlias: 'x',
-    stepAlias: null,
+    stageId: 'x',
+    stepId: null,
     order: 0,
     ...partial,
   }

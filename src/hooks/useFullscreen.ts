@@ -6,7 +6,7 @@ const appWindow = getCurrentWindow()
 
 /**
  * Track and toggle the Tauri window's fullscreen state. F11 bound as the
- * global toggle (suppressed while the video preview modal is active — the
+ * global toggle (suppressed while the video demo modal is active — the
  * video modal owns the full viewport already).
  *
  * Windows quirk: transitioning directly from maximized to fullscreen leaves
@@ -53,7 +53,7 @@ export function useFullscreen(): {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'F11') return
-      if (useAppStore.getState().previewState.kind === 'video') return
+      if (useAppStore.getState().demoState.kind === 'video') return
       e.preventDefault()
       e.stopPropagation()
       void toggle()

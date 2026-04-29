@@ -3,10 +3,10 @@ import { parseDirectives } from './directiveParser'
 import { buildScreenIndex } from './stageList'
 
 const STAGES = buildScreenIndex([
-  { alias: 'main', order: 1 },
-  { alias: 'shell', order: 2 },
-  { alias: 'preview', order: 3 },
-  { alias: 'demo', order: 4 },
+  { id: 'main', order: 1 },
+  { id: 'shell', order: 2 },
+  { id: 'preview', order: 3 },
+  { id: 'demo', order: 4 },
 ])
 
 function parse(source: string, screenId: string) {

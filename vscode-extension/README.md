@@ -17,7 +17,7 @@ and `prezl.yaml`.
     stage at its `open` target.
   - In `prezl.yaml`: `Ctrl+click` an `id:` value to jump to the matching
     `@prezl id=` directive in the relevant file.
-- Completion inside selector brackets: stage and `stage.step` aliases for
+- Completion inside selector brackets: stage and `stage.step` ids for
   `show=`/`focus=`/`file=`, open id list for `end=`.
 - "Wrap Selection in Region" command (right-click in editor) — picks the
   region kind, prompts for a selector with completion, inserts the right

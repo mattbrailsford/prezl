@@ -18,43 +18,43 @@ boundaries.
 
 Suppressed only while a text-typing surface owns focus
 (`<input>` / `<textarea>` / `contentEditable`) and while the video
-preview modal is active. Buttons and the stage-selector dropdown
+demo modal is active. Buttons and the stage-selector dropdown
 deliberately fall through — Space always advances the screen in
 Prezl, even right after clicking an explorer item, so the presenter
 clicker never gets stuck on the previous interaction.
 
-## Preview
+## Demo
 
 | Shortcut | Action |
 | --- | --- |
 | `F5` / `Ctrl+F5` / `Ctrl+Enter` | Run (equivalent to clicking the Run button) |
 | `F11` | Toggle fullscreen |
 
-Run is suppressed while a preview is already in flight. When the
-current screen has more than one preview the keyboard shortcut opens
+Run is suppressed while a demo is already in flight. When the
+current screen has more than one demo the keyboard shortcut opens
 the picker; pressing it again with the picker open closes it.
 
 `F5` and `Ctrl+F5` are captured globally so the WebView's default
 page-refresh behaviours don't fire — `Ctrl+R` still does native
 refresh.
 
-### Inside the preview picker
+### Inside the demo picker
 
-Shown when the screen has more than one preview entry; the keyboard
+Shown when the screen has more than one demo entry; the keyboard
 shortcut goes here before deciding what to launch.
 
 | Shortcut | Action |
 | --- | --- |
 | `↑` / `↓` | Move selection |
-| `Enter` | Run the selected preview |
+| `Enter` | Run the selected demo |
 | `Esc` | Close the picker without running |
 
-### Inside a video preview
+### Inside a video demo
 
 | Shortcut | Action |
 | --- | --- |
 | `Space` / `PageDown` | Play / pause. At `stopAt`: close and continue (forward nav default). |
-| `Esc` / `PageUp` | Close the preview |
+| `Esc` / `PageUp` | Close the demo |
 | Restart chip click | Replay the clip from `startAt` (deliberate; nav keys won't do this). |
 
 ## Editor symbols
@@ -107,7 +107,7 @@ duplicates collapse, and a new navigation truncates the forward stack
 (standard browser behaviour). Each location remembers its scroll
 position so back / forward land you exactly where you left off,
 overriding the screen's default `open` target. Suppressed while the
-video preview modal is open.
+video demo modal is open.
 
 ## Presentation chrome
 

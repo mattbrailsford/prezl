@@ -1,17 +1,17 @@
-name: Umbraco Dashboard Demo
+name: Dashboard Demo
 
 stages:
-  - alias: main
+  - id: main
     branch: main
     title: Starting point
     # No `open:` — first stage opens with just the file tree (default).
 
-  - alias: shell
+  - id: shell
     branch: feature/dashboard-shell
     title: Add dashboard shell
     open: src/dashboard.ts#registerDashboard
 
-  - alias: preview
+  - id: preview
     branch: feature/dashboard-preview
     title: Preview dashboard
     reset: true
@@ -25,39 +25,39 @@ stages:
         id: renderCharts
         title: Chart helpers
     steps:
-      - alias: intro
+      - id: intro
         title: Overview
-      - alias: fetchImpl
+      - id: fetchImpl
         title: Fetching data
         open: src/api.ts#fetchDashboardData
-        previews:
-          - title: preview1
+        demos:
+          - title: demo1
             type: video
             src: ./videos/backoffice-demo.mp4
             autoLaunch: end
             startAt: 4.5
             stopAt: 32.0
             cues:
-              - time: 12.0
-              - time: 21.5
-              - time: 28.0
-          - title: preview2
+              - 12.0
+              - 21.5
+              - 28.0
+          - title: demo2
             type: video
             src: ./videos/backoffice-demo.mp4
-      - alias: chartHelpers
+      - id: chartHelpers
         title: Chart helpers
         open: src/dashboard.ts#renderCharts
 
-  - alias: demo
+  - id: demo
     branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
     open: src/api.ts@1
-    preview:
+    demo:
       type: video
       src: ./videos/backoffice-demo.mp4
       startAt: 4.5
       stopAt: 32.0
       cues:
-        - time: 12.0
-        - time: 21.5
-        - time: 28.0
+        - 12.0
+        - 21.5
+        - { time: 28.0, title: "Discuss the modal flow" }

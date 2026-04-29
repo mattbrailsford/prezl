@@ -42,7 +42,7 @@ A selector identifies which **screens** of the deck a directive applies
 to. A screen is either a stage on its own or one entry inside a stage's
 `steps:` array. Refs come in two forms:
 
-- **Bare stage alias** — `shell` matches every screen of the shell
+- **Bare stage id** — `shell` matches every screen of the shell
   stage (every step inside it).
 - **Dotted screen id** — `shell.intro` matches one specific step.
 

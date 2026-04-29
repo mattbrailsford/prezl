@@ -3,31 +3,31 @@ import { buildScreenIndex, parseScreenList } from './stageList'
 import type { Stage } from '@/types'
 
 const FLAT_STAGES: Stage[] = [
-  { alias: 'main', order: 1 },
-  { alias: 'shell', order: 2 },
-  { alias: 'preview', order: 3 },
-  { alias: 'demo', order: 4 },
+  { id: 'main', order: 1 },
+  { id: 'shell', order: 2 },
+  { id: 'preview', order: 3 },
+  { id: 'demo', order: 4 },
 ]
 
 const FLAT = buildScreenIndex(FLAT_STAGES)
 
 const STEPPED_STAGES: Stage[] = [
-  { alias: 'main', order: 1 },
+  { id: 'main', order: 1 },
   {
-    alias: 'shell',
+    id: 'shell',
     order: 2,
     steps: [
-      { alias: 'intro' },
-      { alias: 'showHandler' },
-      { alias: 'outro' },
+      { id: 'intro' },
+      { id: 'showHandler' },
+      { id: 'outro' },
     ],
   },
   {
-    alias: 'preview',
+    id: 'preview',
     order: 3,
-    steps: [{ alias: 'fetch' }, { alias: 'render' }],
+    steps: [{ id: 'fetch' }, { id: 'render' }],
   },
-  { alias: 'demo', order: 4 },
+  { id: 'demo', order: 4 },
 ]
 
 const STEPPED = buildScreenIndex(STEPPED_STAGES)
@@ -50,7 +50,7 @@ describe('buildScreenIndex', () => {
       'preview',
       'demo',
     ])
-    expect(FLAT.byId.shell.stepAlias).toBeNull()
+    expect(FLAT.byId.shell.stepId).toBeNull()
   })
 
   it('expands stage.steps into one screen per step with dotted ids', () => {
@@ -79,13 +79,13 @@ describe('buildScreenIndex', () => {
     // (no force-reopen).
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         open: { file: 'a.ts' },
         steps: [
-          { alias: 'one' },
-          { alias: 'two', open: { file: 'b.ts' } },
-          { alias: 'three' },
+          { id: 'one' },
+          { id: 'two', open: { file: 'b.ts' } },
+          { id: 'three' },
         ],
       },
     ]
@@ -95,19 +95,19 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['shell.three'].open).toBeUndefined()
   })
 
-  it('preserves preview reference identity across stage→step inheritance', () => {
-    // Autolaunch in the store relies on this: a step that omits `preview:`
+  it('preserves demo reference identity across stage→step inheritance', () => {
+    // Autolaunch in the store relies on this: a step that omits `demo:`
     // resolves to the same list reference as the stage default, so the
     // ref-identity check in the autoLaunch logic treats consecutive
     // inherited steps as "still in scope" and doesn't re-fire.
-    const stagePreview = [
+    const stageDemo = [
       {
         type: 'video' as const,
         src: 'intro.mp4',
         autoLaunch: 'start' as const,
       },
     ]
-    const overridePreview = [
+    const overrideDemo = [
       {
         type: 'video' as const,
         src: 'middle.mp4',
@@ -115,47 +115,47 @@ describe('buildScreenIndex', () => {
     ]
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
-        previews: stagePreview,
+        demos: stageDemo,
         steps: [
-          { alias: 'one' },
-          { alias: 'two', previews: overridePreview },
-          { alias: 'three' },
+          { id: 'one' },
+          { id: 'two', demos: overrideDemo },
+          { id: 'three' },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId['shell.one'].previews).toBe(stagePreview)
-    expect(idx.byId['shell.two'].previews).toBe(overridePreview)
+    expect(idx.byId['shell.one'].demos).toBe(stageDemo)
+    expect(idx.byId['shell.two'].demos).toBe(overrideDemo)
     // step three goes BACK to the stage default — no step-to-step chain,
     // so step two's override doesn't carry forward.
-    expect(idx.byId['shell.three'].previews).toBe(stagePreview)
+    expect(idx.byId['shell.three'].demos).toBe(stageDemo)
   })
 
-  it('throws on duplicate step alias within a stage', () => {
+  it('throws on duplicate step id within a stage', () => {
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
-        steps: [{ alias: 'dup' }, { alias: 'dup' }],
+        steps: [{ id: 'dup' }, { id: 'dup' }],
       },
     ]
-    expect(() => buildScreenIndex(stages)).toThrow(/duplicate step alias/)
+    expect(() => buildScreenIndex(stages)).toThrow(/duplicate step id/)
   })
 
-  it('clears a step preview to nothing when set to null', () => {
-    // `preview: ~` on a step means "explicitly empty — this step has no
-    // previews even though the stage does." With no step-to-step chain,
+  it('clears a step demo to nothing when set to null', () => {
+    // `demo: ~` on a step means "explicitly empty — this step has no
+    // demos even though the stage does." With no step-to-step chain,
     // omitting just falls back to the stage default automatically; null is
     // for the case where the author wants this step to actively drop it.
-    const stagePreview = [
+    const stageDemo = [
       {
         type: 'video' as const,
         src: 'stage.mp4',
       },
     ]
-    const stepBPreview = [
+    const stepBDemo = [
       {
         type: 'video' as const,
         src: 'b.mp4',
@@ -164,24 +164,24 @@ describe('buildScreenIndex', () => {
     ]
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
-        previews: stagePreview,
+        demos: stageDemo,
         steps: [
-          { alias: 'a' },
-          { alias: 'b', previews: stepBPreview },
-          { alias: 'c', previews: null },
-          { alias: 'd' },
+          { id: 'a' },
+          { id: 'b', demos: stepBDemo },
+          { id: 'c', demos: null },
+          { id: 'd' },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId['shell.a'].previews).toBe(stagePreview)
-    expect(idx.byId['shell.b'].previews).toBe(stepBPreview)
+    expect(idx.byId['shell.a'].demos).toBe(stageDemo)
+    expect(idx.byId['shell.b'].demos).toBe(stepBDemo)
     // null = explicitly empty.
-    expect(idx.byId['shell.c'].previews).toBeUndefined()
+    expect(idx.byId['shell.c'].demos).toBeUndefined()
     // d omits → falls back to the stage default, NOT to c's empty.
-    expect(idx.byId['shell.d'].previews).toBe(stagePreview)
+    expect(idx.byId['shell.d'].demos).toBe(stageDemo)
   })
 
   it('resets a step open to the stage default when set to null', () => {
@@ -189,13 +189,13 @@ describe('buildScreenIndex', () => {
     const stepBOpen = { file: 'b.ts', line: 1 }
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         open: stageOpen,
         steps: [
-          { alias: 'a' },
-          { alias: 'b', open: stepBOpen },
-          { alias: 'c', open: null },
+          { id: 'a' },
+          { id: 'b', open: stepBOpen },
+          { id: 'c', open: null },
         ],
       },
     ]
@@ -209,7 +209,7 @@ describe('buildScreenIndex', () => {
     // `open: ~` at the stage level means "this screen has no file open".
     // The reducer keys on screen.open === null, so the screen index must
     // carry the explicit null through (not collapse it to undefined).
-    const stages: Stage[] = [{ alias: 'intro', order: 1, open: null }]
+    const stages: Stage[] = [{ id: 'intro', order: 1, open: null }]
     const idx = buildScreenIndex(stages)
     expect(idx.byId.intro.open).toBeNull()
   })
@@ -222,10 +222,10 @@ describe('buildScreenIndex', () => {
     // again.
     const stages: Stage[] = [
       {
-        alias: 'intro',
+        id: 'intro',
         order: 1,
         open: null,
-        steps: [{ alias: 'one' }, { alias: 'two' }],
+        steps: [{ id: 'one' }, { id: 'two' }],
       },
     ]
     const idx = buildScreenIndex(stages)
@@ -237,13 +237,13 @@ describe('buildScreenIndex', () => {
     const stepOpen = { file: 'a.ts' }
     const stages: Stage[] = [
       {
-        alias: 'intro',
+        id: 'intro',
         order: 1,
         open: null,
         steps: [
-          { alias: 'tree' },
-          { alias: 'reveal', open: stepOpen },
-          { alias: 'follow' },
+          { id: 'tree' },
+          { id: 'reveal', open: stepOpen },
+          { id: 'follow' },
         ],
       },
     ]
@@ -261,13 +261,13 @@ describe('buildScreenIndex', () => {
     // most recent resolved open that had a file.
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         open: { file: 'a.ts' },
         steps: [
-          { alias: 'one' },
-          { alias: 'two' },
-          { alias: 'three', open: { id: 'foo' } },
+          { id: 'one' },
+          { id: 'two' },
+          { id: 'three', open: { id: 'foo' } },
         ],
       },
     ]
@@ -281,12 +281,12 @@ describe('buildScreenIndex', () => {
     const stepOpen = { file: 'a.ts' }
     const stages: Stage[] = [
       {
-        alias: 'intro',
+        id: 'intro',
         order: 1,
         open: null,
         steps: [
-          { alias: 'one', open: stepOpen },
-          { alias: 'two', open: null },
+          { id: 'one', open: stepOpen },
+          { id: 'two', open: null },
         ],
       },
     ]
@@ -304,13 +304,13 @@ describe('buildScreenIndex', () => {
     // had written the file path on each step.
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         open: { file: 'a.ts' },
         steps: [
-          { alias: 'one' },
-          { alias: 'two', open: { id: 'foo' } },
-          { alias: 'three', open: { line: 42 } },
+          { id: 'one' },
+          { id: 'two', open: { id: 'foo' } },
+          { id: 'three', open: { line: 42 } },
         ],
       },
     ]
@@ -324,13 +324,13 @@ describe('buildScreenIndex', () => {
   it('a step partial open after a file change inherits the new file', () => {
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         open: { file: 'a.ts' },
         steps: [
-          { alias: 'one' },
-          { alias: 'two', open: { file: 'b.ts' } },
-          { alias: 'three', open: { id: 'foo' } },
+          { id: 'one' },
+          { id: 'two', open: { file: 'b.ts' } },
+          { id: 'three', open: { id: 'foo' } },
         ],
       },
     ]
@@ -344,10 +344,10 @@ describe('buildScreenIndex', () => {
     // viewer falls back to whatever activeFile is at scroll time.
     const stages: Stage[] = [
       {
-        alias: 'intro',
+        id: 'intro',
         order: 1,
         open: null,
-        steps: [{ alias: 'one', open: { id: 'foo' } }],
+        steps: [{ id: 'one', open: { id: 'foo' } }],
       },
     ]
     const idx = buildScreenIndex(stages)
@@ -357,7 +357,7 @@ describe('buildScreenIndex', () => {
   it('a stage cover propagates to the no-step screen', () => {
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         cover: [{ file: 'a.ts' }, { file: 'b.ts', id: 'foo' }],
       },
@@ -373,14 +373,14 @@ describe('buildScreenIndex', () => {
     const stageCover = [{ file: 'a.ts' }, { file: 'b.ts' }]
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         cover: stageCover,
-        steps: [{ alias: 'one' }, { alias: 'two' }],
+        steps: [{ id: 'one' }, { id: 'two' }],
       },
     ]
     const idx = buildScreenIndex(stages)
-    // Reference identity preserved across inherited steps — same as preview.
+    // Reference identity preserved across inherited steps — same as demo.
     expect(idx.byId['shell.one'].cover).toBe(stageCover)
     expect(idx.byId['shell.two'].cover).toBe(stageCover)
   })
@@ -390,13 +390,13 @@ describe('buildScreenIndex', () => {
     const stepCover = [{ file: 'b.ts' }, { file: 'c.ts' }]
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         cover: stageCover,
         steps: [
-          { alias: 'one' },
-          { alias: 'two', cover: stepCover },
-          { alias: 'three' },
+          { id: 'one' },
+          { id: 'two', cover: stepCover },
+          { id: 'three' },
         ],
       },
     ]
@@ -411,13 +411,13 @@ describe('buildScreenIndex', () => {
     const stageCover = [{ file: 'a.ts' }]
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
         cover: stageCover,
         steps: [
-          { alias: 'one' },
-          { alias: 'two', cover: null },
-          { alias: 'three' },
+          { id: 'one' },
+          { id: 'two', cover: null },
+          { id: 'three' },
         ],
       },
     ]
@@ -432,19 +432,19 @@ describe('buildScreenIndex', () => {
   it('cover does not propagate across stage boundaries', () => {
     const aCover = [{ file: 'a.ts' }]
     const stages: Stage[] = [
-      { alias: 'first', order: 1, cover: aCover },
-      { alias: 'second', order: 2 },
+      { id: 'first', order: 1, cover: aCover },
+      { id: 'second', order: 2 },
     ]
     const idx = buildScreenIndex(stages)
     expect(idx.byId.first.cover).toBe(aCover)
     expect(idx.byId.second.cover).toBeUndefined()
   })
 
-  it('preview list with two distinct autoLaunch entries (start + end) survives resolution', () => {
+  it('demo list with two distinct autoLaunch entries (start + end) survives resolution', () => {
     // The schema enforces ≤1 of each; the resolver just hands the list
     // through. autoLaunch=start and autoLaunch=end live independently, so
     // both types can be present on the same screen.
-    const stagePreview = [
+    const stageDemo = [
       {
         type: 'video' as const,
         src: 'intro.mp4',
@@ -457,14 +457,14 @@ describe('buildScreenIndex', () => {
       },
     ]
     const stages: Stage[] = [
-      { alias: 'shell', order: 1, previews: stagePreview },
+      { id: 'shell', order: 1, demos: stageDemo },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId.shell.previews).toBe(stagePreview)
+    expect(idx.byId.shell.demos).toBe(stageDemo)
   })
 
   it('null on a step with no stage default leaves the field unset', () => {
-    const stepBPreview = [
+    const stepBDemo = [
       {
         type: 'video' as const,
         src: 'b.mp4',
@@ -472,22 +472,22 @@ describe('buildScreenIndex', () => {
     ]
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
-        // No stage-level preview.
+        // No stage-level demo.
         steps: [
-          { alias: 'a' },
-          { alias: 'b', previews: stepBPreview },
-          { alias: 'c', previews: null },
+          { id: 'a' },
+          { id: 'b', demos: stepBDemo },
+          { id: 'c', demos: null },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
     // No stage default + omitted → undefined.
-    expect(idx.byId['shell.a'].previews).toBeUndefined()
-    expect(idx.byId['shell.b'].previews).toBe(stepBPreview)
+    expect(idx.byId['shell.a'].demos).toBeUndefined()
+    expect(idx.byId['shell.b'].demos).toBe(stepBDemo)
     // null also resolves to undefined (explicitly empty).
-    expect(idx.byId['shell.c'].previews).toBeUndefined()
+    expect(idx.byId['shell.c'].demos).toBeUndefined()
   })
 })
 
@@ -498,12 +498,12 @@ describe('parseScreenList — flat (no steps)', () => {
     expect(flatMatch('  ', 'shell')).toBe(true)
   })
 
-  it('matches an exact single alias', () => {
+  it('matches an exact single id', () => {
     expect(flatMatch('shell', 'shell')).toBe(true)
     expect(flatMatch('shell', 'main')).toBe(false)
   })
 
-  it('matches any alias in an explicit list', () => {
+  it('matches any id in an explicit list', () => {
     expect(flatMatch('shell, preview', 'preview')).toBe(true)
     expect(flatMatch('shell, preview', 'demo')).toBe(false)
     expect(flatMatch('shell, preview, demo', 'shell')).toBe(true)
@@ -533,10 +533,10 @@ describe('parseScreenList — flat (no steps)', () => {
     expect(flatMatch('shell...preview, demo', 'main')).toBe(false)
   })
 
-  it('errors on unknown alias', () => {
-    expect(flatMatch('ghost', 'shell')).toMatch(/unknown stage alias: ghost/)
+  it('errors on unknown id', () => {
+    expect(flatMatch('ghost', 'shell')).toMatch(/unknown stage id: ghost/)
     expect(flatMatch('shell...ghost', 'shell')).toMatch(
-      /unknown stage alias: ghost/,
+      /unknown stage id: ghost/,
     )
   })
 
@@ -551,7 +551,7 @@ describe('parseScreenList — flat (no steps)', () => {
 })
 
 describe('parseScreenList — stepped', () => {
-  it('bare stage alias matches every screen of that stage', () => {
+  it('bare stage id matches every screen of that stage', () => {
     expect(steppedMatch('shell', 'shell.intro')).toBe(true)
     expect(steppedMatch('shell', 'shell.showHandler')).toBe(true)
     expect(steppedMatch('shell', 'shell.outro')).toBe(true)
@@ -598,15 +598,15 @@ describe('parseScreenList — stepped', () => {
     expect(steppedMatch('shell.outro...', 'shell.showHandler')).toBe(false)
   })
 
-  it('errors on unknown step alias with stage qualifier in message', () => {
+  it('errors on unknown step id with stage qualifier in message', () => {
     expect(steppedMatch('shell.ghost', 'shell.intro')).toMatch(
-      /unknown step alias: shell\.ghost/,
+      /unknown step id: shell\.ghost/,
     )
   })
 
-  it('errors on unknown stage alias even when dotted', () => {
+  it('errors on unknown stage id even when dotted', () => {
     expect(steppedMatch('ghost.intro', 'shell.intro')).toMatch(
-      /unknown stage alias: ghost/,
+      /unknown stage id: ghost/,
     )
   })
 

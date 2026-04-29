@@ -9,7 +9,7 @@ templating across many decks.
 
 ```
 prezl://open?path=<urlencoded-absolute-path>
-            [&screen=<alias>]
+            [&screen=<id>]
             [&fullscreen=1]
             [&hideOnExit=1]
 ```
@@ -22,7 +22,7 @@ required parameter.
 | Param | Required | Value | Effect |
 | --- | --- | --- | --- |
 | `path` | yes | URL-encoded absolute folder path | The Prezl project folder to open. Must contain `prezl.yaml`. |
-| `screen` | no | Stage alias or `<stage>.<step>` | Switches to this screen after the project loads. Unknown aliases are ignored (project still opens). |
+| `screen` | no | Stage id or `<stage>.<step>` | Switches to this screen after the project loads. Unknown ids are ignored (project still opens). |
 | `fullscreen` | no | `1` | Enters fullscreen on launch. |
 | `hideOnExit` | no | `1` | Surfaces the "Back to presentation" button + <kbd>Shift</kbd>+<kbd>Esc</kbd> binding inside Prezl. |
 

@@ -36,7 +36,7 @@ export class PrezlSelectorDefinitionProvider
 
     const target = resolveOpen(project, ref)
     if (!target) {
-      // Maybe the user clicked a stage alias that we have, but the screen
+      // Maybe the user clicked a stage id that we have, but the screen
       // has no open. Fall back to opening the manifest at the stage's
       // declaration so the click still does something useful.
       return manifestStageLocation(project, ref)
@@ -185,8 +185,8 @@ function manifestStageLocation(
 ): vscode.Location | null {
   // We don't track YAML line offsets when parsing the project; fall back
   // to opening the manifest at the top.
-  const stageAlias = screenId.split('.')[0]
-  const stage = project.stages.find((s) => s.alias === stageAlias)
+  const stageId = screenId.split('.')[0]
+  const stage = project.stages.find((s) => s.id === stageId)
   if (!stage) return null
   return new vscode.Location(
     vscode.Uri.file(project.manifestPath),

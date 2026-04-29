@@ -1,77 +1,77 @@
 import { describe, expect, it } from 'vitest'
-import { prezlProjectSchema, resolvePreviewField } from './schema'
+import { prezlProjectSchema, resolveDemoField } from './schema'
 
-function parsePreview(autoLaunch: unknown) {
-  // Use the singular `preview:` shorthand; resolvePreviewField is what the
+function parseDemo(autoLaunch: unknown) {
+  // Use the singular `demo:` shorthand; resolveDemoField is what the
   // loader uses to normalise both shapes into a single list.
   const result = prezlProjectSchema.safeParse({
     name: 'Test',
     stages: [
       {
-        alias: 'shell',
-        preview: { type: 'video', src: './v.mp4', autoLaunch },
+        id: 'shell',
+        demo: { type: 'video', src: './v.mp4', autoLaunch },
       },
     ],
   })
   if (!result.success) return { ok: false as const, issues: result.error.issues }
-  const list = resolvePreviewField(result.data.stages[0])
-  const preview = list?.[0]
-  return { ok: true as const, preview }
+  const list = resolveDemoField(result.data.stages[0])
+  const demo = list?.[0]
+  return { ok: true as const, demo }
 }
 
 describe('schema — video autoLaunch normalisation', () => {
   it('accepts the literal "start"', () => {
-    const r = parsePreview('start')
+    const r = parseDemo('start')
     expect(r.ok).toBe(true)
-    if (r.ok && r.preview?.type === 'video') {
-      expect(r.preview.autoLaunch).toBe('start')
+    if (r.ok && r.demo?.type === 'video') {
+      expect(r.demo.autoLaunch).toBe('start')
     }
   })
 
   it('accepts the literal "end"', () => {
-    const r = parsePreview('end')
+    const r = parseDemo('end')
     expect(r.ok).toBe(true)
-    if (r.ok && r.preview?.type === 'video') {
-      expect(r.preview.autoLaunch).toBe('end')
+    if (r.ok && r.demo?.type === 'video') {
+      expect(r.demo.autoLaunch).toBe('end')
     }
   })
 
   it('normalises true → "start" (boolean shorthand)', () => {
-    const r = parsePreview(true)
+    const r = parseDemo(true)
     expect(r.ok).toBe(true)
-    if (r.ok && r.preview?.type === 'video') {
-      expect(r.preview.autoLaunch).toBe('start')
+    if (r.ok && r.demo?.type === 'video') {
+      expect(r.demo.autoLaunch).toBe('start')
     }
   })
 
   it('normalises false → undefined (no autolaunch)', () => {
-    const r = parsePreview(false)
+    const r = parseDemo(false)
     expect(r.ok).toBe(true)
-    if (r.ok && r.preview?.type === 'video') {
-      expect(r.preview.autoLaunch).toBeUndefined()
+    if (r.ok && r.demo?.type === 'video') {
+      expect(r.demo.autoLaunch).toBeUndefined()
     }
   })
 
   it('rejects unknown strings', () => {
-    const r = parsePreview('middle')
+    const r = parseDemo('middle')
     expect(r.ok).toBe(false)
   })
 })
 
-describe('schema — preview list shape', () => {
-  it('wraps a single `preview:` object in a one-element list (after loader normalisation)', () => {
+describe('schema — demo list shape', () => {
+  it('wraps a single `demo:` object in a one-element list (after loader normalisation)', () => {
     const r = prezlProjectSchema.safeParse({
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          preview: { type: 'url', src: 'https://example.com' },
+          id: 'shell',
+          demo: { type: 'url', src: 'https://example.com' },
         },
       ],
     })
     expect(r.success).toBe(true)
     if (r.success) {
-      const list = resolvePreviewField(r.data.stages[0])
+      const list = resolveDemoField(r.data.stages[0])
       expect(list).toHaveLength(1)
       expect(list?.[0]).toEqual({
         type: 'url',
@@ -80,13 +80,13 @@ describe('schema — preview list shape', () => {
     }
   })
 
-  it('accepts an explicit `previews:` list', () => {
+  it('accepts an explicit `demos:` list', () => {
     const r = prezlProjectSchema.safeParse({
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          previews: [
+          id: 'shell',
+          demos: [
             { type: 'url', src: 'https://example.com' },
             { type: 'video', src: './v.mp4' },
           ],
@@ -95,18 +95,18 @@ describe('schema — preview list shape', () => {
     })
     expect(r.success).toBe(true)
     if (r.success) {
-      expect(r.data.stages[0].previews).toHaveLength(2)
+      expect(r.data.stages[0].demos).toHaveLength(2)
     }
   })
 
-  it('rejects both `preview:` and `previews:` on the same stage', () => {
+  it('rejects both `demo:` and `demos:` on the same stage', () => {
     const r = prezlProjectSchema.safeParse({
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          preview: { type: 'url', src: 'https://example.com' },
-          previews: [{ type: 'video', src: './v.mp4' }],
+          id: 'shell',
+          demo: { type: 'url', src: 'https://example.com' },
+          demos: [{ type: 'video', src: './v.mp4' }],
         },
       ],
     })
@@ -118,8 +118,8 @@ describe('schema — preview list shape', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          previews: [
+          id: 'shell',
+          demos: [
             { type: 'video', src: 'a.mp4', autoLaunch: 'start' },
             { type: 'video', src: 'b.mp4', autoLaunch: 'start' },
           ],
@@ -134,8 +134,8 @@ describe('schema — preview list shape', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          previews: [
+          id: 'shell',
+          demos: [
             { type: 'video', src: 'a.mp4', autoLaunch: 'end' },
             { type: 'video', src: 'b.mp4', autoLaunch: 'end' },
           ],
@@ -150,8 +150,8 @@ describe('schema — preview list shape', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          previews: [
+          id: 'shell',
+          demos: [
             { type: 'video', src: 'a.mp4', autoLaunch: 'start' },
             { type: 'video', src: 'b.mp4', autoLaunch: 'end' },
             { type: 'url', src: 'https://example.com' },
@@ -163,14 +163,80 @@ describe('schema — preview list shape', () => {
   })
 })
 
-describe('schema — step preview/open reset (null)', () => {
+describe('schema — video cue shorthand', () => {
+  it('accepts bare numbers as cues and normalises them to { time }', () => {
+    const r = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          id: 'shell',
+          demo: { type: 'video', src: './v.mp4', cues: [12, 21.5, 28] },
+        },
+      ],
+    })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      const list = resolveDemoField(r.data.stages[0])
+      const demo = list?.[0]
+      if (demo?.type === 'video') {
+        expect(demo.cues).toEqual([
+          { time: 12 },
+          { time: 21.5 },
+          { time: 28 },
+        ])
+      }
+    }
+  })
+
+  it('accepts a mix of numbers and full objects', () => {
+    const r = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          id: 'shell',
+          demo: {
+            type: 'video',
+            src: './v.mp4',
+            cues: [12, { time: 21.5, title: 'beat' }],
+          },
+        },
+      ],
+    })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      const list = resolveDemoField(r.data.stages[0])
+      const demo = list?.[0]
+      if (demo?.type === 'video') {
+        expect(demo.cues).toEqual([
+          { time: 12 },
+          { time: 21.5, title: 'beat' },
+        ])
+      }
+    }
+  })
+
+  it('rejects negative numeric cues', () => {
+    const r = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          id: 'shell',
+          demo: { type: 'video', src: './v.mp4', cues: [-1] },
+        },
+      ],
+    })
+    expect(r.success).toBe(false)
+  })
+})
+
+describe('schema — step demo/open reset (null)', () => {
   function parseStep(stepFields: Record<string, unknown>) {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          steps: [{ alias: 'a' }, { alias: 'b', ...stepFields }],
+          id: 'shell',
+          steps: [{ id: 'a' }, { id: 'b', ...stepFields }],
         },
       ],
     })
@@ -180,32 +246,32 @@ describe('schema — step preview/open reset (null)', () => {
     // schema's union return type doesn't reflect that. Cast for ergonomic
     // field access in these assertions.
     type ObjectStep = {
-      preview?: unknown
-      previews?: unknown
+      demo?: unknown
+      demos?: unknown
       open?: unknown
     }
     const step = result.data.stages[0].steps?.[1] as ObjectStep | undefined
     return { ok: true as const, step }
   }
 
-  it('accepts preview: null on a step (singular shorthand normalises to null list)', () => {
-    const r = parseStep({ preview: null })
+  it('accepts demo: null on a step (singular shorthand normalises to null list)', () => {
+    const r = parseStep({ demo: null })
     expect(r.ok).toBe(true)
     if (r.ok) {
-      expect(r.step?.preview).toBeNull()
-      // resolvePreviewField returns null for explicit clear.
+      expect(r.step?.demo).toBeNull()
+      // resolveDemoField returns null for explicit clear.
       expect(
-        resolvePreviewField(
-          (r.step ?? {}) as Parameters<typeof resolvePreviewField>[0],
+        resolveDemoField(
+          (r.step ?? {}) as Parameters<typeof resolveDemoField>[0],
         ),
       ).toBeNull()
     }
   })
 
-  it('accepts previews: null on a step (plural form)', () => {
-    const r = parseStep({ previews: null })
+  it('accepts demos: null on a step (plural form)', () => {
+    const r = parseStep({ demos: null })
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.step?.previews).toBeNull()
+    if (r.ok) expect(r.step?.demos).toBeNull()
   })
 
   it('accepts open: null on a step', () => {
@@ -214,12 +280,12 @@ describe('schema — step preview/open reset (null)', () => {
     if (r.ok) expect(r.step?.open).toBeNull()
   })
 
-  it('keeps previews undefined when omitted (falls back to stage default at resolve time)', () => {
+  it('keeps demos undefined when omitted (falls back to stage default at resolve time)', () => {
     const r = parseStep({})
     expect(r.ok).toBe(true)
     if (r.ok) {
-      expect(r.step?.preview).toBeUndefined()
-      expect(r.step?.previews).toBeUndefined()
+      expect(r.step?.demo).toBeUndefined()
+      expect(r.step?.demos).toBeUndefined()
       expect(r.step?.open).toBeUndefined()
     }
   })
@@ -229,7 +295,7 @@ describe('schema — open string shorthand', () => {
   function parseStageOpen(open: unknown) {
     const r = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell', open }],
+      stages: [{ id: 'shell', open }],
     })
     if (!r.success) return { ok: false as const, issues: r.error.issues }
     return { ok: true as const, open: r.data.stages[0].open }
@@ -298,7 +364,7 @@ describe('schema — cover string shorthand', () => {
   function parseStageCover(items: unknown[]) {
     const r = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell', cover: items }],
+      stages: [{ id: 'shell', cover: items }],
     })
     if (!r.success) return { ok: false as const, issues: r.error.issues }
     return { ok: true as const, cover: r.data.stages[0].cover }
@@ -329,8 +395,8 @@ describe('schema — partial open object', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
-          steps: [{ alias: 'a', open: { file: 'a.ts' } }, { alias: 'b', open }],
+          id: 'shell',
+          steps: [{ id: 'a', open: { file: 'a.ts' } }, { id: 'b', open }],
         },
       ],
     })
@@ -356,7 +422,7 @@ describe('schema — stage open: null', () => {
   it('accepts open: null on a stage (no file open)', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'intro', open: null }],
+      stages: [{ id: 'intro', open: null }],
     })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -367,7 +433,7 @@ describe('schema — stage open: null', () => {
   it('keeps stage open undefined when omitted', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell' }],
+      stages: [{ id: 'shell' }],
     })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -382,7 +448,7 @@ describe('schema — cover list', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
+          id: 'shell',
           cover: ['src/dashboard.ts', 'src/api.ts'],
         },
       ],
@@ -400,7 +466,7 @@ describe('schema — cover list', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
       stages: [
-        { alias: 'shell', cover: ['src/dashboard.ts#registerDashboard'] },
+        { id: 'shell', cover: ['src/dashboard.ts#registerDashboard'] },
       ],
     })
     expect(result.success).toBe(true)
@@ -416,7 +482,7 @@ describe('schema — cover list', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
+          id: 'shell',
           cover: [
             { file: 'src/api.ts', id: 'fetchData', title: 'Data fetching' },
           ],
@@ -434,11 +500,11 @@ describe('schema — cover list', () => {
   })
 
   it('wraps a single-item shorthand into a one-element list', () => {
-    // Mirrors preview's single-object shorthand: `cover: src/foo.ts` is a
+    // Mirrors demo's single-object shorthand: `cover: src/foo.ts` is a
     // shorter form of `cover: [src/foo.ts]`.
     const stringForm = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell', cover: 'src/api.ts#fetchData' }],
+      stages: [{ id: 'shell', cover: 'src/api.ts#fetchData' }],
     })
     expect(stringForm.success).toBe(true)
     if (stringForm.success) {
@@ -450,7 +516,7 @@ describe('schema — cover list', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
+          id: 'shell',
           cover: { file: 'src/api.ts', title: 'Data fetching' },
         },
       ],
@@ -468,9 +534,9 @@ describe('schema — cover list', () => {
       name: 'Test',
       stages: [
         {
-          alias: 'shell',
+          id: 'shell',
           cover: ['a.ts'],
-          steps: [{ alias: 'one' }, { alias: 'two', cover: null }],
+          steps: [{ id: 'one' }, { id: 'two', cover: null }],
         },
       ],
     })
@@ -484,7 +550,7 @@ describe('schema — cover list', () => {
   it('rejects an empty cover item path', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell', cover: [''] }],
+      stages: [{ id: 'shell', cover: [''] }],
     })
     expect(result.success).toBe(false)
   })
@@ -494,7 +560,7 @@ describe('schema — stage reset flag', () => {
   it('accepts reset: true on a stage', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell', reset: true }],
+      stages: [{ id: 'shell', reset: true }],
     })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -505,7 +571,7 @@ describe('schema — stage reset flag', () => {
   it('keeps reset undefined when omitted', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell' }],
+      stages: [{ id: 'shell' }],
     })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -516,7 +582,7 @@ describe('schema — stage reset flag', () => {
   it('rejects non-boolean reset', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
-      stages: [{ alias: 'shell', reset: 'yes' }],
+      stages: [{ id: 'shell', reset: 'yes' }],
     })
     expect(result.success).toBe(false)
   })

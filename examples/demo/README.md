@@ -20,14 +20,14 @@ slice of the runtime.
     focus on `fetchDashboardData`; `api.ts`'s own
     `file=[preview...] focus=[preview.fetchImpl]` also tints the
     explorer leaf for this one screen. Carries a step-level
-    `autoLaunch: 'end'` video preview — forward-advancing from this
+    `autoLaunch: 'end'` video demo — forward-advancing from this
     screen plays the wrap-up clip first and then advances to
     `chartHelpers` on the carry-on close (atEnd Space).
   - `preview.chartHelpers` — file back to `dashboard.ts` via per-step
     `open`, scrolls to `renderCharts`. The `Chart rendering helpers`
     fold expands and is focus-highlighted; an inner
     `show=[preview.chartHelpers]` comment block becomes visible. Uses
-    `preview: ~` to drop `fetchImpl`'s trailing-video override and
+    `demo: ~` to drop `fetchImpl`'s trailing-video override and
     fall back to the stage default (none here) — exercises the reset
     escape hatch.
 - **`demo`** — everything visible, no focus (preview's focus selectors

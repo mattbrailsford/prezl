@@ -3,20 +3,20 @@
  *
  * A "screen" is the addressable unit the presenter advances through: either
  * a stage with no `steps:` (one implicit screen whose id is the bare stage
- * alias) or one entry in a stage's `steps:` array (id = `stage.step`).
+ * id) or one entry in a stage's `steps:` array (id = `stage.step`).
  *
  * Selector grammar:
  *
  *   [shell]                          -- every screen of the shell stage
  *   [shell.intro]                    -- one specific screen
- *   [shell, preview]                 -- explicit list (still per-screen)
+ *   [shell, demo]                    -- explicit list (still per-screen)
  *   [shell.intro...shell.outro]      -- closed range, intra-stage
  *   [shell.intro...dashboard.outro]  -- closed range, crosses stages
  *   [shell.intro...]                 -- from this screen to end of deck
  *   [...dashboard.outro]             -- from start of deck through here
- *   [shell.intro...preview, demo]    -- mixed ranges + items
+ *   [shell.intro...dashboard, demo]  -- mixed ranges + items
  *
- * Whitespace is insignificant. Unknown stage / step aliases or inverted
+ * Whitespace is insignificant. Unknown stage / step ids or inverted
  * ranges return structured errors callers can surface with file + line
  * context.
  */
@@ -28,7 +28,7 @@ export type ScreenIndex = {
   byId: Record<string, Screen>
   /** Flat ordered screen list — Space/PageDown walks this. */
   ordered: Screen[]
-  /** stage alias -> flat order bounds + member ids, used by the selector
+  /** stage id -> flat order bounds + member ids, used by the selector
    *  parser and TopBar step indicator. */
   byStage: Record<
     string,
@@ -42,7 +42,7 @@ export type ScreenListResult =
 
 /**
  * Build the flat screen index from a project's stages. Stages with no
- * `steps:` produce one implicit screen (id = stage.alias, stepAlias = null);
+ * `steps:` produce one implicit screen (id = stage.id, stepId = null);
  * stages with `steps:` produce one screen per step (id = `stage.step`).
  *
  * Resolution rules:
@@ -63,17 +63,17 @@ export type ScreenListResult =
  *    across an omitted step in between
  *  - a full value → use as-is
  *
- * Step `previews` and `cover` resolve **stage→step only** (no step-to-step
+ * Step `demos` and `cover` resolve **stage→step only** (no step-to-step
  * chain). Each step independently inherits the stage's default unless it
  * declares its own. Reference identity is preserved across consecutive
  * inherited steps because they all resolve to the same stage list, which
  * is what the autoLaunch / visited-tracking logic keys off.
- *  - omitted (`undefined`) → use `stage.previews` / `stage.cover`
+ *  - omitted (`undefined`) → use `stage.demos` / `stage.cover`
  *  - explicit `null` → explicitly empty (this step has nothing, even if
  *    the stage does); resolves to `undefined` at the screen level
  *  - a value → use as-is
  *
- * Step alias collisions inside a stage throw — the schema layer should
+ * Step id collisions inside a stage throw — the schema layer should
  * have caught this; failing loud here keeps debugging simple.
  */
 export function buildScreenIndex(stages: Stage[]): ScreenIndex {
@@ -89,13 +89,13 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
     const stageScreens: Screen[] = []
     if (!stage.steps || stage.steps.length === 0) {
       const screen: Screen = {
-        id: stage.alias,
-        stageAlias: stage.alias,
-        stepAlias: null,
+        id: stage.id,
+        stageId: stage.id,
+        stepId: null,
         order: order++,
         title: stage.title,
         open: stage.open,
-        previews: stage.previews,
+        demos: stage.demos,
         cover: stage.cover,
       }
       ordered.push(screen)
@@ -112,12 +112,12 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         stage.open && stage.open.file ? stage.open : undefined
       let isFirstStep = true
       for (const step of stage.steps) {
-        if (seen.has(step.alias)) {
+        if (seen.has(step.id)) {
           throw new Error(
-            `duplicate step alias "${step.alias}" in stage "${stage.alias}"`,
+            `duplicate step id "${step.id}" in stage "${stage.id}"`,
           )
         }
-        seen.add(step.alias)
+        seen.add(step.id)
         // Tri-state for `open`:
         //   undefined → step 1 seeds from stage.open; subsequent steps get
         //               undefined ("no opinion"; reducer preserves runtime)
@@ -136,18 +136,18 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
               : step.open.file === undefined && prevOpenWithFile?.file
                 ? { ...step.open, file: prevOpenWithFile.file }
                 : step.open
-        // Stage→step resolution for previews/cover. No step-to-step chain:
-        //   undefined → stage.previews / stage.cover (shared reference, so
+        // Stage→step resolution for demos/cover. No step-to-step chain:
+        //   undefined → stage.demos / stage.cover (shared reference, so
         //               consecutive inheriting steps satisfy the ref-
         //               identity check that gates autoLaunch re-fires)
         //   null      → undefined (explicitly empty; the screen has none)
         //   value     → use as-is
-        const previews =
-          step.previews === undefined
-            ? stage.previews
-            : step.previews === null
+        const demos =
+          step.demos === undefined
+            ? stage.demos
+            : step.demos === null
               ? undefined
-              : step.previews
+              : step.demos
         const cover: CoverItem[] | undefined =
           step.cover === undefined
             ? stage.cover
@@ -155,13 +155,13 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
               ? undefined
               : step.cover
         const screen: Screen = {
-          id: `${stage.alias}.${step.alias}`,
-          stageAlias: stage.alias,
-          stepAlias: step.alias,
+          id: `${stage.id}.${step.id}`,
+          stageId: stage.id,
+          stepId: step.id,
           order: order++,
           title: step.title,
           open,
-          previews,
+          demos,
           cover,
         }
         ordered.push(screen)
@@ -171,7 +171,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         isFirstStep = false
       }
     }
-    byStage[stage.alias] = {
+    byStage[stage.id] = {
       first: start,
       last: order - 1,
       screens: stageScreens,
@@ -266,7 +266,7 @@ function expandSingleRef(
   }
   const stage = index.byStage[ref]
   if (!stage) {
-    return { error: `unknown stage alias: ${ref}` }
+    return { error: `unknown stage id: ${ref}` }
   }
   return { ids: stage.screens.map((s) => s.id) }
 }
@@ -283,7 +283,7 @@ function resolveRangeBound(
     return { order: screen.order }
   }
   const stage = index.byStage[ref]
-  if (!stage) return { error: `unknown stage alias: ${ref}` }
+  if (!stage) return { error: `unknown stage id: ${ref}` }
   return { order: side === 'from' ? stage.first : stage.last }
 }
 
@@ -291,10 +291,10 @@ function unknownRefError(ref: string, index: ScreenIndex): string {
   // Distinguish "unknown stage" from "known stage, unknown step" so the
   // author's typo is easier to find.
   const dot = ref.indexOf('.')
-  if (dot < 0) return `unknown stage alias: ${ref}`
+  if (dot < 0) return `unknown stage id: ${ref}`
   const stage = ref.slice(0, dot)
   if (!(stage in index.byStage)) {
-    return `unknown stage alias: ${stage}`
+    return `unknown stage id: ${stage}`
   }
-  return `unknown step alias: ${ref}`
+  return `unknown step id: ${ref}`
 }

@@ -323,7 +323,7 @@ Work:
 - **Cross-machine smoke**:
   - Run on a Windows laptop, accept the firewall prompt, audience on a
     second laptop + a phone, walk the demo project from start to
-    finish, including a video preview screen (audience should see the
+    finish, including a video demo screen (audience should see the
     file the presenter is on while the modal is open — they don't get
     the video, that's expected for v1).
 

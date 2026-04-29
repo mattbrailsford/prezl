@@ -5,7 +5,7 @@ import { StatusBarLinkControls } from './StatusBarLinkControls'
 
 export function StatusBar() {
   const stage = useCurrentStage()
-  const stageLabel = stage?.branch ?? stage?.alias ?? '—'
+  const stageLabel = stage?.branch ?? stage?.id ?? '—'
   const language = useAppStore((s) =>
     s.activeFile ? languageDisplayName(inferLanguage(s.activeFile)) : '—'
   )

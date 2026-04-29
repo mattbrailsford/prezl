@@ -52,26 +52,26 @@ entry is the starting stage, and screen-range directives like
 `[shell...demo]` resolve against this order.
 
 ```yaml
-- alias: shell               # required — canonical stage id, referenced
+- id: shell               # required — canonical stage id, referenced
                              #            by directives like [shell...]
   branch: feature/dashboard  # optional — label only (e.g. git branch name)
   title: Add dashboard       # optional — dropdown label
   open: src/dashboard.ts     # optional — string shorthand or object (see below)
   steps: [ … ]               # optional — see Steps below
   symbols: {}                # reserved, not currently consumed
-  preview:                   # optional — single preview (object shorthand)
+  demo:                   # optional — single demo (object shorthand)
     type: url | video
     …
-  previews:                  # optional — list of previews (alternative form)
+  demos:                  # optional — list of demos (alternative form)
     - …
   cover: [ … ]               # optional — presenter agenda
   reset: true                # optional — declutter on cross-stage entry
 ```
 
-The dropdown label cascades `title` → `branch` → `alias`, so a stage
-with just an alias still shows up sensibly.
+The dropdown label cascades `title` → `branch` → `id`, so a stage
+with just an id still shows up sensibly.
 
-`preview:` and `previews:` are mutually exclusive — picking one or the
+`demo:` and `demos:` are mutually exclusive — picking one or the
 other is a parse error. Use whichever reads better; the runtime
 normalises both into the same internal list.
 
@@ -112,14 +112,14 @@ file as its predecessor can jump to a new anchor with just an `id` (or
 `line`):
 
 ```yaml
-- alias: preview
+- id: preview
   open: src/dashboard.ts            # stage default seeds step 1
   steps:
-    - alias: registerDashboard
-    - alias: renderCharts
+    - id: registerDashboard
+    - id: renderCharts
       open: { id: renderCharts }    # same file as before, jump to id
-    - alias: scrollOnly             # no `open:` — see "Inheritance" below
-    - alias: fetchData
+    - id: scrollOnly             # no `open:` — see "Inheritance" below
+    - id: fetchData
       open: { line: 42 }            # file still resolves to dashboard.ts
 ```
 
@@ -143,7 +143,7 @@ so its expand-explorer button remains reachable). The empty pane
 renders a faded brand mark with the project name as a title card.
 
 ```yaml
-- alias: intro
+- id: intro
   title: Project structure
   # No `open:` — file tree only, empty editor pane.
 ```
@@ -154,7 +154,7 @@ Useful for a mid-deck "summary" pause where the presenter wants the
 audience back on the project structure:
 
 ```yaml
-- alias: pause
+- id: pause
   open: ~                    # explicit "no file" — overrides inheritance
 ```
 
@@ -173,33 +173,33 @@ walks them linearly and then carries forward into the next stage's first
 step.
 
 ```yaml
-- alias: preview
+- id: preview
   open: src/dashboard.ts#registerDashboard
-  preview:
+  demo:
     type: url
     src: https://example.com/demo
   steps:
     - intro                                    # bare-string shorthand
-    - alias: fetchImpl
+    - id: fetchImpl
       open: src/api.ts#fetchDashboardData
-    - alias: chartHelpers
+    - id: chartHelpers
       open: src/dashboard.ts#renderCharts
       title: Chart helpers                     # optional — shown next to the step counter in the TopBar
 ```
 
 Each step entry is either:
 
-- a **bare string** — shorthand for `{ alias: <string> }`, no overrides
-- the **object form** with `alias` (required), `title?`, `open?`,
-  `preview?` / `previews?`, `cover?`
+- a **bare string** — shorthand for `{ id: <string> }`, no overrides
+- the **object form** with `id` (required), `title?`, `open?`,
+  `demo?` / `demos?`, `cover?`
 
-Each screen's id is `<stageAlias>.<stepAlias>`, e.g. `preview.intro`,
+Each screen's id is `<stageId>.<stepId>`, e.g. `preview.intro`,
 `preview.fetchImpl`. A stage with no `steps:` has one implicit screen
-whose id is just the bare alias (e.g. `shell`).
+whose id is just the bare id (e.g. `shell`).
 
 **Inheritance differs by field.**
 
-- **`previews` and `cover`** resolve **stage→step only** — there's no
+- **`demos` and `cover`** resolve **stage→step only** — there's no
   step-to-step chain. An omitted step uses the *stage default*; a
   step's own value replaces it for that screen; `~` (YAML null)
   explicitly clears it for that screen. Adding a value on step 2
@@ -220,8 +220,8 @@ whose id is just the bare alias (e.g. `shell`).
 
 **The `~` shorthand on a step.**
 
-- For `previews` and `cover`, `~` means *explicitly empty for this
-  step* — the screen has no previews / no cover even though the stage
+- For `demos` and `cover`, `~` means *explicitly empty for this
+  step* — the screen has no demos / no cover even though the stage
   does.
 - For `open`, `~` resets to `stage.open`. Use it when an earlier step
   changed files and a later step should re-land on the stage's
@@ -229,21 +229,21 @@ whose id is just the bare alias (e.g. `shell`).
 
 **Aliases must be unique within a stage.** The schema rejects duplicates.
 
-#### Stage `preview:` / `previews:`
+#### Stage `demo:` / `demos:`
 
 Two field names, both accepted; using both on the same stage/step is a
-parse error. `preview:` takes a single object (shorthand for one
-preview); `previews:` takes a list. Both normalise internally to
-`Preview[]`.
+parse error. `demo:` takes a single object (shorthand for one
+demo); `demos:` takes a list. Both normalise internally to
+`Demo[]`.
 
 ```yaml
 # Singular shorthand
-preview:
+demo:
   type: url
   src: https://example.com/demo
 
 # Plural list — Run button shows a picker for >1
-previews:
+demos:
   - title: Live demo
     type: url
     src: https://example.com/demo
@@ -255,7 +255,7 @@ previews:
     autoLaunch: end
 ```
 
-##### URL preview
+##### URL demo
 
 ```yaml
 type: url
@@ -266,7 +266,7 @@ mode: external                 # optional — default: external
 `src` must be `http://` or `https://`. Only `external` mode is
 supported today (opens in the OS default browser).
 
-##### Video preview
+##### Video demo
 
 ```yaml
 type: video
@@ -275,15 +275,18 @@ startAt: 4.5                   # optional — seconds
 stopAt: 32.0                   # optional — pauses playback, shows Restart chip
 autoLaunch: start              # optional — 'start' (or true), or 'end'
 cues:                          # optional — auto-pause timestamps
-  - { time: 12.0, label: "Optional label for future use" }
+  - 12.0                       # bare-number shorthand for `{ time: 12.0 }`
+  - { time: 21.5, title: "Optional title for future use" }
 ```
 
 Cues pause playback with a subtle Play chip; Space / PageDown /
-chip-click resumes. Each cue fires once per session.
+chip-click resumes. Each cue fires once per session. A bare number is
+shorthand for `{ time: <number> }`; use the object form when you want
+to attach a `title`.
 
-##### Optional `title:` (any preview kind)
+##### Optional `title:` (any demo kind)
 
-`title:` on any preview entry serves as the row label in the picker
+`title:` on any demo entry serves as the row label in the picker
 (falls back to the URL or video basename). Useful when two entries
 share a `src` and the picker would otherwise show duplicate labels.
 
@@ -310,7 +313,7 @@ scope it won't replay in the same session.
 #### Stage `reset:` — declutter on cross-stage entry
 
 ```yaml
-- alias: preview
+- id: preview
   reset: true
 ```
 
@@ -338,7 +341,7 @@ under the file tree; rows tick once their file has been opened during
 the current stage's tenure.
 
 ```yaml
-- alias: preview
+- id: preview
   cover:
     - src/dashboard.ts                         # bare path
     - src/api.ts#fetchDashboardData            # path#id shorthand
@@ -357,8 +360,8 @@ basename is shown). `id` resolves through the same project-wide symbol
 table the click-to-jump path uses.
 
 `cover:` also accepts a **single item** (string or object) as a
-shorthand for a one-element list, mirroring how `preview:` is the
-single-item form of `previews:`:
+shorthand for a one-element list, mirroring how `demo:` is the
+single-item form of `demos:`:
 
 ```yaml
 cover: src/api.ts#fetchData          # shorthand for a one-item list
@@ -367,7 +370,7 @@ cover:                                # explicit list — same result
 ```
 
 **Inheritance.** Steps resolve `cover` stage→step only, exactly like
-`previews`. An omitted step uses the stage default; a step's own value
+`demos`. An omitted step uses the stage default; a step's own value
 replaces it; `cover: ~` clears it for that step. Cover does not
 propagate across stage boundaries — each stage is its own agenda.
 
@@ -388,7 +391,7 @@ they don't trigger a reset.
 ## Notes
 
 - YAML anchors / references are supported by the `yaml` parser Prezl
-  uses, so you can DRY up repeated preview configs if you want.
+  uses, so you can DRY up repeated demo configs if you want.
 - Trailing whitespace / alternate comment styles in YAML are fine; the
   parser is permissive.
 - Changes to `prezl.yaml` require closing and reopening the project to

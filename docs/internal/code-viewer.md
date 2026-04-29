@@ -114,18 +114,18 @@ Two extras layer onto every `scrollToLine` call:
 
 ## Video modal mechanics
 
-While the video preview is open, `useStageShortcuts` explicitly skips
-(`preview.kind === 'video'`), and the modal's own capture-phase
+While the video demo is open, `useStageShortcuts` explicitly skips
+(`demoState.kind === 'video'`), and the modal's own capture-phase
 handler intercepts:
 
 - `Space` / `PageDown` → play/pause; once the clip has hit its end
   (either a `stopAt` cue or the file's natural `ended` event), these
   close the modal so forward nav defaults to "I'm done, carry on."
   For a *trailing* video (one opened via `autoLaunch: 'end'`, flagged
-  by `previewState.trailing`) this same press also advances the deck —
+  by `demoState.trailing`) this same press also advances the deck —
   the trailing video IS the leaving act, so it shouldn't take an
   extra Space.
-- `Escape` / `PageUp` → close preview, never advance.
+- `Escape` / `PageUp` → close demo, never advance.
 - The Restart chip (only shown at `stopAt`) takes an explicit click —
   replaying is the rare deliberate case, not what forward nav should
   do.

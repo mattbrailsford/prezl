@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 import { scan } from '../scanner'
-import { allScreenAliases, findManifest, loadProject } from '../project'
+import { allScreenIds, findManifest, loadProject } from '../project'
 
-/** Inside `[...]` on a directive line, completes stage/screen aliases.
+/** Inside `[...]` on a directive line, completes stage/screen ids.
  *  After `end=`, completes ids of open regions on the stack at cursor. */
 export class PrezlSelectorCompletionProvider
   implements vscode.CompletionItemProvider
@@ -32,16 +32,16 @@ export class PrezlSelectorCompletionProvider
     const project = await loadProject(manifest)
     if (!project) return []
 
-    const aliases = allScreenAliases(project)
-    return aliases.map((alias) => {
+    const ids = allScreenIds(project)
+    return ids.map((id) => {
       const item = new vscode.CompletionItem(
-        alias,
-        alias.includes('.')
+        id,
+        id.includes('.')
           ? vscode.CompletionItemKind.EnumMember
           : vscode.CompletionItemKind.Enum,
       )
-      const stageAlias = alias.split('.')[0]
-      const stage = project.stages.find((s) => s.alias === stageAlias)
+      const stageId = id.split('.')[0]
+      const stage = project.stages.find((s) => s.id === stageId)
       if (stage?.title) item.detail = stage.title
       return item
     })

@@ -4,15 +4,15 @@ import { Pause, Play, RotateCcw, X } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { useVideoCues, type VideoCueEvent } from '@/hooks/useVideoCues'
 
-export function VideoPreview() {
-  const preview = useAppStore((s) =>
-    s.previewState.kind === 'video' ? s.previewState.preview : null,
+export function VideoDemo() {
+  const demo = useAppStore((s) =>
+    s.demoState.kind === 'video' ? s.demoState.demo : null,
   )
   const trailing = useAppStore((s) =>
-    s.previewState.kind === 'video' ? Boolean(s.previewState.trailing) : false,
+    s.demoState.kind === 'video' ? Boolean(s.demoState.trailing) : false,
   )
   const rootPath = useAppStore((s) => s.project?.rootPath ?? null)
-  const closePreview = useAppStore((s) => s.closePreview)
+  const closeDemo = useAppStore((s) => s.closeDemo)
   const switchScreenRelative = useAppStore((s) => s.switchScreenRelative)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -36,14 +36,14 @@ export function VideoPreview() {
     { x: number; pointerId: number; anchorTime: number } | null
   >(null)
 
-  // VideoPreview stays mounted (returns null) when no preview is active, so
-  // React preserves our local state across close/reopen. Reset on new preview.
+  // VideoDemo stays mounted (returns null) when no demo is active, so
+  // React preserves our local state across close/reopen. Reset on new demo.
   useEffect(() => {
     setAwaitingResume(false)
     setAtEnd(false)
     setCurrentTime(0)
     setDuration(0)
-  }, [preview])
+  }, [demo])
 
   // Track currentTime + duration so the scrub bar stays in sync with the
   // underlying <video>. timeupdate fires ~4× per second during playback,
@@ -62,7 +62,7 @@ export function VideoPreview() {
       video.removeEventListener('loadedmetadata', onMeta)
       video.removeEventListener('durationchange', onMeta)
     }
-  }, [preview])
+  }, [demo])
 
   // Sync the resume indicator with actual playback state so external pauses
   // (e.g. end of file, browser-initiated pause) flip it on, and any play
@@ -86,11 +86,11 @@ export function VideoPreview() {
       video.removeEventListener('play', onPlay)
       video.removeEventListener('ended', onEnded)
     }
-  }, [preview])
+  }, [demo])
 
   const src = useMemo(() => {
-    if (!preview || !rootPath) return ''
-    const raw = preview.src
+    if (!demo || !rootPath) return ''
+    const raw = demo.src
     // Remote URL? pass through. Local path? resolve against project root.
     if (/^https?:\/\//i.test(raw)) return raw
     const cleaned = raw.replace(/^\.\//, '')
@@ -98,15 +98,15 @@ export function VideoPreview() {
       ? cleaned
       : `${rootPath}/${cleaned}`
     return convertFileSrc(absolute)
-  }, [preview, rootPath])
+  }, [demo, rootPath])
 
   // Seek to startAt on metadata load, then autoplay. The <video> element's
   // autoPlay attr covers the play side once the seek lands.
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !preview) return
+    if (!video || !demo) return
     const onLoaded = () => {
-      if (preview.startAt) video.currentTime = preview.startAt
+      if (demo.startAt) video.currentTime = demo.startAt
       video.play().catch(() => {
         // autoplay can be blocked in some edge cases; user can press Space.
         setAwaitingResume(true)
@@ -114,7 +114,7 @@ export function VideoPreview() {
     }
     video.addEventListener('loadedmetadata', onLoaded)
     return () => video.removeEventListener('loadedmetadata', onLoaded)
-  }, [preview])
+  }, [demo])
 
   const onCueReached = useCallback((_event: VideoCueEvent) => {
     const video = videoRef.current
@@ -134,17 +134,17 @@ export function VideoPreview() {
 
   const restart = useCallback(() => {
     const video = videoRef.current
-    if (!video || !preview) return
-    video.currentTime = preview.startAt ?? 0
+    if (!video || !demo) return
+    video.currentTime = demo.startAt ?? 0
     setAtEnd(false)
     void video.play()
-  }, [preview])
+  }, [demo])
 
   useVideoCues({
     videoRef,
-    cues: preview?.cues,
-    startAt: preview?.startAt,
-    stopAt: preview?.stopAt,
+    cues: demo?.cues,
+    startAt: demo?.startAt,
+    stopAt: demo?.stopAt,
     onCueReached,
     onStopAt,
   })
@@ -152,8 +152,8 @@ export function VideoPreview() {
   // Scrub-bar geometry. The "playable range" is [startAt, stopAt ?? duration]
   // — same window the cue logic operates on — so the bar reflects the clip
   // the presenter actually sees, not the raw underlying file.
-  const rangeStart = preview?.startAt ?? 0
-  const rangeEnd = preview?.stopAt ?? duration
+  const rangeStart = demo?.startAt ?? 0
+  const rangeEnd = demo?.stopAt ?? duration
   const span = Math.max(0.0001, rangeEnd - rangeStart)
   const progress = Math.max(
     0,
@@ -161,9 +161,9 @@ export function VideoPreview() {
   )
 
   const visibleCues = useMemo(() => {
-    if (!preview?.cues) return []
-    return preview.cues.filter((c) => c.time >= rangeStart && c.time <= rangeEnd)
-  }, [preview, rangeStart, rangeEnd])
+    if (!demo?.cues) return []
+    return demo.cues.filter((c) => c.time >= rangeStart && c.time <= rangeEnd)
+  }, [demo, rangeStart, rangeEnd])
 
   // Relative scrub: a drag of N pixels on screen moves the playhead by
   // (N / barWidth) × span seconds. The bar's track rect is the reference so
@@ -235,7 +235,7 @@ export function VideoPreview() {
     setScrubbing(false)
     const video = videoRef.current
     if (!video) return
-    const stopAt = preview?.stopAt
+    const stopAt = demo?.stopAt
     const beforeStop = stopAt === undefined || video.currentTime < stopAt - 0.05
     if (wasPlayingRef.current && beforeStop) {
       void video.play()
@@ -259,7 +259,7 @@ export function VideoPreview() {
   }, [])
 
   useEffect(() => {
-    if (!preview) return
+    if (!demo) return
     bumpCursorActivity() // start the timer immediately
     window.addEventListener('mousemove', bumpCursorActivity)
     window.addEventListener('mousedown', bumpCursorActivity)
@@ -271,28 +271,28 @@ export function VideoPreview() {
         idleTimerRef.current = null
       }
     }
-  }, [preview, bumpCursorActivity])
+  }, [demo, bumpCursorActivity])
 
   // Keyboard map while the modal is up:
   //   Escape / PageUp   -> close (back to editor) — always stays put
   //   Space / PageDown  -> toggle play/pause; once the clip has hit its
   //                        stopAt, this is the "carry on" close. For a
-  //                        regular (lead-with-video) preview it just
+  //                        regular (lead-with-video) demo it just
   //                        dismisses the modal and the next forward press
   //                        advances the deck. For a trailing
-  //                        (autoLaunch: 'end') preview it advances the
+  //                        (autoLaunch: 'end') demo it advances the
   //                        deck in the same press, since the trailing
   //                        video IS the leaving act.
   // PageUp / PageDown are here so a presentation clicker that emits those
   // codes (most wireless remotes do) drives playback instead of leaking
   // through to the stage-navigation shortcut.
   useEffect(() => {
-    if (!preview) return
+    if (!demo) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.code === 'PageUp') {
         e.preventDefault()
         e.stopPropagation()
-        closePreview()
+        closeDemo()
         return
       }
       if (e.code === 'Space' || e.key === ' ' || e.code === 'PageDown') {
@@ -301,7 +301,7 @@ export function VideoPreview() {
         const video = videoRef.current
         if (!video) return
         if (atEnd) {
-          closePreview()
+          closeDemo()
           if (trailing) switchScreenRelative(1)
           return
         }
@@ -322,9 +322,9 @@ export function VideoPreview() {
       window.removeEventListener('keydown', onKey, {
         capture: true,
       } as EventListenerOptions)
-  }, [preview, closePreview, bumpCursorActivity, atEnd, trailing, switchScreenRelative])
+  }, [demo, closeDemo, bumpCursorActivity, atEnd, trailing, switchScreenRelative])
 
-  if (!preview) return null
+  if (!demo) return null
 
   return (
     <div
@@ -348,8 +348,8 @@ export function VideoPreview() {
       />
       <button
         type="button"
-        onClick={closePreview}
-        aria-label="Close preview"
+        onClick={closeDemo}
+        aria-label="Close demo"
         title="Close (Esc)"
         className={`absolute right-6 top-6 z-10 grid size-10 place-items-center rounded-full border border-white/20 bg-black/75 text-white shadow-lg transition-opacity duration-200 hover:bg-black/90 ${
           controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0'

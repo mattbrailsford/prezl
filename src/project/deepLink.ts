@@ -2,7 +2,7 @@
  * Deep-link URL: `prezl://open?path=<urlencoded>&screen=<id>&fullscreen=1&hideOnExit=1`
  *
  *   path        absolute folder path of the project (required)
- *   screen      "<stageAlias>" or "<stageAlias>.<stepAlias>" (optional)
+ *   screen      "<stageId>" or "<stageId>.<stepId>" (optional)
  *   fullscreen  "1" to request fullscreen on launch (optional)
  *   hideOnExit  "1" to surface the "Back to presentation" button (optional)
  *

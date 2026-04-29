@@ -36,7 +36,7 @@ export class StagesTreeProvider implements vscode.TreeDataProvider<Node> {
         out.push({ kind: 'step', stage: element.stage, step })
       }
       if (element.stage.defaultCover) {
-        const ownerKey = element.stage.alias
+        const ownerKey = element.stage.id
         element.stage.defaultCover.forEach((item, index) => {
           out.push({ kind: 'cover', ownerKey, index, item })
         })
@@ -62,28 +62,28 @@ export class StagesTreeProvider implements vscode.TreeDataProvider<Node> {
         element.stage.steps.length > 0 ||
         (element.stage.defaultCover?.length ?? 0) > 0
       const item = new vscode.TreeItem(
-        element.stage.title || element.stage.alias,
+        element.stage.title || element.stage.id,
         hasChildren
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None,
       )
-      item.description = element.stage.alias
+      item.description = element.stage.id
       item.iconPath = new vscode.ThemeIcon(
         element.stage.reset ? 'debug-restart' : 'symbol-class',
       )
       item.tooltip = stageTooltip(element.stage)
-      item.command = openCommandFor('stage', element.stage.alias)
+      item.command = openCommandFor('stage', element.stage.id)
       return item
     }
     if (element.kind === 'step') {
       const hasOwnCover = (element.step.ownCover?.length ?? 0) > 0
       const item = new vscode.TreeItem(
-        element.step.title || element.step.alias,
+        element.step.title || element.step.id,
         hasOwnCover
           ? vscode.TreeItemCollapsibleState.Collapsed
           : vscode.TreeItemCollapsibleState.None,
       )
-      item.description = element.step.alias
+      item.description = element.step.id
       item.iconPath = new vscode.ThemeIcon('symbol-event')
       item.command = openCommandFor('step', element.step.screenId)
       return item
@@ -106,7 +106,7 @@ export class StagesTreeProvider implements vscode.TreeDataProvider<Node> {
 
 function stageTooltip(stage: StageInfo): vscode.MarkdownString {
   const md = new vscode.MarkdownString()
-  md.appendMarkdown(`**${stage.title || stage.alias}**\n\n`)
+  md.appendMarkdown(`**${stage.title || stage.id}**\n\n`)
   if (stage.branch) md.appendMarkdown(`branch: \`${stage.branch}\`\n\n`)
   if (stage.reset) md.appendMarkdown(`_reset: true_\n\n`)
   if (stage.steps.length > 0)

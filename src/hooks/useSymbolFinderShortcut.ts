@@ -7,7 +7,7 @@ import { useAppStore } from '@/state/store'
  * hook (see `disable_browser_accelerators` in src-tauri/src/lib.rs), so
  * the keystroke reaches our JS listener.
  *
- * Capture phase + preventDefault. Suppressed while the video preview is
+ * Capture phase + preventDefault. Suppressed while the video demo is
  * active, or if the finder is already open.
  */
 export function useSymbolFinderShortcut() {
@@ -17,7 +17,7 @@ export function useSymbolFinderShortcut() {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return
       if (e.key.toLowerCase() !== 't') return
-      if (useAppStore.getState().previewState.kind === 'video') return
+      if (useAppStore.getState().demoState.kind === 'video') return
       if (useAppStore.getState().symbolFinderOpen) return
       e.preventDefault()
       e.stopPropagation()

@@ -13,18 +13,18 @@ my-talk/
       main.ts
       dashboard.ts
       api.ts
-  videos/           # optional — referenced by video previews
+  videos/           # optional — referenced by video demos
     demo.mp4
 ```
 
 - **`prezl.yaml`** declares the presentation flow: name, projects
-  (optional), stages, previews. `prezl.yml` is also accepted as a
+  (optional), stages, demos. `prezl.yml` is also accepted as a
   fallback if you reach for the wrong extension out of habit.
 - **`files/`** is the root the Prezl editor shows. Paths in YAML (like
   `open.file`) and directives (`@prezl file=[...]`) are relative to this
   directory.
 - **`videos/`** (or any folder you like) holds media referenced from video
-  previews. The YAML just points at a path relative to the project root.
+  demos. The YAML just points at a path relative to the project root.
 
 You're free to add any other folders (a README, scripts, an `assets/` dir
 for a README) — Prezl only touches what's inside `files/` and what's
@@ -36,7 +36,7 @@ referenced from `prezl.yaml`.
 name: My first demo
 
 stages:
-  - alias: main
+  - id: main
     branch: main
     title: Starting point
     open: src/main.ts
@@ -71,7 +71,7 @@ resolution.
 | --- | --- |
 | Project metadata (name) | Top-level keys of `prezl.yaml` |
 | Stages | `stages:` in `prezl.yaml` |
-| Preview actions (URL / video) | On each stage, under `preview:` (one) or `previews:` (a list) |
+| Demo actions (URL / video) | On each stage, under `demo:` (one) or `demos:` (a list) |
 | Which files are visible on which stage | `@prezl file=[...]` directives in each file |
 | Which regions appear / fold / highlight | Inline `@prezl show / collapse / focus` directives |
 | Named anchors for jumps | `@prezl id=<name>` directives inside code |

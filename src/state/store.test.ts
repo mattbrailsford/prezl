@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from './store'
-import type { PrezlProject, Stage, VideoPreview } from '@/types'
+import type { PrezlProject, Stage, VideoDemo } from '@/types'
 
-const TRAILING_VIDEO: VideoPreview = {
+const TRAILING_VIDEO: VideoDemo = {
   type: 'video',
   src: './v.mp4',
   autoLaunch: 'end',
@@ -12,18 +12,18 @@ function projectWithTrailingOnStep2(): {
   project: PrezlProject
   rawFiles: Map<string, string>
 } {
-  // chartHelpers omits `preview:` — under stage→step-only resolution that
+  // chartHelpers omits `demo:` — under stage→step-only resolution that
   // falls back to the stage default (none here), so the trailing video
-  // doesn't carry forward and the explicit `preview: null` reset that the
+  // doesn't carry forward and the explicit `demo: null` reset that the
   // old chain model needed is no longer required.
   const stages: Stage[] = [
     {
-      alias: 'preview',
+      id: 'preview',
       order: 1,
       steps: [
-        { alias: 'intro' },
-        { alias: 'fetchImpl', previews: [TRAILING_VIDEO] },
-        { alias: 'chartHelpers' },
+        { id: 'intro' },
+        { id: 'fetchImpl', demos: [TRAILING_VIDEO] },
+        { id: 'chartHelpers' },
       ],
     },
   ]
@@ -52,16 +52,16 @@ describe('store — trailing autoLaunch advance flow', () => {
     // Walk forward to the trailing screen.
     useAppStore.getState().switchScreenRelative(1)
     expect(useAppStore.getState().currentScreenId).toBe('preview.fetchImpl')
-    expect(useAppStore.getState().previewState.kind).toBe('closed')
+    expect(useAppStore.getState().demoState.kind).toBe('closed')
 
     // Forward press from the trailing screen opens the modal as trailing
     // and pauses the screen advance.
     useAppStore.getState().switchScreenRelative(1)
-    const previewState = useAppStore.getState().previewState
-    expect(previewState.kind).toBe('video')
-    if (previewState.kind === 'video') {
-      expect(previewState.trailing).toBe(true)
-      expect(previewState.preview).toBe(TRAILING_VIDEO)
+    const demoState = useAppStore.getState().demoState
+    expect(demoState.kind).toBe('video')
+    if (demoState.kind === 'video') {
+      expect(demoState.trailing).toBe(true)
+      expect(demoState.demo).toBe(TRAILING_VIDEO)
     }
     expect(useAppStore.getState().currentScreenId).toBe('preview.fetchImpl')
     expect(useAppStore.getState().lastEndAutoLaunchedScreenId).toBe(
@@ -71,10 +71,10 @@ describe('store — trailing autoLaunch advance flow', () => {
     // Simulating the modal's atEnd-Space handler: close the modal, then ask
     // for a forward advance. With the lastEnd guard already set, this should
     // skip the trailing fire and advance to the next screen in one motion.
-    useAppStore.getState().closePreview()
+    useAppStore.getState().closeDemo()
     useAppStore.getState().switchScreenRelative(1)
     expect(useAppStore.getState().currentScreenId).toBe('preview.chartHelpers')
-    expect(useAppStore.getState().previewState.kind).toBe('closed')
+    expect(useAppStore.getState().demoState.kind).toBe('closed')
   })
 
   it('does not re-fire the trailing video on re-traversal', () => {
@@ -83,7 +83,7 @@ describe('store — trailing autoLaunch advance flow', () => {
     // Advance through the trailing flow once.
     useAppStore.getState().switchScreenRelative(1) // intro -> fetchImpl
     useAppStore.getState().switchScreenRelative(1) // opens trailing video
-    useAppStore.getState().closePreview()
+    useAppStore.getState().closeDemo()
     useAppStore.getState().switchScreenRelative(1) // -> chartHelpers
 
     // Walk back to the trailing screen.
@@ -93,41 +93,41 @@ describe('store — trailing autoLaunch advance flow', () => {
     // Forward press again — should NOT replay the trailing video; just advance.
     useAppStore.getState().switchScreenRelative(1)
     expect(useAppStore.getState().currentScreenId).toBe('preview.chartHelpers')
-    expect(useAppStore.getState().previewState.kind).toBe('closed')
+    expect(useAppStore.getState().demoState.kind).toBe('closed')
   })
 
-  it('does not fire trailing within the preview scope (stage→step inheritance)', () => {
+  it('does not fire trailing within the demo scope (stage→step inheritance)', () => {
     // Stage-level trailing video; every step inherits it via stage→step
     // resolution. Should fire only when forward-leaving the LAST step of
     // the scope (i.e., crossing into a stage that doesn't share the entry),
     // not every step transition inside.
     const stages: Stage[] = [
       {
-        alias: 'shell',
+        id: 'shell',
         order: 1,
-        previews: [TRAILING_VIDEO],
-        steps: [{ alias: 'a' }, { alias: 'b' }, { alias: 'c' }],
+        demos: [TRAILING_VIDEO],
+        steps: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
       },
-      { alias: 'next', order: 2 },
+      { id: 'next', order: 2 },
     ]
     const project: PrezlProject = { name: 'Test', stages, files: [] }
     useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
     expect(useAppStore.getState().currentScreenId).toBe('shell.a')
 
-    // a -> b: same preview reference, should NOT fire.
+    // a -> b: same demo reference, should NOT fire.
     useAppStore.getState().switchScreenRelative(1)
     expect(useAppStore.getState().currentScreenId).toBe('shell.b')
-    expect(useAppStore.getState().previewState.kind).toBe('closed')
+    expect(useAppStore.getState().demoState.kind).toBe('closed')
 
     // b -> c: still inside the scope, should NOT fire.
     useAppStore.getState().switchScreenRelative(1)
     expect(useAppStore.getState().currentScreenId).toBe('shell.c')
-    expect(useAppStore.getState().previewState.kind).toBe('closed')
+    expect(useAppStore.getState().demoState.kind).toBe('closed')
 
     // c -> next: leaving the scope, SHOULD fire.
     useAppStore.getState().switchScreenRelative(1)
     expect(useAppStore.getState().currentScreenId).toBe('shell.c')
-    expect(useAppStore.getState().previewState.kind).toBe('video')
+    expect(useAppStore.getState().demoState.kind).toBe('video')
   })
 })
 
@@ -142,18 +142,18 @@ describe('store — stage-level reset flag', () => {
   } {
     const stages: Stage[] = [
       {
-        alias: 'main',
+        id: 'main',
         order: 1,
         open: { file: 'main.ts' },
       },
       {
-        alias: 'preview',
+        id: 'preview',
         order: 2,
         open: { file: 'dashboard.ts' },
         reset: true,
         steps: [
-          { alias: 'a' },
-          { alias: 'b', open: { file: 'api.ts' } },
+          { id: 'a' },
+          { id: 'b', open: { file: 'api.ts' } },
         ],
       },
     ]
@@ -225,12 +225,12 @@ describe('store — stage-level reset flag', () => {
     // entries NOT in the new cover stay ticked.
     const stages: Stage[] = [
       {
-        alias: 'preview',
+        id: 'preview',
         order: 1,
         steps: [
-          { alias: 'a', cover: [{ file: 'dashboard.ts' }], open: { file: 'dashboard.ts' } },
+          { id: 'a', cover: [{ file: 'dashboard.ts' }], open: { file: 'dashboard.ts' } },
           {
-            alias: 'b',
+            id: 'b',
             cover: [{ file: 'dashboard.ts' }, { file: 'api.ts' }],
             open: { file: 'api.ts' },
           },
@@ -272,12 +272,12 @@ describe('store — stage-level reset flag', () => {
     const sharedCover = [{ file: 'dashboard.ts' }]
     const stages: Stage[] = [
       {
-        alias: 'preview',
+        id: 'preview',
         order: 1,
         cover: sharedCover,
         steps: [
-          { alias: 'a', open: { file: 'dashboard.ts' } },
-          { alias: 'b', open: { file: 'dashboard.ts' } },
+          { id: 'a', open: { file: 'dashboard.ts' } },
+          { id: 'b', open: { file: 'dashboard.ts' } },
         ],
       },
     ]

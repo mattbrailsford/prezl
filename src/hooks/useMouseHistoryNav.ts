@@ -12,7 +12,7 @@ import { useAppStore } from '@/state/store'
  * and on mouseup to fire the action — matching browser convention so a
  * stray drag-then-release doesn't navigate.
  *
- * Suppressed when the video preview modal is open; the modal owns its own
+ * Suppressed when the video demo modal is open; the modal owns its own
  * dismissal/playback semantics and presenters expect mouse buttons to do
  * nothing surprising while it's up.
  */
@@ -30,7 +30,7 @@ export function useMouseHistoryNav() {
       e.preventDefault()
       e.stopPropagation()
       const store = useAppStore.getState()
-      if (store.previewState.kind === 'video') return
+      if (store.demoState.kind === 'video') return
       if (e.button === MOUSE_BACK) store.goBack()
       else store.goForward()
     }

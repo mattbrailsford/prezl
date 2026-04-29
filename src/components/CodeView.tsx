@@ -103,7 +103,7 @@ export function CodeView() {
   // fold's rendered start/end across step transitions; the original-source
   // numbers don't, so the manual override survives the shift.
   const fileScreenKey = `${activeFile ?? ''}::${screen?.id ?? ''}`
-  const fileStageKey = `${activeFile ?? ''}::${screen?.stageAlias ?? ''}`
+  const fileStageKey = `${activeFile ?? ''}::${screen?.stageId ?? ''}`
   const [collapsedFolds, setCollapsedFolds] = useState<Set<string>>(new Set())
   const lastSeededScreenKey = useRef<string | null>(null)
   const lastStageKey = useRef<string | null>(null)
@@ -385,7 +385,7 @@ export function CodeView() {
   if (isBinaryFile) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-1 text-sm text-app-muted">
-        <span>Can't preview this file type</span>
+        <span>Can't demo this file type</span>
         <span className="text-xs opacity-70">{activeFile}</span>
       </div>
     )

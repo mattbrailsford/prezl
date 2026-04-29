@@ -72,7 +72,7 @@ type UseVideoCuesArgs = {
 /**
  * Drives cue + stopAt behaviour off the video element's `timeupdate` event.
  * The consumed set resets whenever the cues list or stopAt changes (i.e.
- * every fresh preview launch), so re-entering the same video starts clean.
+ * every fresh demo launch), so re-entering the same video starts clean.
  */
 export function useVideoCues({
   videoRef,

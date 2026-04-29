@@ -2,7 +2,7 @@
 
 **Prezl is a presentation tool that looks and feels like a real code
 editor.** Step through your codebase one moment at a time — reveal files,
-focus regions, and trigger previews exactly when you need them. The
+focus regions, and trigger demos exactly when you need them. The
 clarity of slides, the context of real code, none of the fragility of a
 live demo.
 
@@ -34,13 +34,13 @@ A Prezl project is a folder containing:
 
 ```
 my-talk/
-  prezl.yaml         ← the manifest: stages, previews, metadata
+  prezl.yaml         ← the manifest: stages, demos, metadata
   files/
     src/
       main.ts        ← ordinary source files, marked up with @prezl comments
       dashboard.ts
   videos/
-    demo.mp4         ← optional: video previews referenced from prezl.yaml
+    demo.mp4         ← optional: video demos referenced from prezl.yaml
 ```
 
 The YAML declares stages. The source files carry inline `@prezl` comments
@@ -83,7 +83,7 @@ That's it. Keep reading for:
   `files/`
 - [Stages](./stages) — how stages drive the presentation flow
 - [Directives](./directives) — the `@prezl` comment grammar
-- [Previews](./previews) — URL and video scenes
+- [Demos](./demos) — URL and video scenes
 - [Symbol navigation](./symbol-navigation) — clickable jumps and `Ctrl+T`
 - [VS Code extension](./vscode-extension) — directive colouring, snippets,
   and stages tree while authoring

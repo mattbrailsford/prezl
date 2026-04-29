@@ -9,19 +9,19 @@ projects:
     icon: typescript
 
 stages:
-  - alias: main
+  - id: main
     branch: main
     title: Starting point
     open: src/Backend/Program.cs
 
-  - alias: api
+  - id: api
     branch: feature/weather-api
     title: Add Weather API
     open:
       file: src/Backend/Api/WeatherController.cs
       id: weatherController
 
-  - alias: ui
+  - id: ui
     branch: feature/weather-ui
     title: Wire the UI
     open:

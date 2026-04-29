@@ -111,7 +111,7 @@ syntax is inserted for the file's language.
 ### Selector completion
 
 Inside `[ ]` brackets the extension suggests stage and `stage.step`
-aliases pulled from the open `prezl.yaml`. Triggers on `[`, `,`,
+ids pulled from the open `prezl.yaml`. Triggers on `[`, `,`,
 `.`, and after `=`. For `end=` the completion list narrows to ids
 that have an unclosed open region above.
 
@@ -129,7 +129,7 @@ inline errors for unknown keys, required fields, and type
 mismatches; completions for stage shape; hover docs on each
 property. The bundled schema tracks the runtime shape — including
 stage / step `cover:`, the tri-state `null` reset for `open` /
-`preview` / `cover`, and the `path#anchorId` cover shorthand — so
+`demo` / `cover`, and the `path#anchorId` cover shorthand — so
 authoring lines up with what the app actually accepts. Powered by
 the Red Hat YAML extension (declared as a dependency, so it
 installs automatically).

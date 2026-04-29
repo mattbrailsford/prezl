@@ -3,9 +3,9 @@ import { computeFileVisibility, computeVisibleFiles } from './visibleFiles'
 import { buildScreenIndex } from './stageList'
 
 const SCREENS = buildScreenIndex([
-  { alias: 'main', order: 1 },
-  { alias: 'shell', order: 2 },
-  { alias: 'preview', order: 3 },
+  { id: 'main', order: 1 },
+  { id: 'shell', order: 2 },
+  { id: 'preview', order: 3 },
 ])
 
 describe('visibleFiles', () => {
@@ -33,13 +33,13 @@ describe('visibleFiles', () => {
     })
     expect(onMain).toEqual(['a.ts'])
 
-    const onPreview = computeVisibleFiles({
+    const onDemo = computeVisibleFiles({
       files: ['a.ts', 'b.ts'],
       rawFiles,
       currentScreenId: 'preview',
       screenIndex: SCREENS,
     })
-    expect(onPreview).toEqual(['a.ts', 'b.ts'])
+    expect(onDemo).toEqual(['a.ts', 'b.ts'])
   })
 
   it('skips files whose contents are missing from the rawFiles map', () => {
@@ -77,14 +77,14 @@ describe('visibleFiles', () => {
     expect(onShell.visible).toEqual(['a.ts', 'b.ts'])
     expect([...onShell.focused]).toEqual(['a.ts'])
 
-    const onPreview = computeFileVisibility({
+    const onDemo = computeFileVisibility({
       files: ['a.ts', 'b.ts'],
       rawFiles,
       currentScreenId: 'preview',
       screenIndex: SCREENS,
     })
-    expect(onPreview.visible).toEqual(['a.ts', 'b.ts'])
-    expect(onPreview.focused.size).toBe(0)
+    expect(onDemo.visible).toEqual(['a.ts', 'b.ts'])
+    expect(onDemo.focused.size).toBe(0)
   })
 
   it('omits hidden files from the focused set even with matching focus selectors', () => {
@@ -103,11 +103,11 @@ describe('visibleFiles', () => {
 
   it('respects step-level resolution when stage selectors are bare', () => {
     const stepped = buildScreenIndex([
-      { alias: 'main', order: 1 },
+      { id: 'main', order: 1 },
       {
-        alias: 'shell',
+        id: 'shell',
         order: 2,
-        steps: [{ alias: 'intro' }, { alias: 'outro' }],
+        steps: [{ id: 'intro' }, { id: 'outro' }],
       },
     ])
     const rawFiles = new Map([

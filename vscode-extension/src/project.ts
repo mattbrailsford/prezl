@@ -16,7 +16,7 @@ export type CoverItemInfo = {
 }
 
 export type StepInfo = {
-  alias: string
+  id: string
   title?: string
   /** Resolved sticky-forward open: this step's open, falling through to
    *  prior step / stage default. `null` means explicit clear. `undefined`
@@ -33,7 +33,7 @@ export type StepInfo = {
 }
 
 export type StageInfo = {
-  alias: string
+  id: string
   branch?: string
   title?: string
   reset: boolean
@@ -43,7 +43,7 @@ export type StageInfo = {
    *  the tree view; steps with an own override surface theirs instead. */
   defaultCover: CoverItemInfo[] | undefined
   steps: StepInfo[]
-  /** First screen id within this stage — `alias` for stepless, `alias.firstStep` otherwise. */
+  /** First screen id within this stage — `id` for stepless, `id.firstStep` otherwise. */
   firstScreenId: string
   /** Every screen id this stage produces. */
   screenIds: string[]
@@ -138,8 +138,8 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
   for (const sRaw of stagesRaw) {
     if (!sRaw || typeof sRaw !== 'object') continue
     const s = sRaw as Record<string, unknown>
-    const alias = typeof s.alias === 'string' ? s.alias : null
-    if (!alias) continue
+    const id = typeof s.id === 'string' ? s.id : null
+    if (!id) continue
     const defaultOpen = parseOpen(s.open)
     const defaultCover = parseCover(s.cover)
     const stepsRaw = Array.isArray(s.steps) ? s.steps : []
@@ -148,9 +148,9 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
     let prevOpen: OpenTarget | undefined = defaultOpen
     for (const stRaw of stepsRaw) {
       if (typeof stRaw === 'string') {
-        const screenId = `${alias}.${stRaw}`
+        const screenId = `${id}.${stRaw}`
         steps.push({
-          alias: stRaw,
+          id: stRaw,
           resolvedOpen: prevOpen,
           ownCover: undefined,
           screenId,
@@ -161,9 +161,9 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
       }
       if (!stRaw || typeof stRaw !== 'object') continue
       const st = stRaw as Record<string, unknown>
-      const stAlias = typeof st.alias === 'string' ? st.alias : null
-      if (!stAlias) continue
-      const screenId = `${alias}.${stAlias}`
+      const stId = typeof st.id === 'string' ? st.id : null
+      if (!stId) continue
+      const screenId = `${id}.${stId}`
       let resolved: OpenTarget | undefined
       if ('open' in st) {
         if (st.open === null) {
@@ -185,7 +185,7 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
         ownCover = parseCover(st.cover)
       }
       steps.push({
-        alias: stAlias,
+        id: stId,
         title: typeof st.title === 'string' ? st.title : undefined,
         resolvedOpen: resolved,
         ownCover,
@@ -196,14 +196,14 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
       prevOpen = resolved
     }
 
-    const firstScreenId = steps.length > 0 ? steps[0].screenId : alias
+    const firstScreenId = steps.length > 0 ? steps[0].screenId : id
     if (steps.length === 0) {
-      screenIds.push(alias)
-      ordered.push(alias)
+      screenIds.push(id)
+      ordered.push(id)
     }
 
     stages.push({
-      alias,
+      id,
       branch: typeof s.branch === 'string' ? s.branch : undefined,
       title: typeof s.title === 'string' ? s.title : undefined,
       reset: s.reset === true,
@@ -227,7 +227,7 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
 
 function parseCover(raw: unknown): CoverItemInfo[] | undefined {
   // Cover accepts either a single item (string shorthand or object form,
-  // mirroring preview's single-object shorthand) or an explicit array.
+  // mirroring demo's single-object shorthand) or an explicit array.
   if (raw === undefined || raw === null) return undefined
   if (Array.isArray(raw)) {
     const out: CoverItemInfo[] = []
@@ -337,27 +337,27 @@ export function resolveOpen(
 ): OpenTarget | undefined {
   const dot = screenId.indexOf('.')
   if (dot < 0) {
-    const stage = project.stages.find((s) => s.alias === screenId)
+    const stage = project.stages.find((s) => s.id === screenId)
     if (!stage) return undefined
     if (stage.steps.length > 0) return stage.steps[0].resolvedOpen
     return stage.defaultOpen
   }
-  const stageAlias = screenId.slice(0, dot)
-  const stepAlias = screenId.slice(dot + 1)
-  const stage = project.stages.find((s) => s.alias === stageAlias)
+  const stageId = screenId.slice(0, dot)
+  const stepId = screenId.slice(dot + 1)
+  const stage = project.stages.find((s) => s.id === stageId)
   if (!stage) return undefined
-  const step = stage.steps.find((s) => s.alias === stepAlias)
+  const step = stage.steps.find((s) => s.id === stepId)
   if (!step) return undefined
   return step.resolvedOpen
 }
 
-/** Convenience: every aliasable target for completion — bare stage
- *  aliases plus dotted stage.step ids. */
-export function allScreenAliases(project: Project): string[] {
+/** Convenience: every targetable target for completion — bare stage
+ *  ids plus dotted stage.step ids. */
+export function allScreenIds(project: Project): string[] {
   const out: string[] = []
   for (const s of project.stages) {
-    out.push(s.alias)
-    for (const st of s.steps) out.push(`${s.alias}.${st.alias}`)
+    out.push(s.id)
+    for (const st of s.steps) out.push(`${s.id}.${st.id}`)
   }
   return out
 }

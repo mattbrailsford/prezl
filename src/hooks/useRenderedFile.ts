@@ -35,7 +35,7 @@ export function useCurrentStage(): Stage | null {
     if (!s.project || !s.screenIndex || !s.currentScreenId) return null
     const screen = s.screenIndex.byId[s.currentScreenId]
     if (!screen) return null
-    return s.project.stages.find((x) => x.alias === screen.stageAlias) ?? null
+    return s.project.stages.find((x) => x.id === screen.stageId) ?? null
   })
 }
 

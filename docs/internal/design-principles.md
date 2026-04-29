@@ -13,7 +13,7 @@ For current behaviour, see [`../guide/`](../guide) and
 
 Prezl is a fake-IDE presentation environment for walking an audience
 through a codebase, with staged reveals, explorable files, fake
-build/run behaviour, and configurable previews such as URLs or
+build/run behaviour, and configurable demos such as URLs or
 fullscreen videos.
 
 ## Core idea
@@ -29,7 +29,7 @@ Prezl sits between those two worlds:
 - The code is explorable, but only within curated boundaries.
 - Branches (or the abstraction we call "stages") are the mental model
   for progression — not slides.
-- Preview output can be launched per stage, without requiring the code
+- Demo output can be launched per stage, without requiring the code
   to actually run.
 
 The goal is not to build a real IDE. The goal is to create a
@@ -74,7 +74,7 @@ Everything should feel like a real development workflow, but the
 behaviour should be deterministic and scripted.
 
 The Run button does not actually build anything. It can show fake
-build status. It then launches the configured preview for the current
+build status. It then launches the configured demo for the current
 screen.
 
 ### Code-first, not slide-first
@@ -105,7 +105,7 @@ The experience should avoid common demo risks:
 
 - no real build failures
 - no real dependency installs
-- no network dependency unless explicitly configured through preview URLs
+- no network dependency unless explicitly configured through demo URLs
 - no unexpected editor diagnostics
 - no distracting squiggles
 - no noisy IDE panels

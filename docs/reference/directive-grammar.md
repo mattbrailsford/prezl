@@ -36,7 +36,7 @@ An attribute is `key=value` or a bare flag `key`. Whitespace-separated.
 
 Selectors describe which **screens** of the deck a directive applies to.
 A screen is the addressable unit the presenter advances through —
-either a stage with no `steps:` (one implicit screen, id = stage alias)
+either a stage with no `steps:` (one implicit screen, id = stage id)
 or a single entry in a stage's `steps:` array (id = `stage.step`).
 
 | Form | Meaning |
@@ -52,11 +52,11 @@ or a single entry in a stage's `steps:` array (id = `stage.step`).
 | `[...preview]` | From start of deck through preview's last screen |
 | `[shell.intro...preview, demo]` | Mix of ranges and explicit items |
 
-In a range, a bare stage alias resolves to that stage's **first** screen
+In a range, a bare stage id resolves to that stage's **first** screen
 on the left side and **last** screen on the right side, so
 `[shell...preview]` Just Works whether either stage has steps or not.
 
-Whitespace inside brackets is ignored. Unknown stage / step aliases and
+Whitespace inside brackets is ignored. Unknown stage / step ids and
 inverted ranges (`a...b` where `a.order > b.order`) are load-time
 errors.
 
@@ -117,8 +117,8 @@ The load overlay lists each error with a file path and line:
 - `@prezl end with no matching open`
 - `@prezl end=<id> does not match open id=<other>`
 - `@prezl open [id=x] was never closed`
-- `unknown stage alias: <alias>`
-- `unknown step alias: <stage>.<step>`
+- `unknown stage id: <id>`
+- `unknown step id: <stage>.<step>`
 - `inverted range: <a>...<b>`
 - `invalid mark name: "<text>"`
 - `duplicate id "<name>"` (per-file only; cross-file duplicates are

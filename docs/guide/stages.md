@@ -3,10 +3,10 @@
 A Prezl presentation is a sequence of **stages**, declared in
 `prezl.yaml` under `stages:`. Each stage represents a moment in the
 story — typically a point where new code has appeared, been
-highlighted, or a preview should fire.
+highlighted, or a demo should fire.
 
 Stages are the abstraction; **branches are just the way we visualise
-them**. Each stage has a short `alias` (the canonical id) and may
+them**. Each stage has a short `id` (the canonical handle) and may
 optionally carry a `branch:` label (e.g. a git branch name) for
 display in the dropdown and status bar.
 
@@ -14,13 +14,13 @@ display in the dropdown and status bar.
 
 ```yaml
 stages:
-  - alias: main
+  - id: main
     branch: main
     title: Starting point
     open: src/main.ts
 ```
 
-- **`alias`** *(required)* — short handle used inside
+- **`id`** *(required)* — short handle used inside
   [`@prezl` directives](./directives) (e.g. `[shell...]`). Must be
   unique within the project.
 - **`branch`** *(optional)* — label only. Conventionally the git
@@ -58,7 +58,7 @@ reorder, move the block.
 
 Prezl's keyboard handlers fire in capture phase so any focused control
 can't claim the keystroke first, and they're suppressed while the video
-preview modal is open (so Space/Esc belong to playback there).
+demo modal is open (so Space/Esc belong to playback there).
 
 The dropdown intentionally lists stages only — steps are internal to a
 stage, the same way builds are internal to a slide in Keynote. Jumping
@@ -73,33 +73,33 @@ A stage can optionally declare an ordered list of `steps:` — the
 build-style sub-navigation that fires inside what the audience perceives
 as a single slide. Each step is a **screen** the presenter advances
 through with Space, and each screen can override the stage's `open`,
-`previews`, and `cover` to swap files or change the Run target
+`demos`, and `cover` to swap files or change the Run target
 mid-build.
 
 ```yaml
-- alias: preview
+- id: preview
   open: src/dashboard.ts#registerDashboard
-  preview:
+  demo:
     type: url
     src: https://example.com/demo
   steps:
     - intro                          # bare-string shorthand
-    - alias: fetchImpl
+    - id: fetchImpl
       open: src/api.ts#fetchDashboardData
-    - alias: chartHelpers
+    - id: chartHelpers
       open: src/dashboard.ts#renderCharts
 ```
 
-Each step is either a bare alias string (no overrides) or the full
-object form with `alias`, optional `title`, `open`, `preview` /
-`previews`, and `cover`.
+Each step is either a bare id string (no overrides) or the full
+object form with `id`, optional `title`, `open`, `demo` /
+`demos`, and `cover`.
 
 **Inheritance differs by field.**
 
-- **`previews` and `cover`** resolve **stage→step only** — there's no
+- **`demos` and `cover`** resolve **stage→step only** — there's no
   step-to-step chain. An omitted step uses the *stage default*; a
   step's own value replaces it for that screen; `~` (YAML null)
-  explicitly clears it for that screen. Adding a preview on step 2
+  explicitly clears it for that screen. Adding a demo on step 2
   does **not** carry into step 3 — step 3 falls back to whatever the
   stage declared.
 - **`open`** does *not* sticky-forward across omitted steps either,
@@ -116,14 +116,14 @@ object form with `alias`, optional `title`, `open`, `preview` /
   single file without restating the path. `open: ~` resets to
   `stage.open`.
 
-Each screen has the id `<stageAlias>.<stepAlias>` — `preview.intro`,
+Each screen has the id `<stageId>.<stepId>` — `preview.intro`,
 `preview.fetchImpl`, etc. — and that's what directive selectors target.
 A stage with no `steps:` has one implicit screen whose id is just the
-bare alias.
+bare stage id.
 
 ## Screen-aware visibility
 
-The directive grammar accepts both bare stage aliases and dotted screen
+The directive grammar accepts both bare stage ids and dotted screen
 ids inside its selector brackets:
 
 - `[shell]` — every screen of the shell stage
@@ -154,14 +154,14 @@ async function render(container) { … }
 
 See [Directives](./directives) for the full grammar.
 
-## Previews per stage (and per step)
+## Demos per stage (and per step)
 
-Any stage may declare one or more **previews** — URLs and videos that
-the Run button triggers. The YAML accepts both `preview:` (single
-object shorthand) and `previews:` (explicit list); the Run button
+Any stage may declare one or more **demos** — URLs and videos that
+the Run button triggers. The YAML accepts both `demo:` (single
+object shorthand) and `demos:` (explicit list); the Run button
 shows a picker when there's more than one. Steps can override the list
 (stage→step only — no step-to-step chain), or write `~` to explicitly
-clear for that step. See [Previews](./previews).
+clear for that step. See [Demos](./demos).
 
 ## Stage cover (presenter agenda)
 
@@ -171,7 +171,7 @@ is rendered as a small clickable section under the file tree; rows tick
 once their file has been opened during the stage's tenure.
 
 ```yaml
-- alias: preview
+- id: preview
   cover:
     - src/dashboard.ts                       # bare path — "open at top"
     - src/api.ts#fetchDashboardData          # path#id — open at anchor
@@ -185,10 +185,10 @@ Each entry is either a string shorthand (same `path[#id][@line]`
 grammar `open` accepts) or the object form with `file` (required),
 optional `id` / `line` / `title`. A single-item agenda can drop the
 list dash entirely — `cover: src/foo.ts#fetchData` is shorthand for a
-one-element list, mirroring `preview:` vs `previews:`.
+one-element list, mirroring `demo:` vs `demos:`.
 
 Steps inherit `cover` from the stage with the same stage→step-only
-resolution as `previews`. Override per step by setting your own
+resolution as `demos`. Override per step by setting your own
 `cover:`, or write `cover: ~` to clear it for that step. Cover never
 propagates across stage boundaries — each stage is its own agenda.
 
@@ -205,7 +205,7 @@ A stage with `reset: true` re-grounds the workspace when the presenter
 crosses into it from another stage:
 
 ```yaml
-- alias: preview
+- id: preview
   reset: true
   open: src/dashboard.ts
 ```
@@ -225,39 +225,39 @@ not something to re-trigger mid-build.
 ## Full example
 
 ```yaml
-name: Umbraco Dashboard Demo
+name: Dashboard Demo
 
 stages:
-  - alias: main
+  - id: main
     branch: main
     title: Starting point
     # No `open:` — start with the file tree only (default empty pane).
 
-  - alias: shell
+  - id: shell
     branch: feature/dashboard-shell
     title: Add dashboard shell
     open: src/dashboard.ts#registerDashboard
 
-  - alias: preview
+  - id: preview
     branch: feature/dashboard-preview
     title: Preview dashboard
     open: src/dashboard.ts#registerDashboard
-    preview:
+    demo:
       type: url
       src: https://example.com/demo/dashboard
       mode: external
     steps:
       - intro
-      - alias: fetchImpl
+      - id: fetchImpl
         open: src/api.ts#fetchDashboardData
-      - alias: chartHelpers
+      - id: chartHelpers
         open: src/dashboard.ts#renderCharts
 
-  - alias: demo
+  - id: demo
     branch: feature/recorded-demo
     title: Recorded backoffice walkthrough
     open: src/api.ts@1
-    previews:
+    demos:
       - title: Recorded walkthrough
         type: video
         src: ./videos/backoffice-demo.mp4
