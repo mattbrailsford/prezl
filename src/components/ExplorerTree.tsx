@@ -460,8 +460,10 @@ function TreeItem({
     const FolderIcon = isOpen ? FolderOpen : Folder
     // Quieter "contains focused descendant" accent — folder name tints toward
     // the focus colour but stays readable; chevron/icon use the same tint so
-    // the row reads as a single soft cue rather than a stripe.
-    const containsFocus = focusedAncestors.has(node.key)
+    // the row reads as a single soft cue rather than a stripe. Only applies
+    // while the folder is collapsed: once it's open the focused leaves are
+    // visible directly, so the folder cue would just be noise.
+    const containsFocus = !isOpen && focusedAncestors.has(node.key)
     const folderClasses = containsFocus
       ? 'text-focus/70 hover:bg-app-panel/60 hover:text-focus'
       : 'text-app-muted hover:bg-app-panel/60 hover:text-app'

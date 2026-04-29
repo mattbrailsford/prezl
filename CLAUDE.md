@@ -308,9 +308,11 @@ Attribute semantics:
   carry a sibling `focus(=[selector])?` to highlight the file's
   explorer entry on matching screens — the leaf row tints to
   `--color-focus` with a left stripe (mirrors `.code-line-focused`),
-  and any folder ancestor that contains a focused descendant gets a
-  quieter `text-focus/70` tint without auto-expanding. Focus is a
-  no-op when `file=` itself hides the file on the current screen
+  and any *collapsed* folder ancestor that contains a focused
+  descendant gets a quieter `text-focus/70` tint without auto-
+  expanding. The folder tint drops as soon as it's expanded, since
+  the focused leaves underneath then carry the cue themselves. Focus
+  is a no-op when `file=` itself hides the file on the current screen
   (focus implies visible). No other attributes combine with `file=`.
 
 The collapse fold's `start` is the first content line and `end` is
