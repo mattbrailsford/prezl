@@ -663,11 +663,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
 
     set({
       previewState: { kind: 'launching', preview },
-      statusMessage: 'Building...',
+      statusMessage: 'Preparing...',
     })
     await sleep(BUILD_DELAY_MS)
     if (get().previewState.kind !== 'launching') return
-    set({ statusMessage: 'Build succeeded' })
+    set({ statusMessage: 'Ready' })
     await sleep(LAUNCH_DELAY_MS)
     if (get().previewState.kind !== 'launching') return
     set({ statusMessage: 'Launching preview...' })

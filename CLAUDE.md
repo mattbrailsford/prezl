@@ -58,8 +58,9 @@ Stages and steps collapse into one flat ordered list (`screenIndex.ordered`).
 Space/PageDown walks this list end-to-end, including across stage
 boundaries. The dropdown still lists stages only (steps are internal,
 like slide builds in Keynote); selecting a stage jumps to its first
-step. A step indicator (`n / N`) appears in the TopBar only for stages
-with multiple screens — single-step stages look unchanged.
+step. A step indicator (`n / N` plus the step's `title` / alias if
+set) appears in the TopBar only for stages with multiple screens —
+single-step stages look unchanged.
 
 Step `previews` and `cover` resolve **stage→step only** — there's no
 step-to-step chain. Each step independently uses the stage default
@@ -74,11 +75,7 @@ Reference identity is preserved across consecutive inherited steps —
 `buildScreenIndex` hands the same stage list reference to each — which
 is what the autoLaunch logic and visited-tracking key off. So an
 inherited preview list doesn't re-fire `autoLaunch: 'start'` on every
-step, and an inherited `cover` doesn't reset visited tracking. (There
-used to be a sticky-forward chain with `~` as an escape hatch — "drop
-step 2's trailing-video override before reaching step 3"; that was
-removed in favour of "declare per step or use the stage default." If
-you need a preview available across steps, set it on the stage.)
+step, and an inherited `cover` doesn't reset visited tracking.
 
 Step `open` is also tri-state but **does not** sticky-forward across
 omitted steps:
@@ -96,12 +93,6 @@ omitted steps:
   `prevOpenWithFile` so an authored partial after an omitted gap still
   has a target file.
 - value — use as-is.
-
-If the author wants every step to actively clear the editor, they have
-to write `open: ~` on each step explicitly — there's no inherited-`null`
-shortcut. In practice presenter state during a "supposed to be empty"
-stage rarely diverges from the intent, so the no-opinion default is the
-right tradeoff.
 
 Branch reload (file contents) only happens when crossing a stage
 boundary; within-stage step changes are pure parser re-runs, so they
@@ -130,7 +121,8 @@ the row label (with the URL or video basename as fallback), so two
 entries that share a `src` can still be distinguished at the moment of
 selection.
 
-Run button behaviour (also wired into Ctrl+Enter):
+Run button behaviour (also wired into Ctrl+Enter and F5 — F5 keeps
+presenter-clicker compatibility; Ctrl+R still does native refresh):
 
 - Empty list → button disabled, status toast "No preview configured".
 - Exactly one → launch directly (URL preview opens externally; video
@@ -195,28 +187,15 @@ presenter wants to remember to discuss during that stage. Surfaced as a
 small clickable list under the file tree (`StageCoverList`); items tick
 once their file has been opened during the current stage's tenure.
 
-Authoring shorthand uses the same `path[#id][@line]` mini-grammar that
-`open` accepts (parsed by `parseTargetShorthand` in `schema.ts`). Both
-suffixes are optional and either order works:
-
-- `src/api.ts` → bare path
-- `src/api.ts#fetchData` → file + symbol id
-- `src/api.ts@42` → file + line
-- `src/api.ts#fetchData@42` → all three
-
-Suffixes peel from the rightmost separator and bail out cleanly when
-the result wouldn't make sense (npm-scoped `@types/foo.ts` keeps the
-`@`; `@head` keeps the literal tag because it isn't all digits; `@0`
-isn't a valid line). Object form (`{ file, id?, line?, title? }`)
-remains for cases the shorthand can't express — most notably a custom
-row `title` in cover (falls back to the file basename otherwise), or a
-partial `{ id }` in `open` that inherits the file from the previous
-resolved open.
-
-Cover lists also accept a single item (string or object) as shorthand
-for a one-element list — mirroring how `preview:` is the single form
-of `previews:`. Both `cover: src/api.ts#fetchData` and `cover: [src/api.ts#fetchData]`
-resolve to the same internal `CoverItem[]`.
+Authoring shorthand: `path[#id][@line]` mini-grammar (parsed by
+`parseTargetShorthand` in `schema.ts`) — either suffix optional, either
+order. Object form `{ file, id?, line?, title? }` covers what shorthand
+can't (custom row `title`, or a partial `{ id }` in `open` that inherits
+the file from the previous resolved open). Single-item shorthand: a
+bare string/object is equivalent to a one-element list — mirrors the
+`preview:` / `previews:` pair. See `docs/reference/yaml-schema.md` for
+the full grammar (npm-scoped path edge cases like `@types/foo.ts`,
+`@head` literal preservation, etc.).
 
 Steps may override the stage cover list with a step-level `cover:` —
 same stage→step resolution as `previews` (omit → stage default, `~` →
@@ -248,108 +227,59 @@ shares the stage's cover" case never triggers a reset.
 
 ```
 src-tauri/          Rust shell (Tauri 2)
-  src/commands.rs     load_project, read_project_file (scoped to <root>/files),
+  src/commands.rs     load_project, read_project_file (binary-safe:
+                      non-UTF-8 returns null → LoadedProject.binaryFiles
+                      not rawFiles, so the explorer still surfaces them),
                       list_project_files, recents/preferences CRUD via
                       config_dir() (appConfigDir, or <exe-dir>/data/ when
-                      the exe filename contains "portable").
-  src/lib.rs          plugin registration + invoke_handler wiring.
-  capabilities/       Explicit window permissions (start-dragging, minimize,
-                      toggle-maximize, close, is-maximized, dialog:open).
-                      core:default does NOT include window-mutating ops.
+                      exe filename contains "portable" — see "Preferences").
+  capabilities/       Explicit window permissions; core:default does NOT
+                      include window-mutating ops. Deep-link allow list
+                      needs explicit register / unregister / is-registered.
 
 src/
-  App.tsx             auto-opens most-recent project if still valid; else
-                      renders WelcomeScreen.
-  main.tsx            standard ReactDOM.createRoot — no special pre-init.
-  components/
-    AppShell.tsx        TopBar + Explorer + tabs + CodeView + StatusBar
-    TopBar.tsx          project title (click to close project) + stage
-                        dropdown + step indicator + run + window controls.
-                        data-tauri-drag-region is on every non-interactive
-                        element.
-    StageSelector.tsx   stages-only dropdown; switchStage(alias) jumps to
-                        the stage's first screen.
-    StepIndicator.tsx   "n / N" within current stage; hidden for single-
-                        screen stages.
-    ExplorerTree.tsx    tree from useVisibleFiles(); header has Open
-                        Folder + Collapse-All-Folders (preserves group-
-                        header state) + Hide-Explorer buttons.
-    CodeView.tsx        static read-only viewer — Shiki tokens, plain DOM
-                        for line numbers / fold widgets / decorations.
-                        Replaced Monaco; see "Code viewer" below.
-  project/
-    schema.ts           Zod validation for prezl.yaml (or prezl.yml — the
-                        Rust loader tries .yaml first, falls back to .yml).
-                        open: accepts a bare path string (shorthand for
-                        { file }, no implicit line — CodeView preserves the
-                        prior scrollTop if the file is unchanged across the
-                        screen switch, else starts at the top, leaving
-                        default-collapsed folds collapsed), the object
-                        form (where `file` is optional — a partial
-                        `{ id }` or `{ line }` inherits the file from
-                        the previous resolved open via the buildScreenIndex
-                        merge; the schema rejects an empty `{}`), or
-                        explicit `null`
-                        (`~` in YAML) meaning "actively clear — no file
-                        open." Omitting `open:` on a step (other than
-                        step 1, which seeds from `stage.open`) resolves
-                        to `undefined` — the reducer's prior-active-file
-                        rule keeps the runtime state, so a presenter close
-                        survives across the transition without being
-                        force-reopened. With nothing prior the pane stays
-                        empty (no auto-fallback to the first explorer
-                        file — that fallback was deliberately removed so
-                        the default first-stage UX is "just the file
-                        tree"). Empty pane renders EmptyEditorPane
-                        (faded brand mark + project name) and EditorTabs
-                        hides itself (kept only when the explorer is also
-                        collapsed, so the expand-explorer button stays
-                        reachable). Step entries accept a bare alias
-                        string (shorthand for { alias }) or the object
-                        form. Stages may set `reset: true` — see "Stage
-                        reset" below.
-    loader.ts           orchestrates pickProjectFolder / load_project /
-                        list_project_files / read_project_file. The
-                        backend's read_project_file returns Option<String>:
-                        non-UTF-8 (binary) files come back as null and are
-                        collected into LoadedProject.binaryFiles instead
-                        of rawFiles, so the explorer still surfaces them.
-    stageList.ts        screen index + selector parser. buildScreenIndex
-                        produces ordered screens with step→stage open/
-                        preview inheritance. parseScreenList accepts
-                        bare aliases (= every screen of that stage) and
-                        dotted refs (stage.step), with cross-stage ranges.
-    directiveParser.ts  per-screen parse: text + foldRanges + focusRanges +
-                        marks + hiddenForStage + errors. Takes a
-                        currentScreenId + ScreenIndex.
-    visibleFiles.ts     file-level `@prezl file=` filter for the explorer,
-                        evaluated against the current screen.
-    shikiSetup.ts       singleton highlighter + inferLanguage.
+  App.tsx             auto-opens most-recent project if valid; else
+                      WelcomeScreen.
+  components/         AppShell, TopBar (data-tauri-drag-region on every
+                      non-interactive element), StageSelector,
+                      StepIndicator, ExplorerTree (header: Open Folder +
+                      Collapse-All-Folders + Hide-Explorer; group-header
+                      state preserved on collapse-all), CodeView,
+                      EditorTabs, StageCoverList, BackToPresentationButton,
+                      BootCurtain, preview/ (PreviewPicker, VideoPreview),
+                      etc.
+  project/            schema.ts (Zod for prezl.yaml/.yml — loader tries
+                      .yaml first; tri-state open/previews/cover — see
+                      "The screen model"), loader.ts (load_project +
+                      file-list + read orchestration), stageList.ts
+                      (buildScreenIndex with step→stage open/preview
+                      inheritance, parseScreenList for bare/dotted/range
+                      selectors), directiveParser.ts (per-screen parse:
+                      text + foldRanges + focusRanges + marks +
+                      hiddenForStage + errors), visibleFiles.ts (`file=`
+                      filter), shikiSetup.ts (singleton highlighter +
+                      inferLanguage).
   state/
-    store.ts            Zustand; setProject builds + caches the
-                        ScreenIndex. switchStage(alias) is sugar for
-                        switchScreen(firstScreenOf(alias)).
-                        switchScreenRelative(±1) walks the flat ordered
-                        list. Status "Switching to X..." only fires when
-                        crossing a stage boundary.
-    stageReducer.ts     pure tab reconciliation on screen switch
-                        (reconcileScreenSwitch). Consumes the screen's
-                        resolved open, so per-step open overrides take
-                        effect. Also exposes a stage-reset variant that
-                        collapses tabs to the resolved open file when
-                        crossing into a `reset: true` stage.
-  hooks/
-    useUiScale.ts       Ctrl+=/-/wheel, Ctrl+0, persisted.
-    useExplorerToggle   Ctrl+E.
-    useStageShortcuts   Space / PageDown / Ctrl+Space (and inverses) —
-                        walks every screen, including across stage
-                        boundaries.
-    useMouseHistoryNav  XButton1/2 (mouse back/forward) → goBack /
-                        goForward. Capture-phase mousedown+mouseup;
-                        suppressed while the video preview is open.
-    useRenderedFile.ts  useScreenIndex / useCurrentScreen /
-                        useCurrentStage / useVisibleFiles /
-                        useSymbolTable / useActiveRenderedFile.
+    store.ts          Zustand; setProject builds/caches ScreenIndex.
+                      switchStage = sugar for
+                      switchScreen(firstScreenOf(alias));
+                      switchScreenRelative(±1) walks the flat ordered
+                      list. "Switching to X..." status only fires across
+                      stage boundaries.
+    stageReducer.ts   pure tab reconciliation (reconcileScreenSwitch),
+                      consumes resolved open so per-step overrides take
+                      effect. Stage-reset variant collapses tabs to the
+                      resolved open file when crossing into reset: true.
+  hooks/              useUiScale (Ctrl+=/-/wheel, Ctrl+0),
+                      useExplorerToggle (Ctrl+E), useStageShortcuts
+                      (Space/PageDown/Ctrl+Space — walks every screen
+                      across stage boundaries), useMouseHistoryNav
+                      (XButton1/2 → goBack/goForward; capture-phase;
+                      suppressed while video preview is open),
+                      useRunShortcut (Ctrl+Enter / F5), useRenderedFile
+                      (useScreenIndex / useCurrentScreen /
+                      useCurrentStage / useVisibleFiles / useSymbolTable
+                      / useActiveRenderedFile).
 ```
 
 ## Directive system invariants
@@ -434,154 +364,77 @@ never fire.
 
 ## Code viewer
 
-`CodeView.tsx` is a static, read-only HTML viewer — no editor library.
-Tokens come from Shiki (singleton in `shikiSetup.ts`); everything else
-(line numbers, fold widgets, focus highlights, click-to-jump symbol
-spans) is plain DOM.
+`CodeView.tsx` is a static, read-only HTML viewer — Shiki tokens plus
+plain DOM for line numbers, fold widgets, focus highlights, and
+click-to-jump symbol spans. Replaces a Monaco wrapper that brought
+~2.5 MB of editor for features we'd turned off, plus flicker-prone
+fold-model caching. Tokenization is async-but-cheap; the viewer shows
+raw text in the meantime — never blank.
 
-Why no Monaco: the previous Monaco wrapper was ~2.5 MB of editor for
-features we explicitly turned off (IntelliSense, hover, cursor, etc.).
-Cold start showed a black screen until the editor mounted; stage
-switches needed a `visibility: hidden` flicker-prevention dance because
-Monaco's FoldingController cached models we couldn't easily invalidate.
-Static HTML rendering eliminates both — content is visible the moment
-the parser produces a `RenderedFile`, and screen switches are a normal
-React re-render.
+**Two fold-key shapes, on purpose.** `collapsedFolds` keys by
+*rendered* line numbers (what `isLineHidden` operates on);
+`manuallyExpandedRef` keys by *original-source* lines via
+`RenderedFile.originalLineMap` (`manualKey`). A `show=` region above
+a fold shifts its rendered range across steps; original-source
+positions don't, so a presenter-opened fold stays recognised even
+when its rendered range moves. Without this split, an expansion in
+step 1 would re-collapse on the step that toggles a `show=` above it.
+`manuallyExpandedRef` clears on file/stage change, so manual opens
+persist within a `(file, stage)` and reset cleanly across boundaries.
 
-**Tokenization is async-but-cheap.** First `getHighlighter()` resolves
-the Shiki bundle (~150–250 KB; per-language grammars lazy-load on
-demand). Until tokens arrive, the viewer renders the raw text without
-colours — readable and never blank. After resolution, subsequent
-tokenizations are synchronous.
+**`flash` is a dual-purpose signal.** `scrollToLine(line, flash)` —
+`flash: true` (symbol clicks) means transient fold reveal + visible
+flash. `flash: false` (the `screen.open` path) means persistent reveal
+(recorded in `manuallyExpandedRef`) + no flash. Otherwise every step
+advance would flash distractingly.
 
-**Folding state is local to CodeView.** A `Set<string>` of fold keys
-(`${start}-${end}`) is re-seeded from `RenderedFile.foldRanges` on
-every `(file, screen)` change, so directive defaults reapply at every
-screen boundary. Manual presenter *expansions* persist across step
-transitions within the same `(file, stage)` via a separate
-`manuallyExpandedRef` set: the seeding pass adds defaults but skips
-keys the presenter has already opened. Crossing into a different
-stage (forward, back, dropdown, or `reset: true`) or swapping files
-clears the override set so the new context seeds cleanly.
-
-The two key shapes diverge on purpose. `collapsedFolds` keys by
-*rendered* line numbers (what the renderer/`isLineHidden` operate on),
-but `manuallyExpandedRef` keys by *original-source* line numbers via
-`RenderedFile.originalLineMap` (`manualKey` in CodeView.tsx). A `show=`
-region inside or above a fold shifts the fold's rendered start/end
-across steps; the original-source positions don't, so a presenter-
-opened fold stays recognized even when its rendered range moves.
-Without this split, expanding fold A in step 1 would re-collapse on
-the step that toggles a `show=` region above it.
-
-Auto-expansion inside `scrollToLine` is split by intent. When the
-caller passes `flash: true` (symbol click — explicit user jump), the
-containing-fold reveal is transient and the next screen re-collapses
-per defaults. When the caller passes `flash: false` (the `screen.open`
-path — the step's authored landing target), any containing folds it
-opens get recorded in `manuallyExpandedRef`, so subsequent step
-transitions within the same `(file, stage)` keep them open. The
-`flash` boolean does double duty: line-flash gating *and* the
-transient-vs-persistent expansion signal.
-
-**Symbol decorations are inline.** `useSymbolTable` returns a `Map<id,
-{file, line}>` of every anchor on the current screen. The renderer
-walks each line's Shiki tokens and, for any token whose text contains
-a known id at a word boundary, splits the token to wrap the match in
-a `.prezl-symbol` span with `data-target-*` attrs. The definition site
-is skipped. A single click handler at the container delegates jumps
-via `navigateToFileLine`. The Ctrl+T picker uses `useNavigableSymbols`
-instead — same shape, but pre-filtered to ids with at least one
-non-definition word-boundary occurrence in some visible file's
-rendered text. Pure section anchors (typically just `open.id` scroll
-targets) get filtered out so the picker only lists ids the audience
-could actually click on in the code.
-
-**Scroll handling.** A `useLayoutEffect` scrolls the target line into
-view before paint on `(file, screen, pendingNavigation)` change.
-Priority: `pendingScrollTop` (back/forward replay) > `pendingNavigation`
-> `screen.open.id` > `screen.open.line` > preserve current scrollTop
-when the file is unchanged from the previous screen > top of file. The
-`screen.open` is the resolved value (step override wins over stage
-default), so per-step opens drive scroll. The "preserve when same file"
-fallback is what keeps step advances through one file from snapping
-back to the top when the new step has no scroll opinion of its own.
-
-Two extras layer onto every `scrollToLine` call:
-
-- **Auto-expand containing folds.** Any fold whose range covers the
-  target line (inclusive of `start`, since the start line is the fold's
-  visible header — clicking a symbol on a `collapse`d type declaration
-  should reveal the body, not just sit on the summary) gets its key
-  removed from `collapsedFolds` before scrolling. In cross-file jumps
-  the seeding effect's `setCollapsedFolds(initial)` runs first and
-  collapses everything per directive defaults; our updater runs on top
-  via `setCollapsedFolds(prev => prev - containing)`, so the order
-  produces "defaults minus containing." When expansion happens we defer
-  the actual scroll one frame (`requestAnimationFrame`) so React has
-  committed the new collapsed state and the line is back in the DOM.
-- **Highlight flash.** `flashLine(el)` runs `el.animate(...)` with a
-  stable `Animation.id` so repeat jumps cancel any in-flight flash and
-  restart cleanly. Imperative WAAPI (not a CSS class) so React's
-  className diff can't strip it mid-animation. **Only fires for
-  explicit jumps** — `scrollToLine` takes a `flash: boolean` and the
-  `screen.open` path passes `false`, otherwise every step advance would
-  flash distractingly. Colour reads `--color-app-accent` via
-  `getComputedStyle` so the flash stays themed.
-
-**Keyboard shortcuts in capture phase.** Global shortcuts (zoom,
-Ctrl+E, Ctrl+Enter, Ctrl+T, screen navigation) register with
+**Capture-phase shortcuts.** Global shortcuts (zoom, Ctrl+E,
+Ctrl+Enter / F5, Ctrl+T, screen navigation) register with
 `{ capture: true }` so any focused control can't claim them first.
+F5's capture binding also suppresses the WebView's default
+page-refresh.
 
-**Screen navigation uses presenter-remote conventions:**
+**Screen navigation:**
 
-| | Next screen | Prev screen |
+| | Next | Prev |
 | --- | --- | --- |
 | Bare | Space | Shift+Space |
 | Clicker | PageDown | PageUp |
 | Legacy | Ctrl+Space | Ctrl+Shift+Space |
 
-`useStageShortcuts` (named for legacy reasons; semantics are
-screen-walking now) skips the handler when focus is on a real
-text-typing control (contentEditable, `<input>` / `<textarea>`) — keeps
-typed Space working there. Buttons and selects fall through, so Space
-still advances even if focus is on an explorer item.
+`useStageShortcuts` skips when focus is on a real text-typing control
+(contentEditable, `<input>`, `<textarea>`); buttons/selects fall
+through.
 
-**Video modal absorbs the clicker too.** While the video preview is
-open, `useStageShortcuts` explicitly skips (`preview.kind === 'video'`),
-and the modal's own capture-phase handler intercepts:
+**Video modal absorbs the clicker.** While open, `useStageShortcuts`
+explicitly skips (`preview.kind === 'video'` or `'picker'`) and the
+modal handles: Space/PageDown play-pause until the clip ends (`stopAt`
+or natural `ended`), then close — and advance the deck if
+`previewState.trailing` (the trailing video IS the leaving act);
+Escape/PageUp close without advancing. So PageDown drives playback
+inside the video and screen nav outside; PageUp closes the video or
+walks backward.
 
-- `Space` / `PageDown` → play/pause; once the clip has hit its end
-  (either a `stopAt` cue or the file's natural `ended` event), these
-  close the modal so forward nav defaults to "I'm done, carry on." For
-  a *trailing* video (one opened via `autoLaunch: 'end'`, flagged by
-  `previewState.trailing`) this same press also advances the deck —
-  the trailing video IS the leaving act, so it shouldn't take an
-  extra Space.
-- `Escape` / `PageUp` → close preview, never advance.
-- The Restart chip (only shown at `stopAt`) takes an explicit click —
-  replaying is the rare deliberate case, not what forward nav should do.
+**Symbol decorations are inline.** `useSymbolTable` (`Map<id, {file,
+line}>` of every anchor on the current screen) feeds a token-walking
+pass that wraps word-boundary matches in `.prezl-symbol` spans with
+`data-target-*` attrs; definition site skipped, click handler
+delegates to `navigateToFileLine`.
 
-So with the same remote, PageDown drives playback inside the video and
-drives screen navigation outside; PageUp closes the video or walks
-backward a screen.
+**Debugging.** `useActiveRenderedFile` logs the parsed `RenderedFile`
+to the console on every parse, keyed by screen id. For parser-only
+questions, prefer adding a failing case to the relevant Vitest file
+and running `pnpm test` (or `pnpm test:watch`) over ad-hoc debug
+scripts:
 
-**Debugging the parser.** `useActiveRenderedFile` logs the parsed
-`RenderedFile` (text, foldRanges, focusRanges, marks, hiddenForStage,
-errors) to the console on every parse, keyed by screen id. Compare
-against what the viewer actually renders if behaviour looks wrong.
-
-For parser-only questions, the Vitest suite covers the pure logic
-directly:
-
-- `src/project/stageList.test.ts` — screen index build + selector grammar
-- `src/project/directiveParser.test.ts` — full directive parsing
+- `src/project/stageList.test.ts` — screen index + selector grammar
+- `src/project/directiveParser.test.ts` — directive parsing
 - `src/project/visibleFiles.test.ts` — file-level gate filter
 - `src/state/stageReducer.test.ts` — tab reconciliation
 
-Add a failing case to the relevant `.test.ts` file and run
-`pnpm test` (one-shot) or `pnpm test:watch` (TDD loop). Prefer this
-over ad-hoc debug scripts.
+See `docs/internal/code-viewer.md` for the deep dive on tokenization,
+folding mechanics, the full scroll-priority chain, fold auto-expansion
+on jumps, and flash WAAPI details.
 
 ## Location history
 
@@ -679,18 +532,6 @@ launch (or focus) the app, switch to a screen, and optionally surface a
 User-facing docs live at `docs/guide/slide-deck-integration.md` and
 `docs/reference/url-scheme.md`.
 
-## Milestone status
-
-- M1 — shell ✓
-- M2 — project loading, recents, branch switching ✓
-- M3 — `@prezl` directive system ✓
-- M4 — fake build + URL preview ✓
-- M5 — fullscreen video preview with cues ✓
-- M6 — symbol navigation ✓
-- M7 — symbol quick-find (Ctrl+T) ✓
-- M8 — intra-stage steps (build-style sub-navigation) ✓
-- M9 — slide-deck deep links + back-to-presentation ✓
-
 ## Symbol navigation
 
 Implicit: no `symbols:` section in YAML. Any `@prezl id=<name>` directive
@@ -739,35 +580,10 @@ must come before any early return.
 
 ## Demo fixture
 
-`examples/demo/` — the four-stage project with one stepped stage. Use
-it to verify behaviour after changes:
-
-- `main`: only `main.ts` + `framework.ts` in the explorer; no `open:`
-  declared, so the default "file tree only" state kicks in — empty
-  editor pane (faded brand mark + project name) and hidden tab strip.
-- `shell`: `dashboard.ts` appears; `registerDashboard` is the focus
-  highlight. The file's own `file=[shell...] focus=[shell]` directive
-  also tints the explorer leaf (and its `src/` folder) on this stage —
-  exercises the file-level focus path.
-- `preview` (3 steps — `intro` / `fetchImpl` / `chartHelpers`):
-  - `preview.intro` — `dashboard.ts` open at `registerDashboard`,
-    focus on `render()`. `Chart rendering helpers` collapsed at the
-    bottom.
-  - `preview.fetchImpl` — file swaps to `api.ts` via per-step `open`,
-    focus on `fetchDashboardData`; `api.ts`'s own
-    `file=[preview...] focus=[preview.fetchImpl]` also tints the
-    explorer leaf for this one screen. Carries a step-level
-    `autoLaunch: 'end'` video preview — forward-advancing from this
-    screen plays the wrap-up clip first and then advances to
-    `chartHelpers` on the carry-on close (atEnd Space).
-  - `preview.chartHelpers` — file back to `dashboard.ts` via per-step
-    `open`, scrolls to `renderCharts`. The `Chart rendering helpers`
-    fold expands and is focus-highlighted; an inner `show=
-    [preview.chartHelpers]` comment block becomes visible. Uses
-    `preview: ~` to drop `fetchImpl`'s trailing-video override and
-    fall back to the stage default (which is none here) — exercises
-    the reset escape hatch.
-- `demo`: everything visible, no focus (preview's focus selectors
-  don't match this stage's screen).
-
-Switching screens should re-apply folds and never show a flash.
+`examples/demo/` — four-stage project with one stepped stage; use it
+to verify parser/renderer changes. The `preview` stage is the
+heaviest: step→stage open inheritance, per-step `open` swapping the
+file, an `autoLaunch: 'end'` trailing video, file-level focus tinting,
+and a `preview: ~` reset of an inherited override. Switching screens
+should re-apply folds and never flash. Per-stage walkthrough:
+`examples/demo/README.md`.

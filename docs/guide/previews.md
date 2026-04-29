@@ -10,9 +10,8 @@ up.
 1. Click **Run** (or press <kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>Enter</kbd>).
 2. If the screen has more than one preview, a **picker** opens —
    arrow keys cycle, Enter selects, Esc closes.
-3. Status bar flashes `Building…` → `Build succeeded` → `Launching
-   preview…` → `Ready`. ~900 ms of fake build sequence to sell the
-   illusion.
+3. Status bar flashes `Preparing…` → `Ready` → `Launching preview…` →
+   `Ready`. ~900 ms of dramatic pause to give the action a beat.
 4. The chosen preview fires:
    - **URL preview** — hands the URL to the OS default browser and
      returns to idle.
