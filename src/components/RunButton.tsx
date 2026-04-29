@@ -45,8 +45,8 @@ export function RunButton() {
   const title = disabled
     ? 'No preview configured'
     : previewCount > 1
-      ? `Run preview (Ctrl+Enter) — ${previewCount} options`
-      : 'Run preview (Ctrl+Enter)'
+      ? `Run preview (F5 / Ctrl+Enter) — ${previewCount} options`
+      : 'Run preview (F5 / Ctrl+Enter)'
   return (
     <button
       type="button"
