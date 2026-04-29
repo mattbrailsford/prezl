@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { useAppStore } from '@/state/store'
+import { convertProjectFileSrc } from '@/project/assetSrc'
 
 /** Resolve the project's `logo:` (if any) to a webview-loadable URL.
  *  Returns null when the project sets no logo or no project is open —
@@ -17,6 +17,6 @@ export function useProjectLogoSrc(): string | null {
       cleaned.startsWith('/') || /^[A-Za-z]:[\\/]/.test(cleaned)
         ? cleaned
         : `${rootPath}/${cleaned}`
-    return convertFileSrc(absolute)
+    return convertProjectFileSrc(absolute)
   }, [logo, rootPath])
 }

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { Pause, Play, RotateCcw, X } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { useVideoCues, type VideoCueEvent } from '@/hooks/useVideoCues'
+import { convertProjectFileSrc } from '@/project/assetSrc'
 
 export function VideoDemo() {
   const demo = useAppStore((s) =>
@@ -97,7 +97,7 @@ export function VideoDemo() {
     const absolute = cleaned.startsWith('/') || /^[A-Za-z]:[\\/]/.test(cleaned)
       ? cleaned
       : `${rootPath}/${cleaned}`
-    return convertFileSrc(absolute)
+    return convertProjectFileSrc(absolute)
   }, [demo, rootPath])
 
   // Seek to startAt on metadata load, then autoplay. The <video> element's
