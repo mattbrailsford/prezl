@@ -2,18 +2,24 @@
 
 Every shortcut registered by Prezl, grouped by what it drives.
 
-## Stage navigation
+## Screen navigation
+
+Each stage has one or more **screens** — the unit the presenter
+advances through. A stage with `steps:` produces one screen per step;
+a stage without produces a single implicit screen. Forward and back
+navigation walks every screen end-to-end, including across stage
+boundaries.
 
 | Shortcut | Action |
 | --- | --- |
-| `Space` / `PageDown` | Next stage |
-| `Shift+Space` / `PageUp` | Previous stage |
+| `Space` / `PageDown` | Next screen (next step within stage, or first step of next stage) |
+| `Shift+Space` / `PageUp` | Previous screen |
 | `Ctrl+Space` / `Ctrl+Shift+Space` | Legacy aliases — same as above |
 
 Suppressed only while a text-typing surface owns focus
 (`<input>` / `<textarea>` / `contentEditable`) and while the video
 preview modal is active. Buttons and the stage-selector dropdown
-deliberately fall through — Space always advances the stage in
+deliberately fall through — Space always advances the screen in
 Prezl, even right after clicking an explorer item, so the presenter
 clicker never gets stuck on the previous interaction.
 
@@ -48,6 +54,19 @@ Inside the symbol finder modal:
 | `↑` / `↓` | Move selection |
 | `Enter` | Jump to selected symbol |
 | `Esc` | Close finder |
+
+## Editor tabs
+
+| Input | Action |
+| --- | --- |
+| Right-click a tab | Open the tab context menu |
+| Context menu: **Close** | Close the right-clicked tab |
+| Context menu: **Close Others** | Close every tab except the right-clicked one |
+| Context menu: **Close All** | Close every open tab |
+
+Closing a tab doesn't push to location history (closing is editing,
+not navigating), so back/forward continues to walk the screens you
+actually visited.
 
 ## Slide-deck integration
 

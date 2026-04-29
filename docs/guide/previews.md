@@ -116,10 +116,12 @@ To swap previews mid-stage, re-state the one you want, or use the
 `preview: ~` (YAML null) on a step drops whatever step-level override
 was carrying forward and reverts to the stage's preview. Sticky-forward
 then continues from this reset point — later empty steps inherit the
-stage's preview, not the prior override. Same shape works for `open: ~`
-when you want a step to forget a prior file override and revert to the
-stage's default file. If the stage doesn't declare a preview / open of
-its own, the reset leaves the field unset.
+stage's preview, not the prior override. The same `~` shorthand works
+for `open: ~` (revert to the stage's open) and `cover: ~` (revert to
+the stage's cover) — see [Stages](./stages#steps-within-a-stage) for
+how step `open` differs from step `preview` (it doesn't
+sticky-forward across omitted steps). If the stage doesn't declare
+a value for a field, the reset leaves it unset.
 
 ### Controls while the video is up
 

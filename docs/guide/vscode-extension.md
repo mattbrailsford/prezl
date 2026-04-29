@@ -7,8 +7,10 @@ between directives and `prezl.yaml`, and a stages tree view so you
 can jump straight to a stage's `open` target.
 
 The extension lives in [`vscode-extension/`](https://github.com/mattbrailsford/prezl/tree/dev/vscode-extension)
-in the repo and is not yet published to the Marketplace. Install it
-from a local build for now.
+in the repo. A `vscode-v*` release pipeline now ships signed `.vsix`
+artifacts via GitHub Actions; Marketplace publication tracks those
+tags. Until you see it in the Marketplace, install from a local build
+or the latest GitHub Release.
 
 ## Installing
 
@@ -60,9 +62,11 @@ Available IDs: `prezl.directive.keyword`, `.attribute`, `.string`,
 
 ### Snippets
 
-Type a prefix and tab through the placeholders. The `$LINE_COMMENT`
-variable means each snippet automatically inserts the right comment
-prefix for the file's language.
+Type a prefix and tab through the placeholders. The right comment
+syntax is inserted automatically for the file's language: line
+comments (`//`, `#`, `--`) in languages that support them, block
+comments (`/* */`, `<!-- -->`, `@* *@`) in HTML, XML, CSS, Razor, and
+other languages without a single-line comment shape.
 
 | Prefix | What it inserts |
 | --- | --- |
@@ -123,9 +127,12 @@ view appears whenever the workspace contains a `prezl.yaml`.
 `prezl.yaml` and `prezl.yml` get JSON-schema-backed validation:
 inline errors for unknown keys, required fields, and type
 mismatches; completions for stage shape; hover docs on each
-property. Backed by the bundled JSON schema and powered by the
-Red Hat YAML extension (declared as a dependency, so it installs
-automatically).
+property. The bundled schema tracks the runtime shape — including
+stage / step `cover:`, the tri-state `null` reset for `open` /
+`preview` / `cover`, and the `path#anchorId` cover shorthand — so
+authoring lines up with what the app actually accepts. Powered by
+the Red Hat YAML extension (declared as a dependency, so it
+installs automatically).
 
 ## Configuration
 

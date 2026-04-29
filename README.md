@@ -56,6 +56,10 @@ Pre-1.0; all the v1 milestones from the original spec are landed:
 - Fullscreen video preview with pause cues for talking-over
 - Click-to-jump symbol navigation
 - Rider-style `Ctrl+T` fuzzy symbol finder
+- Intra-stage **steps** (build-style sub-navigation within a slide)
+- Stage **cover** (presenter agenda surfaced under the file tree, ticked as files are visited)
+- `prezl://` deep links + back-to-presentation shortcut for slide-deck integration
+- Companion VS Code extension for authoring directives and `prezl.yaml`
 - Presentation-friendly UI zoom (`Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`), `Ctrl+E` to hide explorer, `F11` for fullscreen — all persisted across sessions
 
 ## Getting started (developers)

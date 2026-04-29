@@ -82,7 +82,7 @@ open: src/dashboard.ts       # equivalent to { file: src/dashboard.ts, line: 1 }
 The full object form is only needed when you want to jump to a specific
 `line:` or symbol `id:`.
 
-#### Partial `open:` — inherit the file from the previous screen
+#### Partial `open:` — inherit the file from the most recent authored open
 
 Inside the object form `file` is optional. A step staying on the same
 file as its predecessor can jump to a new anchor with just an `id` (or
@@ -90,18 +90,20 @@ file as its predecessor can jump to a new anchor with just an `id` (or
 
 ```yaml
 - alias: preview
-  open: src/dashboard.ts            # step 1: open the file
+  open: src/dashboard.ts            # stage default seeds step 1
   steps:
     - alias: registerDashboard
     - alias: renderCharts
       open: { id: renderCharts }    # same file as before, jump to id
+    - alias: scrollOnly             # no `open:` — see "Inheritance" below
     - alias: fetchData
-      open: { line: 42 }            # still same file, jump to line 42
+      open: { line: 42 }            # file still resolves to dashboard.ts
 ```
 
-The resolver fills in `file` from the previous resolved `open` so each
-step's resolved value is fully self-describing. Subsequent steps that
-omit `open:` continue sticky-forward inheritance from the merged value.
+The resolver fills in `file` from the **most recent authored open
+that had one** (tracked separately from each step's resolved
+`screen.open`), so an authored partial after an omitted step still
+points at the right file.
 
 The empty object `{}` is rejected — at least one of `file`, `line`, or
 `id` must be present.
@@ -168,21 +170,33 @@ Each screen's id is `<stageAlias>.<stepAlias>`, e.g. `preview.intro`,
 `preview.fetchImpl`. A stage with no `steps:` has one implicit screen
 whose id is just the bare alias (e.g. `shell`).
 
-**Inheritance.** Step `open` and `preview` fall through with sticky
-carry-forward: missing values inherit the **previous step's resolved
-value**, with the stage's defaults seeding step 1. Once a step changes
-the file or preview, subsequent empty steps stay there until the next
-explicit override — matching how a presenter actually moves rather than
-snapping back to defaults on every empty step.
+**Inheritance differs by field.**
 
-**Reset escape hatch.** Set `open: ~` or `preview: ~` (YAML null) on a
-step to drop the inherited step value and revert to the **stage's
-default**. Useful when one step introduces an override (a different
-file, or a trailing-video preview) and a later step in the same stage
-should fall back to the stage's plain preview rather than carry that
-override forward. Subsequent empty steps then inherit the reset value
-(i.e., the stage default) — sticky-forward continues from the reset
-point, not from the prior override.
+- **`preview` and `cover`** sticky-carry-forward. Missing values
+  inherit the previous step's resolved value, with the stage's
+  defaults seeding step 1. Once a step changes one, subsequent empty
+  steps stay there until the next explicit override.
+- **`open`** does **not** sticky-forward across omitted steps. Step 1
+  seeds from `stage.open` (entering the stage IS the author's "land
+  here" intent), but subsequent omitted steps resolve to *no opinion*
+  — the runtime preserves the presenter's current state, so a
+  manual close (or any other editor change) survives the step
+  transition. Authoring "every step actively clears the editor"
+  requires writing `open: ~` on each step explicitly. A partial
+  step `open` (`{ id }` or `{ line }` with no `file`) still inherits
+  its file from the most recent authored open with one — see
+  [Partial `open:`](#partial-open-inherit-the-file-from-the-most-recent-authored-open)
+  above.
+
+**Reset escape hatch.** Setting `open: ~`, `preview: ~`, or `cover: ~`
+(YAML null) on a step reverts that field to the **stage's default**.
+
+- For `preview` and `cover`, the reset breaks the sticky chain so
+  subsequent empty steps inherit the reset value (the stage default),
+  not the prior override.
+- For `open`, the reset drops a step-level override and re-applies
+  `stage.open` for that screen. Use it when an earlier step changed
+  files and a later step should re-land on the stage's authored target.
 
 **Aliases must be unique within a stage.** The schema rejects duplicates.
 

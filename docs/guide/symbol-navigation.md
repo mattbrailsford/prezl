@@ -56,8 +56,17 @@ A jump does two things to help the audience follow you:
   collapsed `@prezl collapse` region — or *is* the fold's header line,
   as when an id sits on a `collapse`d type declaration — the fold
   opens automatically so the body is visible. You can re-collapse it
-  manually with the gutter toggle; advancing to the next screen
-  re-applies the directive defaults.
+  manually with the gutter toggle.
+
+  Symbol-click and `Ctrl+T` jumps are *transient*: the next screen
+  re-applies the directive defaults, so the fold goes back to whatever
+  the author specified. The author-driven `screen.open` path (e.g.
+  `open: { id: foo }` on a step) is *persistent* — folds it opens to
+  reach its target stay open across step transitions within the same
+  `(file, stage)`, so a stepped walk-through doesn't keep slamming
+  expanded sections shut. Crossing into a different stage, swapping
+  files, or hitting a `reset: true` stage clears that override and
+  re-seeds folds from defaults.
 - **Highlight flash.** The landed line briefly pulses with the accent
   colour and fades out (~1.6s). It only fires for explicit jumps
   (symbol click, Ctrl+T) — not for the automatic scroll that happens
