@@ -3,6 +3,7 @@ import {
   Box,
   ChevronDown,
   ChevronRight,
+  CopyMinus,
   File,
   FileCode,
   Folder,
@@ -319,6 +320,18 @@ export function ExplorerTree() {
       return next
     })
 
+  // Collapse every folder while leaving project/catch-all group headers in
+  // whatever state they're already in. `expanded ∩ groupKeys` drops every
+  // non-group key (i.e. folders) and keeps only group entries that were
+  // already there.
+  const groupKeySet = useMemo(() => new Set(groupKeys), [groupKeys])
+  const collapseAllFolders = () =>
+    setExpanded((prev) => {
+      const next = new Set<string>()
+      for (const k of prev) if (groupKeySet.has(k)) next.add(k)
+      return next.size === prev.size ? prev : next
+    })
+
   // When a single catch-all group covers everything (no projects declared),
   // skip the group-header chrome and render children directly — matches the
   // original flat-tree look for simple single-project setups.
@@ -340,6 +353,15 @@ export function ExplorerTree() {
             className="grid size-8 place-items-center rounded text-app-muted hover:bg-app-panel hover:text-app"
           >
             <FolderOpen className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={collapseAllFolders}
+            title="Collapse all folders"
+            aria-label="Collapse all folders"
+            className="grid size-8 place-items-center rounded text-app-muted hover:bg-app-panel hover:text-app"
+          >
+            <CopyMinus className="size-5" />
           </button>
           <button
             type="button"

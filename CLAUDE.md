@@ -265,8 +265,9 @@ src/
                         the stage's first screen.
     StepIndicator.tsx   "n / N" within current stage; hidden for single-
                         screen stages.
-    ExplorerTree.tsx    tree from useVisibleFiles(); Open Folder +
-                        collapse/expand buttons in the header.
+    ExplorerTree.tsx    tree from useVisibleFiles(); header has Open
+                        Folder + Collapse-All-Folders (preserves group-
+                        header state) + Hide-Explorer buttons.
     CodeView.tsx        static read-only viewer — Shiki tokens, plain DOM
                         for line numbers / fold widgets / decorations.
                         Replaced Monaco; see "Code viewer" below.
