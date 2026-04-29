@@ -4,7 +4,7 @@ import { useCurrentScreen, useSymbolTable } from '@/hooks/useRenderedFile'
 import type { CoverItem } from '@/types'
 
 /** Last path segment, used as the row label when the author didn't supply
- *  a `label`. Bare paths feel cleaner in the cover list than full relpaths. */
+ *  a `title`. Bare paths feel cleaner in the cover list than full relpaths. */
 function basename(path: string): string {
   const i = path.lastIndexOf('/')
   return i < 0 ? path : path.slice(i + 1)
@@ -73,7 +73,7 @@ export function StageCoverList() {
           const labelClasses = isVisited
             ? 'text-app-muted line-through decoration-app-muted/60'
             : 'text-app'
-          const display = item.label ?? basename(item.file)
+          const display = item.title ?? basename(item.file)
           return (
             <li key={`${item.file}#${item.id ?? item.line ?? ''}#${idx}`}>
               <button
@@ -83,7 +83,7 @@ export function StageCoverList() {
               >
                 <Icon className={`size-4 shrink-0 ${iconClasses}`} />
                 <span className={`truncate ${labelClasses}`}>{display}</span>
-                {item.label && (
+                {item.title && (
                   <span className="ml-auto truncate text-xs text-app-muted/70">
                     {basename(item.file)}
                   </span>

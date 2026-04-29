@@ -28,13 +28,13 @@ export type SymbolTarget = {
 /** One entry in a stage/step's `cover:` list — a file the presenter wants to
  *  remember to discuss. `file` is the only required field. `id` (or `line`)
  *  optionally targets a specific anchor inside the file; click handlers route
- *  through the symbol table to scroll there. `label` overrides the display
+ *  through the symbol table to scroll there. `title` overrides the display
  *  text in the cover list (otherwise the file's basename is shown). */
 export type CoverItem = {
   file: string
   id?: string
   line?: number
-  label?: string
+  title?: string
 }
 
 export type UrlPreview = {

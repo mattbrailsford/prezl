@@ -178,12 +178,14 @@ once their file has been opened during the stage's tenure.
     - src/api.ts@42                          # path@line — open at line
     - file: src/dashboard.ts                 # full object form
       id: renderCharts
-      label: Chart helpers                   # optional row label
+      title: Chart helpers                   # optional row label
 ```
 
 Each entry is either a string shorthand (same `path[#id][@line]`
 grammar `open` accepts) or the object form with `file` (required),
-optional `id` / `line` / `label`.
+optional `id` / `line` / `title`. A single-item agenda can drop the
+list dash entirely — `cover: src/foo.ts#fetchData` is shorthand for a
+one-element list, mirroring `preview:` vs `previews:`.
 
 Steps inherit `cover` from the stage with the same stage→step-only
 resolution as `previews`. Override per step by setting your own

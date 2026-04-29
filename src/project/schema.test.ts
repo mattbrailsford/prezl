@@ -411,14 +411,14 @@ describe('schema — cover list', () => {
     }
   })
 
-  it('accepts the full object form with label', () => {
+  it('accepts the full object form with title', () => {
     const result = prezlProjectSchema.safeParse({
       name: 'Test',
       stages: [
         {
           alias: 'shell',
           cover: [
-            { file: 'src/api.ts', id: 'fetchData', label: 'Data fetching' },
+            { file: 'src/api.ts', id: 'fetchData', title: 'Data fetching' },
           ],
         },
       ],
@@ -428,8 +428,38 @@ describe('schema — cover list', () => {
       expect(result.data.stages[0].cover?.[0]).toEqual({
         file: 'src/api.ts',
         id: 'fetchData',
-        label: 'Data fetching',
+        title: 'Data fetching',
       })
+    }
+  })
+
+  it('wraps a single-item shorthand into a one-element list', () => {
+    // Mirrors preview's single-object shorthand: `cover: src/foo.ts` is a
+    // shorter form of `cover: [src/foo.ts]`.
+    const stringForm = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [{ alias: 'shell', cover: 'src/api.ts#fetchData' }],
+    })
+    expect(stringForm.success).toBe(true)
+    if (stringForm.success) {
+      expect(stringForm.data.stages[0].cover).toEqual([
+        { file: 'src/api.ts', id: 'fetchData' },
+      ])
+    }
+    const objectForm = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          alias: 'shell',
+          cover: { file: 'src/api.ts', title: 'Data fetching' },
+        },
+      ],
+    })
+    expect(objectForm.success).toBe(true)
+    if (objectForm.success) {
+      expect(objectForm.data.stages[0].cover).toEqual([
+        { file: 'src/api.ts', title: 'Data fetching' },
+      ])
     }
   })
 

@@ -207,10 +207,16 @@ suffixes are optional and either order works:
 Suffixes peel from the rightmost separator and bail out cleanly when
 the result wouldn't make sense (npm-scoped `@types/foo.ts` keeps the
 `@`; `@head` keeps the literal tag because it isn't all digits; `@0`
-isn't a valid line). Object form (`{ file, id?, line?, label? }`)
+isn't a valid line). Object form (`{ file, id?, line?, title? }`)
 remains for cases the shorthand can't express — most notably a custom
-row `label` in cover, or a partial `{ id }` in `open` that inherits
-the file from the previous resolved open.
+row `title` in cover (falls back to the file basename otherwise), or a
+partial `{ id }` in `open` that inherits the file from the previous
+resolved open.
+
+Cover lists also accept a single item (string or object) as shorthand
+for a one-element list — mirroring how `preview:` is the single form
+of `previews:`. Both `cover: src/api.ts#fetchData` and `cover: [src/api.ts#fetchData]`
+resolve to the same internal `CoverItem[]`.
 
 Steps may override the stage cover list with a step-level `cover:` —
 same stage→step resolution as `previews` (omit → stage default, `~` →

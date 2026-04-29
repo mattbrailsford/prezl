@@ -23,7 +23,7 @@ stages:
       - src/api.ts#fetchDashboardData
       - file: src/dashboard.ts
         id: renderCharts
-        label: Chart helpers
+        title: Chart helpers
     steps:
       - alias: intro
         title: Overview

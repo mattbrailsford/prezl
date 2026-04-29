@@ -345,16 +345,26 @@ the current stage's tenure.
     - src/api.ts@42                            # path@line shorthand
     - file: src/dashboard.ts                   # full object form
       id: renderCharts
-      label: Chart helpers                     # optional — overrides the row's basename
+      title: Chart helpers                     # optional — overrides the row's basename
 ```
 
 Each item is either a string shorthand (the same `path[#id][@line]`
 mini-grammar `open` accepts) or the object form with `file` (required),
-`id?`, `line?`, `label?`.
+`id?`, `line?`, `title?`.
 
-`label` overrides the row's display text (otherwise the file's
+`title` overrides the row's display text (otherwise the file's
 basename is shown). `id` resolves through the same project-wide symbol
 table the click-to-jump path uses.
+
+`cover:` also accepts a **single item** (string or object) as a
+shorthand for a one-element list, mirroring how `preview:` is the
+single-item form of `previews:`:
+
+```yaml
+cover: src/api.ts#fetchData          # shorthand for a one-item list
+cover:                                # explicit list — same result
+  - src/api.ts#fetchData
+```
 
 **Inheritance.** Steps resolve `cover` stage→step only, exactly like
 `previews`. An omitted step uses the stage default; a step's own value

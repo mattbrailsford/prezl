@@ -121,17 +121,17 @@ function coverTreeItem(
   ownerKey: string,
   index: number,
 ): vscode.TreeItem {
-  const label = cover.label ?? basename(cover.file)
+  const label = cover.title ?? basename(cover.file)
   const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None)
   // Description shows the anchor / line / file context so the row stays
-  // identifiable when the label is the basename or a custom string. When
-  // a custom label is set, fall back to the basename so the file is still
+  // identifiable when the label is the basename or a custom title. When
+  // a custom title is set, fall back to the basename so the file is still
   // visible at a glance.
   if (cover.id) {
     item.description = `#${cover.id}`
   } else if (cover.line) {
     item.description = `:${cover.line}`
-  } else if (cover.label) {
+  } else if (cover.title) {
     item.description = basename(cover.file)
   }
   item.iconPath = new vscode.ThemeIcon('bookmark')

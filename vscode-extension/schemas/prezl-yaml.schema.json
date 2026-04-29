@@ -151,8 +151,14 @@
       ]
     },
     "cover": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/coverItem" }
+      "description": "One cover item (string or object) or several (array). The Run picker doesn't apply here — cover is a checklist surfaced under the file tree.",
+      "oneOf": [
+        { "$ref": "#/definitions/coverItem" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/definitions/coverItem" }
+        }
+      ]
     },
     "coverOrNull": {
       "oneOf": [
@@ -178,7 +184,11 @@
             "file": { "type": "string", "minLength": 1 },
             "line": { "type": "integer", "minimum": 1 },
             "id": { "type": "string", "minLength": 1 },
-            "label": { "type": "string", "minLength": 1 }
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional human label for the cover row; falls back to the file's basename otherwise."
+            }
           }
         }
       ]

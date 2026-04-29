@@ -111,8 +111,8 @@ const symbolTarget = z.object({
 /** `cover` items are presenter reminders — files (and optional anchors) to
  *  discuss during a stage. Authoring shorthand mirrors `open`: a path
  *  string, optionally suffixed with `#anchorId` (jump to symbol) and/or
- *  `@line` (jump to line). The object form adds `label` for a custom row
- *  display. */
+ *  `@line` (jump to line). The object form adds `title` for a custom row
+ *  display label (falls back to the file's basename otherwise). */
 const coverItem = z.union([
   z
     .string()
@@ -130,11 +130,17 @@ const coverItem = z.union([
     file: z.string().min(1),
     line: z.number().int().positive().optional(),
     id: z.string().min(1).optional(),
-    label: z.string().min(1).optional(),
+    title: z.string().min(1).optional(),
   }),
 ])
 
-const cover = z.array(coverItem)
+/** Cover lists accept either a single item (string shorthand or object
+ *  form, parallel to preview's single-object shorthand) or an explicit
+ *  array. Both normalise to `CoverItem[]`. */
+const cover = z.union([
+  coverItem.transform((item) => [item]),
+  z.array(coverItem),
+])
 
 const urlPreview = z.object({
   type: z.literal('url'),

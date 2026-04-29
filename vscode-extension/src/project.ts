@@ -12,7 +12,7 @@ export type CoverItemInfo = {
   file: string
   line: number | null
   id: string | null
-  label: string | null
+  title: string | null
 }
 
 export type StepInfo = {
@@ -175,12 +175,13 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
       } else {
         resolved = prevOpen
       }
-      // Step cover is tri-state. Only surface a per-step agenda in the
-      // tree when the author wrote an explicit array — undefined (inherit)
-      // and null (reset to stage default) both fall through to the stage's
-      // own cover, which renders under the stage node.
+      // Step cover is tri-state. Surface a per-step agenda in the tree
+      // when the author wrote an explicit value (single item or array);
+      // omitted (inherit from stage) and null (explicitly empty for this
+      // step) both leave ownCover undefined, falling back to the stage's
+      // cover under the stage node.
       let ownCover: CoverItemInfo[] | undefined
-      if ('cover' in st && Array.isArray(st.cover)) {
+      if ('cover' in st && st.cover !== null && st.cover !== undefined) {
         ownCover = parseCover(st.cover)
       }
       steps.push({
@@ -225,31 +226,34 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
 }
 
 function parseCover(raw: unknown): CoverItemInfo[] | undefined {
-  if (!Array.isArray(raw)) return undefined
-  const out: CoverItemInfo[] = []
-  for (const item of raw) {
-    const parsed = parseCoverItem(item)
-    if (parsed) out.push(parsed)
+  // Cover accepts either a single item (string shorthand or object form,
+  // mirroring preview's single-object shorthand) or an explicit array.
+  if (raw === undefined || raw === null) return undefined
+  if (Array.isArray(raw)) {
+    const out: CoverItemInfo[] = []
+    for (const item of raw) {
+      const parsed = parseCoverItem(item)
+      if (parsed) out.push(parsed)
+    }
+    return out.length > 0 ? out : undefined
   }
-  return out.length > 0 ? out : undefined
+  const single = parseCoverItem(raw)
+  return single ? [single] : undefined
 }
 
 function parseCoverItem(raw: unknown): CoverItemInfo | null {
-  // Shorthand: bare path string, optionally `path#anchorId`. A malformed
-  // form (`#anchor`, `path#`) is treated as a bare path so a stray `#`
-  // doesn't break the tree silently — mirrors the runtime's tolerance.
+  // Shorthand: `path[#id][@line]`, mirroring runtime parseTargetShorthand.
+  // Falls back to the bare path on a malformed suffix so a stray separator
+  // doesn't break the tree silently.
   if (typeof raw === 'string') {
     if (!raw) return null
-    const hashIdx = raw.indexOf('#')
-    if (hashIdx < 0) {
-      return { file: raw, line: null, id: null, label: null }
+    const parsed = parseTargetShorthand(raw)
+    return {
+      file: parsed.file ?? raw,
+      line: parsed.line ?? null,
+      id: parsed.id ?? null,
+      title: null,
     }
-    const file = raw.slice(0, hashIdx)
-    const id = raw.slice(hashIdx + 1)
-    if (!file || !id) {
-      return { file: raw, line: null, id: null, label: null }
-    }
-    return { file, line: null, id, label: null }
   }
   if (!raw || typeof raw !== 'object') return null
   const o = raw as Record<string, unknown>
@@ -258,7 +262,7 @@ function parseCoverItem(raw: unknown): CoverItemInfo | null {
     file: o.file,
     line: typeof o.line === 'number' ? o.line : null,
     id: typeof o.id === 'string' ? o.id : null,
-    label: typeof o.label === 'string' ? o.label : null,
+    title: typeof o.title === 'string' ? o.title : null,
   }
 }
 
@@ -266,7 +270,12 @@ function parseOpen(raw: unknown): OpenTarget | undefined {
   if (raw === undefined) return undefined
   if (raw === null) return null
   if (typeof raw === 'string') {
-    return { file: raw, line: null, id: null }
+    const parsed = parseTargetShorthand(raw)
+    return {
+      file: parsed.file ?? raw,
+      line: parsed.line ?? null,
+      id: parsed.id ?? null,
+    }
   }
   if (typeof raw !== 'object') return undefined
   const o = raw as Record<string, unknown>
@@ -275,6 +284,48 @@ function parseOpen(raw: unknown): OpenTarget | undefined {
     line: typeof o.line === 'number' ? o.line : null,
     id: typeof o.id === 'string' ? o.id : null,
   }
+}
+
+/** Mirror of `parseTargetShorthand` in `src/project/schema.ts`. Peels
+ *  `path[#id][@line]` suffixes from the right; either order works.
+ *  `@N` requires N to be a positive integer, otherwise it stays in the
+ *  path (so npm-scoped paths / non-numeric tags round-trip cleanly). */
+function parseTargetShorthand(s: string): {
+  file?: string
+  id?: string
+  line?: number
+} {
+  let path = s
+  let id: string | undefined
+  let line: number | undefined
+  let changed = true
+  while (changed) {
+    changed = false
+    const atIdx = path.lastIndexOf('@')
+    if (atIdx > 0 && line === undefined) {
+      const suffix = path.slice(atIdx + 1)
+      if (/^\d+$/.test(suffix)) {
+        const n = parseInt(suffix, 10)
+        if (n > 0) {
+          line = n
+          path = path.slice(0, atIdx)
+          changed = true
+          continue
+        }
+      }
+    }
+    const hashIdx = path.lastIndexOf('#')
+    if (hashIdx > 0 && id === undefined) {
+      const suffix = path.slice(hashIdx + 1)
+      if (suffix.length > 0) {
+        id = suffix
+        path = path.slice(0, hashIdx)
+        changed = true
+        continue
+      }
+    }
+  }
+  return { file: path.length > 0 ? path : undefined, id, line }
 }
 
 /** Resolve a screen id (e.g. "preview" or "preview.intro") to its
