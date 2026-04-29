@@ -7,7 +7,7 @@ up.
 
 ## The Run flow
 
-1. Click **Run** (or press <kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>Enter</kbd>).
+1. Click **Run** (or press <kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>Enter</kbd>).
 2. If the screen has more than one preview, a **picker** opens —
    arrow keys cycle, Enter selects, Esc closes.
 3. Status bar flashes `Preparing…` → `Ready` → `Launching preview…` →

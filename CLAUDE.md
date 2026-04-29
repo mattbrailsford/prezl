@@ -121,8 +121,9 @@ the row label (with the URL or video basename as fallback), so two
 entries that share a `src` can still be distinguished at the moment of
 selection.
 
-Run button behaviour (also wired into Ctrl+Enter and F5 — F5 keeps
-presenter-clicker compatibility; Ctrl+R still does native refresh):
+Run button behaviour (also wired into Ctrl+Enter, F5, and Ctrl+F5 —
+F5 keeps presenter-clicker compatibility; Ctrl+F5 catches the muscle-
+memory hard-refresh; Ctrl+R still does native refresh):
 
 - Empty list → button disabled, status toast "No preview configured".
 - Exactly one → launch directly (URL preview opens externally; video
@@ -389,10 +390,10 @@ flash. `flash: false` (the `screen.open` path) means persistent reveal
 advance would flash distractingly.
 
 **Capture-phase shortcuts.** Global shortcuts (zoom, Ctrl+E,
-Ctrl+Enter / F5, Ctrl+T, screen navigation) register with
+Ctrl+Enter / F5 / Ctrl+F5, Ctrl+T, screen navigation) register with
 `{ capture: true }` so any focused control can't claim them first.
-F5's capture binding also suppresses the WebView's default
-page-refresh.
+The F5 / Ctrl+F5 capture binding also suppresses the WebView's
+default page-refresh.
 
 **Screen navigation:**
 
