@@ -95,36 +95,42 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['shell.three'].open).toBeUndefined()
   })
 
-  it('preserves preview reference identity across inherited steps', () => {
-    // Autolaunch in the store relies on this: shared identity = "no
-    // authorial change", so subsequent steps that inherit the stage's
-    // preview don't re-fire the video modal.
-    const stagePreview = {
-      type: 'video' as const,
-      src: 'intro.mp4',
-      autoLaunch: 'start' as const,
-    }
-    const overridePreview = {
-      type: 'video' as const,
-      src: 'middle.mp4',
-    }
+  it('preserves preview reference identity across stage→step inheritance', () => {
+    // Autolaunch in the store relies on this: a step that omits `preview:`
+    // resolves to the same list reference as the stage default, so the
+    // ref-identity check in the autoLaunch logic treats consecutive
+    // inherited steps as "still in scope" and doesn't re-fire.
+    const stagePreview = [
+      {
+        type: 'video' as const,
+        src: 'intro.mp4',
+        autoLaunch: 'start' as const,
+      },
+    ]
+    const overridePreview = [
+      {
+        type: 'video' as const,
+        src: 'middle.mp4',
+      },
+    ]
     const stages: Stage[] = [
       {
         alias: 'shell',
         order: 1,
-        preview: stagePreview,
+        previews: stagePreview,
         steps: [
           { alias: 'one' },
-          { alias: 'two', preview: overridePreview },
+          { alias: 'two', previews: overridePreview },
           { alias: 'three' },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId['shell.one'].preview).toBe(stagePreview)
-    expect(idx.byId['shell.two'].preview).toBe(overridePreview)
-    // step three inherits step two's override — same reference, not a new copy.
-    expect(idx.byId['shell.three'].preview).toBe(overridePreview)
+    expect(idx.byId['shell.one'].previews).toBe(stagePreview)
+    expect(idx.byId['shell.two'].previews).toBe(overridePreview)
+    // step three goes BACK to the stage default — no step-to-step chain,
+    // so step two's override doesn't carry forward.
+    expect(idx.byId['shell.three'].previews).toBe(stagePreview)
   })
 
   it('throws on duplicate step alias within a stage', () => {
@@ -138,41 +144,44 @@ describe('buildScreenIndex', () => {
     expect(() => buildScreenIndex(stages)).toThrow(/duplicate step alias/)
   })
 
-  it('resets a step preview to the stage default when set to null', () => {
-    // The motivating case for the reset escape hatch: step B declares an
-    // override (e.g. a trailing-video preview) and the author wants step C
-    // to drop that and revert to the stage's plain preview rather than
-    // inherit B's override via sticky-forward.
-    const stagePreview = {
-      type: 'video' as const,
-      src: 'stage.mp4',
-    }
-    const stepBPreview = {
-      type: 'video' as const,
-      src: 'b.mp4',
-      autoLaunch: 'end' as const,
-    }
+  it('clears a step preview to nothing when set to null', () => {
+    // `preview: ~` on a step means "explicitly empty — this step has no
+    // previews even though the stage does." With no step-to-step chain,
+    // omitting just falls back to the stage default automatically; null is
+    // for the case where the author wants this step to actively drop it.
+    const stagePreview = [
+      {
+        type: 'video' as const,
+        src: 'stage.mp4',
+      },
+    ]
+    const stepBPreview = [
+      {
+        type: 'video' as const,
+        src: 'b.mp4',
+        autoLaunch: 'end' as const,
+      },
+    ]
     const stages: Stage[] = [
       {
         alias: 'shell',
         order: 1,
-        preview: stagePreview,
+        previews: stagePreview,
         steps: [
           { alias: 'a' },
-          { alias: 'b', preview: stepBPreview },
-          { alias: 'c', preview: null },
+          { alias: 'b', previews: stepBPreview },
+          { alias: 'c', previews: null },
           { alias: 'd' },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId['shell.a'].preview).toBe(stagePreview)
-    expect(idx.byId['shell.b'].preview).toBe(stepBPreview)
-    // Reset: c falls back to the stage's preview, NOT b's override.
-    expect(idx.byId['shell.c'].preview).toBe(stagePreview)
-    // And d inherits c's resolved value (which is the stage default), so
-    // sticky-forward continues from the reset point — not from b.
-    expect(idx.byId['shell.d'].preview).toBe(stagePreview)
+    expect(idx.byId['shell.a'].previews).toBe(stagePreview)
+    expect(idx.byId['shell.b'].previews).toBe(stepBPreview)
+    // null = explicitly empty.
+    expect(idx.byId['shell.c'].previews).toBeUndefined()
+    // d omits → falls back to the stage default, NOT to c's empty.
+    expect(idx.byId['shell.d'].previews).toBe(stagePreview)
   })
 
   it('resets a step open to the stage default when set to null', () => {
@@ -376,7 +385,7 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['shell.two'].cover).toBe(stageCover)
   })
 
-  it('a step can override the stage cover and later steps inherit the override', () => {
+  it('a step can override the stage cover; later omitted steps fall back to stage default', () => {
     const stageCover = [{ file: 'a.ts' }]
     const stepCover = [{ file: 'b.ts' }, { file: 'c.ts' }]
     const stages: Stage[] = [
@@ -394,29 +403,29 @@ describe('buildScreenIndex', () => {
     const idx = buildScreenIndex(stages)
     expect(idx.byId['shell.one'].cover).toBe(stageCover)
     expect(idx.byId['shell.two'].cover).toBe(stepCover)
-    expect(idx.byId['shell.three'].cover).toBe(stepCover)
+    // No step-to-step chain — step three goes back to the stage default.
+    expect(idx.byId['shell.three'].cover).toBe(stageCover)
   })
 
-  it('a step can reset cover back to the stage default', () => {
+  it('a step can clear cover to nothing with null', () => {
     const stageCover = [{ file: 'a.ts' }]
-    const stepCover = [{ file: 'b.ts' }]
     const stages: Stage[] = [
       {
         alias: 'shell',
         order: 1,
         cover: stageCover,
         steps: [
-          { alias: 'one', cover: stepCover },
+          { alias: 'one' },
           { alias: 'two', cover: null },
           { alias: 'three' },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId['shell.one'].cover).toBe(stepCover)
-    expect(idx.byId['shell.two'].cover).toBe(stageCover)
-    // sticky-forward continues from the reset value (stage default), not the
-    // earlier override.
+    expect(idx.byId['shell.one'].cover).toBe(stageCover)
+    // null = explicitly empty for this step.
+    expect(idx.byId['shell.two'].cover).toBeUndefined()
+    // three omits, so falls back to stage default — NOT to two's empty.
     expect(idx.byId['shell.three'].cover).toBe(stageCover)
   })
 
@@ -431,11 +440,36 @@ describe('buildScreenIndex', () => {
     expect(idx.byId.second.cover).toBeUndefined()
   })
 
-  it('reset on a step whose stage has no default leaves the field unset', () => {
-    const stepBPreview = {
-      type: 'video' as const,
-      src: 'b.mp4',
-    }
+  it('preview list with two distinct autoLaunch entries (start + end) survives resolution', () => {
+    // The schema enforces ≤1 of each; the resolver just hands the list
+    // through. autoLaunch=start and autoLaunch=end live independently, so
+    // both types can be present on the same screen.
+    const stagePreview = [
+      {
+        type: 'video' as const,
+        src: 'intro.mp4',
+        autoLaunch: 'start' as const,
+      },
+      {
+        type: 'video' as const,
+        src: 'outro.mp4',
+        autoLaunch: 'end' as const,
+      },
+    ]
+    const stages: Stage[] = [
+      { alias: 'shell', order: 1, previews: stagePreview },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId.shell.previews).toBe(stagePreview)
+  })
+
+  it('null on a step with no stage default leaves the field unset', () => {
+    const stepBPreview = [
+      {
+        type: 'video' as const,
+        src: 'b.mp4',
+      },
+    ]
     const stages: Stage[] = [
       {
         alias: 'shell',
@@ -443,16 +477,17 @@ describe('buildScreenIndex', () => {
         // No stage-level preview.
         steps: [
           { alias: 'a' },
-          { alias: 'b', preview: stepBPreview },
-          { alias: 'c', preview: null },
+          { alias: 'b', previews: stepBPreview },
+          { alias: 'c', previews: null },
         ],
       },
     ]
     const idx = buildScreenIndex(stages)
-    expect(idx.byId['shell.a'].preview).toBeUndefined()
-    expect(idx.byId['shell.b'].preview).toBe(stepBPreview)
-    // No stage default to fall back to → unset.
-    expect(idx.byId['shell.c'].preview).toBeUndefined()
+    // No stage default + omitted → undefined.
+    expect(idx.byId['shell.a'].previews).toBeUndefined()
+    expect(idx.byId['shell.b'].previews).toBe(stepBPreview)
+    // null also resolves to undefined (explicitly empty).
+    expect(idx.byId['shell.c'].previews).toBeUndefined()
   })
 })
 

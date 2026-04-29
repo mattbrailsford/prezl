@@ -12,14 +12,18 @@ function projectWithTrailingOnStep2(): {
   project: PrezlProject
   rawFiles: Map<string, string>
 } {
+  // chartHelpers omits `preview:` — under stage→step-only resolution that
+  // falls back to the stage default (none here), so the trailing video
+  // doesn't carry forward and the explicit `preview: null` reset that the
+  // old chain model needed is no longer required.
   const stages: Stage[] = [
     {
       alias: 'preview',
       order: 1,
       steps: [
         { alias: 'intro' },
-        { alias: 'fetchImpl', preview: TRAILING_VIDEO },
-        { alias: 'chartHelpers', preview: null },
+        { alias: 'fetchImpl', previews: [TRAILING_VIDEO] },
+        { alias: 'chartHelpers' },
       ],
     },
   ]
@@ -92,14 +96,16 @@ describe('store — trailing autoLaunch advance flow', () => {
     expect(useAppStore.getState().previewState.kind).toBe('closed')
   })
 
-  it('does not fire trailing within the preview scope (sticky inheritance)', () => {
-    // Stage-level trailing video; every step inherits it. Should fire only
-    // when forward-leaving the LAST step of the scope, not every step.
+  it('does not fire trailing within the preview scope (stage→step inheritance)', () => {
+    // Stage-level trailing video; every step inherits it via stage→step
+    // resolution. Should fire only when forward-leaving the LAST step of
+    // the scope (i.e., crossing into a stage that doesn't share the entry),
+    // not every step transition inside.
     const stages: Stage[] = [
       {
         alias: 'shell',
         order: 1,
-        preview: TRAILING_VIDEO,
+        previews: [TRAILING_VIDEO],
         steps: [{ alias: 'a' }, { alias: 'b' }, { alias: 'c' }],
       },
       { alias: 'next', order: 2 },

@@ -1,8 +1,8 @@
 import { parse as parseYaml, YAMLParseError } from 'yaml'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
-import { prezlProjectSchema, type LoadError } from './schema'
-import type { Stage, PrezlProject } from '@/types'
+import { prezlProjectSchema, resolvePreviewField, type LoadError } from './schema'
+import type { Stage, PrezlProject, Step } from '@/types'
 
 type BackendProjectLoad = {
   root: string
@@ -76,18 +76,46 @@ export async function loadProjectFromDisk(
     name: parsed.data.name,
     logo: parsed.data.logo,
     projects: parsed.data.projects,
-    stages: parsed.data.stages.map<Stage>((s, i) => ({
-      alias: s.alias,
-      branch: s.branch,
-      title: s.title,
-      order: i + 1,
-      open: s.open,
-      symbols: s.symbols,
-      preview: s.preview,
-      steps: s.steps,
-      reset: s.reset,
-      cover: s.cover,
-    })),
+    stages: parsed.data.stages.map<Stage>((s, i) => {
+      // Stage-level: schema enforces non-null, so resolvePreviewField never
+      // returns null here.
+      const stagePreviews = resolvePreviewField(s) ?? undefined
+      return {
+        alias: s.alias,
+        branch: s.branch,
+        title: s.title,
+        order: i + 1,
+        open: s.open,
+        symbols: s.symbols,
+        previews: stagePreviews,
+        steps: s.steps?.map<Step>((step) => {
+          // After parsing, the string-shorthand step variant has been
+          // transformed to `{ alias }` only — Zod's union return type
+          // doesn't reflect that all object-form fields are optional, so
+          // cast to the widest shape for ergonomic access here.
+          const w = step as {
+            alias: string
+            title?: string
+            open?: Step['open']
+            preview?: Parameters<typeof resolvePreviewField>[0]['preview']
+            previews?: Parameters<typeof resolvePreviewField>[0]['previews']
+            cover?: Step['cover']
+          }
+          return {
+            alias: w.alias,
+            title: w.title,
+            open: w.open,
+            // Step-level: null carries through as "explicitly empty for
+            // this step" — the resolver in stageList.ts treats it as
+            // undefined at the screen level (no stage-default fallback).
+            previews: resolvePreviewField(w),
+            cover: w.cover,
+          }
+        }),
+        reset: s.reset,
+        cover: s.cover,
+      }
+    }),
     rootPath: backend.root,
     files,
   }

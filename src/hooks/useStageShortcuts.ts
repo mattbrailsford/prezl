@@ -25,7 +25,10 @@ export function useStageShortcuts() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (useAppStore.getState().previewState.kind === 'video') return
+      const kind = useAppStore.getState().previewState.kind
+      // Modal-like preview states (video playback, picker waiting on a
+      // selection) absorb their own keys; don't advance behind them.
+      if (kind === 'video' || kind === 'picker') return
       if (isInteractiveTarget(e.target)) return
 
       const direction = directionFromEvent(e)

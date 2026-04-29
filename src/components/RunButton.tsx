@@ -7,7 +7,8 @@ export function RunButton() {
   const previewKind = useAppStore((s) => s.previewState.kind)
   const runPreview = useAppStore((s) => s.runPreview)
   const closePreview = useAppStore((s) => s.closePreview)
-  const hasPreview = Boolean(currentScreen?.preview)
+  const previewCount = currentScreen?.previews?.length ?? 0
+  const hasPreview = previewCount > 0
 
   // Launching: fake-build sequence in-flight; disabled with spinner.
   if (previewKind === 'launching') {
@@ -39,14 +40,19 @@ export function RunButton() {
     )
   }
 
-  // Idle.
+  // Idle (or picker open — clicking again should re-toggle the picker).
   const disabled = !hasPreview
+  const title = disabled
+    ? 'No preview configured'
+    : previewCount > 1
+      ? `Run preview (Ctrl+Enter) — ${previewCount} options`
+      : 'Run preview (Ctrl+Enter)'
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={() => runPreview()}
-      title={disabled ? 'No preview configured' : 'Run preview (Ctrl+Enter)'}
+      title={title}
       className="inline-flex items-center gap-2 rounded border border-app-border bg-app-panel px-3 py-1 text-base text-app hover:bg-app-border disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Play className="size-5 fill-current" />

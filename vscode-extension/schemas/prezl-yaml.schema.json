@@ -45,6 +45,10 @@
       "type": "object",
       "required": ["alias"],
       "additionalProperties": false,
+      "not": {
+        "required": ["preview", "previews"],
+        "description": "Use either `preview:` (single object) or `previews:` (array), not both."
+      },
       "properties": {
         "alias": { "type": "string", "minLength": 1 },
         "branch": { "type": "string", "minLength": 1 },
@@ -54,7 +58,14 @@
           "type": "object",
           "additionalProperties": { "$ref": "#/definitions/symbolTarget" }
         },
-        "preview": { "$ref": "#/definitions/preview" },
+        "preview": {
+          "$ref": "#/definitions/previewItem",
+          "description": "Single-preview shorthand. For multiple previews use `previews:` (array) instead."
+        },
+        "previews": {
+          "$ref": "#/definitions/previewArray",
+          "description": "List of previews available on this stage. The Run button opens a picker when more than one is configured. At most one entry may have `autoLaunch: 'start'` and at most one `'end'`."
+        },
         "cover": {
           "$ref": "#/definitions/cover",
           "description": "Stage agenda — files (and optional anchors) the presenter wants to remember to discuss during this stage. Surfaced as a clickable checklist under the file tree."
@@ -74,7 +85,7 @@
         {
           "type": "string",
           "minLength": 1,
-          "description": "Shorthand: open this file at the top, no specific line."
+          "description": "Shorthand: `path`, `path#id`, `path@line`, or `path#id@line` (suffixes optional, either order). Falls back to the literal path when the suffix can't be parsed (e.g. npm-scoped `@types/foo.ts` or `@head` non-numeric tags)."
         },
         {
           "type": "object",
@@ -111,16 +122,32 @@
         "id": { "type": "string", "minLength": 1 }
       }
     },
-    "preview": {
+    "previewItem": {
       "oneOf": [
         { "$ref": "#/definitions/urlPreview" },
         { "$ref": "#/definitions/videoPreview" }
       ]
     },
-    "previewOrNull": {
+    "previewArray": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/previewItem" }
+    },
+    "previewItemOrNull": {
       "oneOf": [
-        { "$ref": "#/definitions/preview" },
-        { "type": "null" }
+        { "$ref": "#/definitions/previewItem" },
+        {
+          "type": "null",
+          "description": "Explicit `~` clears this step's previews even when the stage has a default — there's no step-to-step inheritance, so omit instead if you want the stage default."
+        }
+      ]
+    },
+    "previewArrayOrNull": {
+      "oneOf": [
+        { "$ref": "#/definitions/previewArray" },
+        {
+          "type": "null",
+          "description": "Explicit `~` clears this step's previews even when the stage has a default — there's no step-to-step inheritance, so omit instead if you want the stage default."
+        }
       ]
     },
     "cover": {
@@ -132,7 +159,7 @@
         { "$ref": "#/definitions/cover" },
         {
           "type": "null",
-          "description": "Explicit `~` resets to the stage's default cover, breaking sticky-forward inheritance from the previous step."
+          "description": "Explicit `~` clears this step's cover even when the stage has a default — omit instead if you want the stage default."
         }
       ]
     },
@@ -141,7 +168,7 @@
         {
           "type": "string",
           "minLength": 1,
-          "description": "Shorthand: `path` or `path#anchorId`."
+          "description": "Shorthand: `path`, `path#id`, `path@line`, or `path#id@line` — same shape as `open` shorthand."
         },
         {
           "type": "object",
@@ -162,6 +189,11 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "url" },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one preview. Falls back to the URL."
+        },
         "src": { "type": "string", "minLength": 1 },
         "mode": {
           "type": "string",
@@ -175,6 +207,11 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "video" },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one preview. Falls back to the file basename."
+        },
         "src": { "type": "string", "minLength": 1 },
         "startAt": { "type": "number", "minimum": 0 },
         "stopAt": { "type": "number", "minimum": 0 },
@@ -211,14 +248,25 @@
           "type": "object",
           "required": ["alias"],
           "additionalProperties": false,
+          "not": {
+            "required": ["preview", "previews"],
+            "description": "Use either `preview:` (single object) or `previews:` (array), not both."
+          },
           "properties": {
             "alias": { "type": "string", "minLength": 1 },
             "title": { "type": "string" },
             "open": { "$ref": "#/definitions/openTargetOrNull" },
-            "preview": { "$ref": "#/definitions/previewOrNull" },
+            "preview": {
+              "$ref": "#/definitions/previewItemOrNull",
+              "description": "Single-preview shorthand for the step. Omit to inherit the stage default; use `~` to explicitly clear (this step has no previews even if the stage does); for multiple previews use `previews:` (array). No step-to-step chain — declaring on step 2 does not carry into step 3."
+            },
+            "previews": {
+              "$ref": "#/definitions/previewArrayOrNull",
+              "description": "Plural list form for step-level preview override. Same resolution as `preview` — omit → stage default, value → override, `~` → explicitly empty."
+            },
             "cover": {
               "$ref": "#/definitions/coverOrNull",
-              "description": "Step-level cover override. Tri-state: omit to inherit sticky-forward from the previous step, set an array to override, or use `~` to reset to the stage's default cover."
+              "description": "Step-level cover override. Same resolution as previews: omit → stage default, value → override, `~` → explicitly empty."
             }
           }
         }

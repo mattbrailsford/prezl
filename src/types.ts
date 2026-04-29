@@ -39,6 +39,9 @@ export type CoverItem = {
 
 export type UrlPreview = {
   type: 'url'
+  /** Optional human label. Used as the picker row label when a screen has
+   *  more than one preview; falls back to the URL itself. */
+  title?: string
   src: string
   mode?: 'external' | 'window' | 'pane'
 }
@@ -50,6 +53,9 @@ export type VideoCue = {
 
 export type VideoPreview = {
   type: 'video'
+  /** Optional human label. Used as the picker row label when a screen has
+   *  more than one preview; falls back to the file basename. */
+  title?: string
   src: string
   startAt?: number
   stopAt?: number
@@ -69,21 +75,20 @@ export type Preview = UrlPreview | VideoPreview
  *  what the audience perceives as a single slide. Steps don't appear in the
  *  stage dropdown; Space/PageDown walks them linearly.
  *
- *  `open` and `preview` are tri-state: undefined means "inherit
- *  sticky-forward from the previous step's resolved value", explicit `null`
- *  means "reset — fall back to the stage's default, ignoring any prior step
- *  override", and a value means "use this". The reset form lets a later
- *  step break out of an earlier step's override without restating the
- *  stage's default. */
+ *  `open` is tri-state with runtime persistence — see the resolver in
+ *  `stageList.ts` for the rules.
+ *
+ *  `preview` and `cover` resolve stage→step only (no step-to-step chain):
+ *  `undefined` means "use the stage's default", `null` means "explicitly
+ *  empty (this step has no previews/cover even if the stage does)", and a
+ *  value means "use this list". Each step's resolution is independent of
+ *  prior steps — declaring a preview on step 2 does NOT carry into step 3
+ *  unless step 3 redeclares (or omits to inherit the stage default). */
 export type Step = {
   alias: string
   title?: string
   open?: OpenTarget | null
-  preview?: Preview | null
-  /** Step-level override for the stage's cover list. `undefined` inherits
-   *  sticky-forward from the previous step; explicit `null` resets to the
-   *  stage's `cover` (or unset if the stage has none); a value replaces
-   *  the inherited list outright. */
+  previews?: Preview[] | null
   cover?: CoverItem[] | null
 }
 
@@ -102,15 +107,21 @@ export type Stage = {
    *  preserves whatever was active on the prior screen. */
   open?: OpenTarget | null
   symbols?: Record<string, SymbolTarget>
-  preview?: Preview
+  /** Zero or more previews available on this stage. The YAML accepts
+   *  either `preview:` (single object shorthand) or `previews:` (explicit
+   *  list); both normalise to this internal array. The Run button shows a
+   *  picker when more than one is configured; a step that omits previews
+   *  inherits this list. At most one entry may have `autoLaunch: 'start'`
+   *  and at most one `autoLaunch: 'end'` (validated at parse time). */
+  previews?: Preview[]
   /** Optional ordered list of intra-stage steps. A stage with no steps has
    *  one implicit screen whose id is the bare stage alias. */
   steps?: Step[]
   /** Files the presenter wants to remember to discuss while in this stage.
    *  Surfaced as a clickable list under the explorer, with a check mark when
-   *  the file has been opened during the current stage's tenure. Sticky-
-   *  inherited across step transitions like `open`/`preview`; not inherited
-   *  across stage boundaries. */
+   *  the file has been opened during the current stage's tenure. Inherited
+   *  by steps that omit their own `cover:`; not propagated across stage
+   *  boundaries. */
   cover?: CoverItem[]
   /** When true, cross-stage entry into this stage clears every non-active
    *  tab and collapses every explorer folder outside the active file's
@@ -137,10 +148,15 @@ export type Screen = {
    *  the reducer preserves whatever was active or falls back to the
    *  first visible file). */
   open?: OpenTarget | null
-  preview?: Preview
-  /** Resolved cover list after step→stage inheritance. Empty/unset on
-   *  screens whose stage declared no `cover:` and whose steps didn't add
-   *  one either. */
+  /** Resolved preview list for this screen. `undefined` when there's nothing
+   *  to run; otherwise a non-empty list. Reference identity matters: when
+   *  consecutive screens share the same list reference (e.g. inherited from
+   *  the stage), the autoLaunch logic treats them as "still in scope" and
+   *  doesn't re-fire. */
+  previews?: Preview[]
+  /** Resolved cover list. Same identity rule as `previews` — consecutive
+   *  inherited screens share the reference, so visited tracking persists
+   *  across them naturally. */
   cover?: CoverItem[]
 }
 
@@ -158,6 +174,10 @@ export type PrezlProject = {
 
 export type PreviewState =
   | { kind: 'closed' }
+  /** Run button (or Ctrl+Enter) was triggered on a screen whose resolved
+   *  preview list has more than one entry; the user has to pick which one
+   *  to launch. Selection routes through `runPreview(chosen)`. */
+  | { kind: 'picker'; previews: Preview[] }
   | { kind: 'launching'; preview: Preview }
   /** `trailing` is set when the modal was opened via `autoLaunch: 'end'` —
    *  the carry-on close path (atEnd + Space) advances the deck instead of

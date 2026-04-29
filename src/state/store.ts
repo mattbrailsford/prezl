@@ -7,6 +7,7 @@ import {
   type PrezlProject,
   type PreviewState,
   type Screen,
+  type VideoPreview,
 } from '@/types'
 import { applyStageEntryReset, reconcileScreenSwitch } from './stageReducer'
 import { buildScreenIndex, type ScreenIndex } from '@/project/stageList'
@@ -68,28 +69,43 @@ function pushHistoryEntry(
   return { history: truncated, historyIndex: truncated.length - 1 }
 }
 
+/** Find the (single by invariant) video entry in a screen's preview list
+ *  that opts into a given autoLaunch mode. Returns `null` when none. */
+function findAutoLaunchVideo(
+  screen: Screen | null | undefined,
+  mode: 'start' | 'end',
+): VideoPreview | null {
+  if (!screen?.previews) return null
+  for (const p of screen.previews) {
+    if (p.type === 'video' && p.autoLaunch === mode) return p
+  }
+  return null
+}
+
 /**
  * Decide whether moving from `previousScreen` to `targetScreen` should fire
  * a video preview's `autoLaunch: 'start'` (the lead-with-video pattern).
- * Three conditions must all hold:
+ * Returns the preview to launch, or `null`. Three conditions must all hold:
  *
- *   1. The target's preview is a video with `autoLaunch: 'start'`.
- *   2. The target's preview object reference differs from the previous
- *      screen's — `buildScreenIndex` reuses the same reference when a step
- *      inherits its preview, so equal references mean "no authorial change",
- *      which is exactly when we want to suppress re-firing.
+ *   1. The target has a video preview entry with `autoLaunch: 'start'`.
+ *   2. That entry's reference differs from the previous screen's autoStart
+ *      entry — `buildScreenIndex` reuses the same list (and thus the same
+ *      entry) when a step inherits its preview from the stage, so equal
+ *      references mean "still in scope", which is exactly when we want to
+ *      suppress re-firing.
  *   3. We're moving forward (or it's the first screen). Going backward
  *      through a deck shouldn't replay the intro video.
  */
-function shouldAutoLaunchOnEnter(
+function autoLaunchStartFor(
   previousScreen: Screen | null,
   targetScreen: Screen,
-): targetScreen is Screen & { preview: Preview & { type: 'video' } } {
-  const preview = targetScreen.preview
-  if (preview?.type !== 'video' || preview.autoLaunch !== 'start') return false
-  if (previousScreen?.preview === preview) return false
-  if (previousScreen && targetScreen.order <= previousScreen.order) return false
-  return true
+): VideoPreview | null {
+  const autoStart = findAutoLaunchVideo(targetScreen, 'start')
+  if (!autoStart) return null
+  const prevAutoStart = findAutoLaunchVideo(previousScreen, 'start')
+  if (prevAutoStart === autoStart) return null
+  if (previousScreen && targetScreen.order <= previousScreen.order) return null
+  return autoStart
 }
 
 type AppState = {
@@ -224,7 +240,12 @@ type AppActions = {
   setPreferences: (patch: Partial<Preferences>) => void
   setLoading: (loading: boolean) => void
   setLoadError: (err: LoadError | null) => void
-  runPreview: () => Promise<void>
+  /** With no argument: inspects the current screen's resolved preview list.
+   *  Empty/undefined → status toast and bail. Exactly one entry → launch it
+   *  directly. More than one → set previewState to `picker` so the modal
+   *  opens. With an explicit preview argument (e.g. a picker selection)
+   *  launches that one directly. */
+  runPreview: (preview?: Preview) => Promise<void>
   closePreview: () => void
   navigateToFileLine: (file: string, line: number) => void
   consumePendingNavigation: () => void
@@ -387,8 +408,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     // called for the initial screen, so its autolaunch hook wouldn't fire
     // on cold start.
     let previewState: PreviewState = { kind: 'closed' }
-    if (initialScreen && shouldAutoLaunchOnEnter(null, initialScreen)) {
-      previewState = { kind: 'video', preview: initialScreen.preview }
+    const initialAutoStart = initialScreen
+      ? autoLaunchStartFor(null, initialScreen)
+      : null
+    if (initialAutoStart) {
+      previewState = { kind: 'video', preview: initialAutoStart }
     }
     scrollPositions.clear()
     const initialHistory: HistoryLocation[] = initialScreen
@@ -507,11 +531,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     })
     // Don't stomp on an already-open preview (rare — modal absorbs Space —
     // but defensive against stage-dropdown jumps mid-modal).
-    if (
-      get().previewState.kind === 'closed' &&
-      shouldAutoLaunchOnEnter(previous, target)
-    ) {
-      set({ previewState: { kind: 'video', preview: target.preview } })
+    if (get().previewState.kind === 'closed') {
+      const autoStart = autoLaunchStartFor(previous, target)
+      if (autoStart) {
+        set({ previewState: { kind: 'video', preview: autoStart } })
+      }
     }
     if (crossingStage) {
       setTimeout(() => {
@@ -529,28 +553,27 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     const ordered = state.screenIndex.ordered
     const idx = ordered.findIndex((s) => s.id === state.currentScreenId)
     if (idx < 0) return
-    // Trail-with-video: forward-leaving a screen with `autoLaunch: 'end'`
-    // opens its video first instead of advancing. Fires only when leaving
-    // the preview's *scope* — i.e., the next screen has a different
-    // preview, or we're at the end of the deck. Sticky-inheritance gives
-    // every step inside a stage the same preview reference, so without
-    // this guard a stage-level trailing video would re-fire on every step
-    // forward-advance. lastEndAutoLaunchedScreenId then suppresses the
-    // re-fire on the immediate "advance after watching" press. Stays
-    // inert when a modal is already up — defensive against rapid input.
+    // Trail-with-video: forward-leaving a screen whose preview list contains
+    // an `autoLaunch: 'end'` video opens it instead of advancing. Fires only
+    // when the next screen's autoEnd entry differs by reference (or absent)
+    // — when a step inherits the stage's preview list both screens share
+    // the same entry, so the trailing video doesn't re-fire on every step.
+    // lastEndAutoLaunchedScreenId then suppresses the re-fire on the
+    // immediate "advance after watching" press. Stays inert when a modal is
+    // already up — defensive against rapid input.
     if (delta === 1 && state.previewState.kind === 'closed') {
       const current = ordered[idx]
       const next = ordered[idx + 1] ?? null
-      const preview = current?.preview
-      const leavingPreviewScope = !next || next.preview !== preview
+      const autoEnd = findAutoLaunchVideo(current, 'end')
+      const nextAutoEnd = findAutoLaunchVideo(next, 'end')
+      const leavingScope = autoEnd !== nextAutoEnd
       if (
-        preview?.type === 'video' &&
-        preview.autoLaunch === 'end' &&
-        leavingPreviewScope &&
+        autoEnd &&
+        leavingScope &&
         state.lastEndAutoLaunchedScreenId !== current.id
       ) {
         set({
-          previewState: { kind: 'video', preview, trailing: true },
+          previewState: { kind: 'video', preview: autoEnd, trailing: true },
           lastEndAutoLaunchedScreenId: current.id,
         })
         return
@@ -606,23 +629,37 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   setLoading: (loading) => set({ loading }),
   setLoadError: (loadError) => set({ loadError }),
 
-  runPreview: async () => {
+  runPreview: async (chosen?: Preview) => {
     const state = get()
-    const screen =
-      state.screenIndex && state.currentScreenId
-        ? (state.screenIndex.byId[state.currentScreenId] ?? null)
-        : null
-    const preview = screen?.preview
-    if (!preview) {
-      set({ statusMessage: 'No preview configured' })
-      window.setTimeout(() => {
-        if (get().statusMessage === 'No preview configured') {
-          set({ statusMessage: 'Ready' })
-        }
-      }, 1500)
+    if (state.previewState.kind !== 'closed' && !chosen) {
+      // Don't restart a modal that's already up unless the picker is
+      // explicitly resolving a selection.
       return
     }
-    if (state.previewState.kind !== 'closed') return
+    let preview: Preview
+    if (chosen) {
+      preview = chosen
+    } else {
+      const screen =
+        state.screenIndex && state.currentScreenId
+          ? (state.screenIndex.byId[state.currentScreenId] ?? null)
+          : null
+      const list = screen?.previews ?? []
+      if (list.length === 0) {
+        set({ statusMessage: 'No preview configured' })
+        window.setTimeout(() => {
+          if (get().statusMessage === 'No preview configured') {
+            set({ statusMessage: 'Ready' })
+          }
+        }, 1500)
+        return
+      }
+      if (list.length > 1) {
+        set({ previewState: { kind: 'picker', previews: list } })
+        return
+      }
+      preview = list[0]
+    }
 
     set({
       previewState: { kind: 'launching', preview },

@@ -3,6 +3,7 @@ import { WelcomeScreen } from './components/WelcomeScreen'
 import { LoadErrorOverlay } from './components/LoadErrorOverlay'
 import { BootCurtain } from './components/BootCurtain'
 import { VideoPreview } from './components/preview/VideoPreview'
+import { PreviewPicker } from './components/preview/PreviewPicker'
 import { SymbolFinder } from './components/SymbolFinder'
 import { useAppStore } from './state/store'
 import { usePreferencesPersistence } from './hooks/usePreferencesPersistence'
@@ -31,6 +32,7 @@ export function App() {
     <>
       {project ? <AppShell /> : <WelcomeScreen />}
       <VideoPreview />
+      <PreviewPicker />
       <SymbolFinder />
       <LoadErrorOverlay />
       {isRouting && <BootCurtain />}

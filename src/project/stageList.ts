@@ -21,7 +21,7 @@
  * context.
  */
 
-import type { CoverItem, OpenTarget, Preview, Screen, Stage } from '@/types'
+import type { CoverItem, OpenTarget, Screen, Stage } from '@/types'
 
 export type ScreenIndex = {
   /** id ("shell" or "shell.intro") -> resolved Screen */
@@ -47,10 +47,11 @@ export type ScreenListResult =
  *
  * Resolution rules:
  *
- * Step `open` is tri-state but **does not** sticky-forward across omitted
- * steps. The runtime treats an undefined `open` as "no opinion at this
- * screen" so the reducer's prior-active-file rule preserves whatever the
- * presenter is doing — including respecting a manually-closed file.
+ * Step `open` is tri-state with **runtime persistence** — there's no chain
+ * inheritance across omitted steps. The runtime treats an undefined `open`
+ * as "no opinion at this screen" so the reducer's prior-active-file rule
+ * preserves whatever the presenter is doing — including respecting a
+ * manually-closed file.
  *  - omitted (`undefined`) → step 1 seeds from `stage.open` (entering the
  *    stage is the author's "land here" intent); subsequent omitted steps
  *    resolve to `undefined` so nothing is forced open or closed
@@ -62,10 +63,15 @@ export type ScreenListResult =
  *    across an omitted step in between
  *  - a full value → use as-is
  *
- * Step `preview` and `cover` keep classic sticky-forward (omitted →
- * inherit prev). Preview re-fire is gated by reference identity in the
- * store, so an inherited preview doesn't relaunch the modal. Cover is a
- * passive list, so re-applying it has no presenter-disruptive effect.
+ * Step `previews` and `cover` resolve **stage→step only** (no step-to-step
+ * chain). Each step independently inherits the stage's default unless it
+ * declares its own. Reference identity is preserved across consecutive
+ * inherited steps because they all resolve to the same stage list, which
+ * is what the autoLaunch / visited-tracking logic keys off.
+ *  - omitted (`undefined`) → use `stage.previews` / `stage.cover`
+ *  - explicit `null` → explicitly empty (this step has nothing, even if
+ *    the stage does); resolves to `undefined` at the screen level
+ *  - a value → use as-is
  *
  * Step alias collisions inside a stage throw — the schema layer should
  * have caught this; failing loud here keeps debugging simple.
@@ -89,7 +95,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         order: order++,
         title: stage.title,
         open: stage.open,
-        preview: stage.preview,
+        previews: stage.previews,
         cover: stage.cover,
       }
       ordered.push(screen)
@@ -104,8 +110,6 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
       // omitted gap still inherits the right file.
       let prevOpenWithFile: OpenTarget | undefined =
         stage.open && stage.open.file ? stage.open : undefined
-      let prevPreview: Preview | undefined = stage.preview
-      let prevCover: CoverItem[] | undefined = stage.cover
       let isFirstStep = true
       for (const step of stage.steps) {
         if (seen.has(step.alias)) {
@@ -132,17 +136,23 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
               : step.open.file === undefined && prevOpenWithFile?.file
                 ? { ...step.open, file: prevOpenWithFile.file }
                 : step.open
-        const preview =
-          step.preview === undefined
-            ? prevPreview
-            : step.preview === null
-              ? stage.preview
-              : step.preview
+        // Stage→step resolution for previews/cover. No step-to-step chain:
+        //   undefined → stage.previews / stage.cover (shared reference, so
+        //               consecutive inheriting steps satisfy the ref-
+        //               identity check that gates autoLaunch re-fires)
+        //   null      → undefined (explicitly empty; the screen has none)
+        //   value     → use as-is
+        const previews =
+          step.previews === undefined
+            ? stage.previews
+            : step.previews === null
+              ? undefined
+              : step.previews
         const cover: CoverItem[] | undefined =
           step.cover === undefined
-            ? prevCover
+            ? stage.cover
             : step.cover === null
-              ? stage.cover
+              ? undefined
               : step.cover
         const screen: Screen = {
           id: `${stage.alias}.${step.alias}`,
@@ -151,15 +161,13 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
           order: order++,
           title: step.title,
           open,
-          preview,
+          previews,
           cover,
         }
         ordered.push(screen)
         byId[screen.id] = screen
         stageScreens.push(screen)
         if (open && open.file) prevOpenWithFile = open
-        prevPreview = preview
-        prevCover = cover
         isFirstStep = false
       }
     }

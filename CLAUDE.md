@@ -61,15 +61,24 @@ like slide builds in Keynote); selecting a stage jumps to its first
 step. A step indicator (`n / N`) appears in the TopBar only for stages
 with multiple screens — single-step stages look unchanged.
 
-Step `preview` inherits **sticky-forward**: missing values fall through
-to the previous step's resolved value, with the stage's default seeding
-step 1. Re-firing the modal is gated by reference identity in the store,
-so an inherited preview doesn't relaunch. Tri-state in
-`buildScreenIndex`: `undefined` = inherit from prev, explicit `null` =
-reset to the stage's default (breaks the chain so subsequent inherits
-pick up the reset value, not the original override), value = use it.
-The reset form lets a later step drop an earlier step's override (e.g. a
-trailing-video preview) without restating the stage's default.
+Step `previews` and `cover` resolve **stage→step only** — there's no
+step-to-step chain. Each step independently uses the stage default
+unless it declares its own:
+
+- `undefined` (omitted) → use the stage's `previews` / `cover`
+- explicit `null` (`~` in YAML) → explicitly empty (this step has none
+  even if the stage does); resolves to `undefined` at the screen level
+- value → use as-is
+
+Reference identity is preserved across consecutive inherited steps —
+`buildScreenIndex` hands the same stage list reference to each — which
+is what the autoLaunch logic and visited-tracking key off. So an
+inherited preview list doesn't re-fire `autoLaunch: 'start'` on every
+step, and an inherited `cover` doesn't reset visited tracking. (There
+used to be a sticky-forward chain with `~` as an escape hatch — "drop
+step 2's trailing-video override before reaching step 3"; that was
+removed in favour of "declare per step or use the stage default." If
+you need a preview available across steps, set it on the stage.)
 
 Step `open` is also tri-state but **does not** sticky-forward across
 omitted steps:
@@ -98,6 +107,69 @@ Branch reload (file contents) only happens when crossing a stage
 boundary; within-stage step changes are pure parser re-runs, so they
 feel snappier than stage switches.
 
+## Previews (Run button)
+
+A stage or step declares previews via one of two YAML keys:
+
+- `preview:` — single object shorthand (one preview)
+- `previews:` — explicit array (zero or more)
+
+Both are accepted; using both on the same stage/step is a parse-time
+error (`preventBothPreviewFields` superRefine). The loader's
+`resolvePreviewField` normalises whichever the author wrote into a
+single internal `Stage.previews` / `Step.previews` of type
+`Preview[] | null | undefined`. The runtime exposes
+`Screen.previews: Preview[] | undefined`. Two invariants on the
+resolved list, enforced at parse time:
+
+- ≤1 entry with `autoLaunch: 'start'`
+- ≤1 entry with `autoLaunch: 'end'`
+
+Each entry may carry an optional `title:` string. The picker uses it as
+the row label (with the URL or video basename as fallback), so two
+entries that share a `src` can still be distinguished at the moment of
+selection.
+
+Run button behaviour (also wired into Ctrl+Enter):
+
+- Empty list → button disabled, status toast "No preview configured".
+- Exactly one → launch directly (URL preview opens externally; video
+  preview opens the modal).
+- More than one → set `previewState` to `{ kind: 'picker', previews }`,
+  which mounts `PreviewPicker`. The picker is a SymbolFinder-style
+  modal: arrow keys cycle, Enter selects, Esc / click-outside closes.
+  The selected preview routes through `runPreview(chosen)`, which
+  bypasses the picker check and goes straight to launching.
+
+Only one preview is ever active at a time. The store's `runPreview`
+guards against re-entry while a modal is up. Opening another preview
+via picker selection only succeeds because the picker is itself a
+non-launched state — selection transitions `picker` → `launching` →
+`video` / closed.
+
+`autoLaunch` firing rules use the (single-by-invariant) entry of each
+mode, scanned per screen via `findAutoLaunchVideo(screen, mode)`:
+
+- **start**: fires on cross-screen entry when the target's autoStart
+  entry differs by reference from the previous screen's autoStart entry
+  (or the previous screen had none) AND we're moving forward. Same
+  entry across screens means "still in scope", so a stage-level
+  autoStart preview doesn't relaunch on each step inside the stage.
+- **end**: fires on forward-advance out of a screen when the current
+  screen has an autoEnd entry whose reference differs from the next
+  screen's autoEnd (or the next screen has none) AND
+  `lastEndAutoLaunchedScreenId` doesn't match — the latter prevents
+  the immediate "advance after watching" press from re-firing the
+  trailing video. Deck-advance on close is gated on the modal having
+  been opened via autoLaunch=end (`previewState.trailing === true`); a
+  manual Run-launch of a preview that happens to have `autoLaunch:
+  'end'` does NOT advance the deck on close.
+
+The previewState `picker` variant absorbs Space/PageDown/PageUp the
+same way the video modal does — `useStageShortcuts` checks for both
+`'video'` and `'picker'` and bails. So screen nav doesn't bleed
+through behind the picker.
+
 ## Stage reset
 
 A stage with `reset: true` re-grounds the workspace **only on cross-
@@ -123,15 +195,29 @@ presenter wants to remember to discuss during that stage. Surfaced as a
 small clickable list under the file tree (`StageCoverList`); items tick
 once their file has been opened during the current stage's tenure.
 
-Authoring shorthand: a list of bare path strings, optionally suffixed
-with `#anchorId` for "open at this anchor". Object form
-(`{ file, id?, line?, label? }`) adds a custom row label. Steps may
-override the stage list with a step-level `cover:` (sticky-forward
-inheritance, tri-state with `null` = reset to stage default — same
-shape as `preview`; `open` shares the tri-state shape but its
-omitted-step semantics are different, see "The screen model"). Cover
-does **not** propagate across
-stage boundaries; each stage is its own agenda.
+Authoring shorthand uses the same `path[#id][@line]` mini-grammar that
+`open` accepts (parsed by `parseTargetShorthand` in `schema.ts`). Both
+suffixes are optional and either order works:
+
+- `src/api.ts` → bare path
+- `src/api.ts#fetchData` → file + symbol id
+- `src/api.ts@42` → file + line
+- `src/api.ts#fetchData@42` → all three
+
+Suffixes peel from the rightmost separator and bail out cleanly when
+the result wouldn't make sense (npm-scoped `@types/foo.ts` keeps the
+`@`; `@head` keeps the literal tag because it isn't all digits; `@0`
+isn't a valid line). Object form (`{ file, id?, line?, label? }`)
+remains for cases the shorthand can't express — most notably a custom
+row `label` in cover, or a partial `{ id }` in `open` that inherits
+the file from the previous resolved open.
+
+Steps may override the stage cover list with a step-level `cover:` —
+same stage→step resolution as `previews` (omit → stage default, `~` →
+explicitly empty, value → use it; no step-to-step chain). `open`
+shares the tri-state shape but its omitted-step semantics are
+different — see "The screen model". Cover does **not** propagate
+across stage boundaries; each stage is its own agenda.
 
 Visited tracking lives in `visitedFilesInStage: Set<string>` on the
 store. Cleared on every cross-stage entry (forward, back, dropdown);
@@ -147,9 +233,10 @@ When stepping within a stage, a step transition whose cover *reference*
 differs from the previous step's clears any visited entries that appear
 in the new cover, so files listed under the new step's framing are
 prompted to be re-visited. Visited entries that aren't in the new
-cover stay ticked. Sticky-forward inheritance preserves cover identity
-across steps that don't override, so the common "every step shares the
-stage's cover" case never triggers a reset.
+cover stay ticked. Stage→step resolution preserves cover identity
+across steps that don't override (consecutive inheriting steps all
+resolve to the same stage list reference), so the common "every step
+shares the stage's cover" case never triggers a reset.
 
 ## Architecture at a glance
 
