@@ -8,27 +8,26 @@ import type { Demo } from '@/types'
  * demo list has more than one entry. Mirrors the SymbolFinder pattern:
  * arrow keys cycle, Enter selects, Esc closes, click-outside closes.
  *
- * All hooks live above the early `return null` — adding a hook below it
- * would change the hook order between mounts and crash React.
+ * Split into wrapper + body so the body unmounts between sessions —
+ * otherwise `selectedIndex` would carry over from the previous open and
+ * paint the stale highlight for one frame before a reset effect ran.
  */
 export function DemoPicker() {
   const demos = useAppStore((s) =>
     s.demoState.kind === 'picker' ? s.demoState.demos : null,
   )
+  if (!demos) return null
+  return <OpenDemoPicker demos={demos} />
+}
+
+function OpenDemoPicker({ demos }: { demos: Demo[] }) {
   const closeDemo = useAppStore((s) => s.closeDemo)
   const runDemo = useAppStore((s) => s.runDemo)
 
   const [selectedIndex, setSelectedIndex] = useState(0)
   const listRef = useRef<HTMLUListElement | null>(null)
 
-  // Reset selection on every fresh open. Reference comparison is enough
-  // since the store hands out a fresh list per picker session.
   useEffect(() => {
-    if (demos) setSelectedIndex(0)
-  }, [demos])
-
-  useEffect(() => {
-    if (!demos) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -63,16 +62,12 @@ export function DemoPicker() {
       } as EventListenerOptions)
   }, [demos, selectedIndex, closeDemo, runDemo])
 
-  // Scroll the selected row into view when arrow-keying past the visible
-  // window. Cheap; runs once per selection change.
   useEffect(() => {
     const list = listRef.current
     if (!list) return
     const row = list.querySelector<HTMLElement>(`[data-idx="${selectedIndex}"]`)
     row?.scrollIntoView({ block: 'nearest' })
-  }, [selectedIndex, demos])
-
-  if (!demos) return null
+  }, [selectedIndex])
 
   return (
     <div
