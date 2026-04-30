@@ -402,7 +402,7 @@ export function VideoDemo() {
           scrubbing ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div className="relative h-1.5 w-full rounded-full bg-white/25">
+        <div className="relative h-1.5 w-full rounded-full bg-black/50 ring-4 ring-black/60">
           <div
             className="h-full rounded-full bg-white"
             style={{ width: `${progress * 100}%` }}
