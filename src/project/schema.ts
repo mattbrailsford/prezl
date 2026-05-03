@@ -24,7 +24,7 @@ const projectFolder = z.object({
  *    "src/api.ts#fetchData@42"        → { file, id, line }
  *    "node_modules/@types/foo.ts"     → { file: full path } (no peel)
  *    "src/api.ts@notanumber"          → { file: full path } (no peel) */
-function parseTargetShorthand(s: string): {
+export function parseTargetShorthand(s: string): {
   file?: string
   id?: string
   line?: number
@@ -147,6 +147,11 @@ const urlDemo = z.object({
   /** Optional human label, surfaced as the row label in the Run picker
    *  when the screen has more than one demo. Falls back to the URL. */
   title: z.string().min(1).optional(),
+  /** Optional project-wide identifier. Lets a markdown intro reference
+   *  the demo by `[label](demo://this-id)` — clicking the link runs the
+   *  demo regardless of which screen the link sits on. Duplicates within
+   *  one project resolve first-wins. */
+  id: z.string().min(1).optional(),
   src: z.string().url().or(z.string().regex(/^\.{0,2}\//)),
   mode: z.enum(['external', 'window', 'pane']).optional(),
 })
@@ -167,6 +172,11 @@ const videoDemo = z.object({
    *  when the screen has more than one demo. Falls back to the file
    *  basename. */
   title: z.string().min(1).optional(),
+  /** Optional project-wide identifier. Lets a markdown intro reference
+   *  the demo by `[label](demo://this-id)` — clicking the link runs the
+   *  demo regardless of which screen the link sits on. Duplicates within
+   *  one project resolve first-wins. */
+  id: z.string().min(1).optional(),
   src: z.string().min(1),
   startAt: z.number().nonnegative().optional(),
   stopAt: z.number().nonnegative().optional(),

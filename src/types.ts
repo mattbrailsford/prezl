@@ -42,6 +42,9 @@ export type UrlDemo = {
   /** Optional human label. Used as the picker row label when a screen has
    *  more than one demo; falls back to the URL itself. */
   title?: string
+  /** Optional project-wide identifier. Markdown intros can reference this
+   *  via `[label](demo://this-id)` to launch the demo on click. */
+  id?: string
   src: string
   mode?: 'external' | 'window' | 'pane'
 }
@@ -56,6 +59,9 @@ export type VideoDemo = {
   /** Optional human label. Used as the picker row label when a screen has
    *  more than one demo; falls back to the file basename. */
   title?: string
+  /** Optional project-wide identifier. Markdown intros can reference this
+   *  via `[label](demo://this-id)` to launch the demo on click. */
+  id?: string
   src: string
   startAt?: number
   stopAt?: number

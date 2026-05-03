@@ -21,7 +21,7 @@
  * context.
  */
 
-import type { CoverItem, OpenTarget, Screen, Stage } from '@/types'
+import type { CoverItem, Demo, OpenTarget, Screen, Stage } from '@/types'
 
 export type ScreenIndex = {
   /** id ("shell" or "shell.intro") -> resolved Screen */
@@ -179,6 +179,26 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
   }
 
   return { byId, ordered, byStage }
+}
+
+/** Walk every stage and step, collecting demos with an `id`. First-wins on
+ *  duplicates — silent rather than throwing because the project is otherwise
+ *  loadable; the second author of a duplicate id just doesn't get
+ *  demo://-link triggering. Empty map when no demos declare an id, which is
+ *  the common case before this feature gets adopted. */
+export function buildDemoIndex(stages: Stage[]): Map<string, Demo> {
+  const out = new Map<string, Demo>()
+  const consider = (demos: Demo[] | null | undefined) => {
+    if (!demos) return
+    for (const d of demos) {
+      if (d.id && !out.has(d.id)) out.set(d.id, d)
+    }
+  }
+  for (const stage of stages) {
+    consider(stage.demos)
+    for (const step of stage.steps ?? []) consider(step.demos ?? undefined)
+  }
+  return out
 }
 
 /**

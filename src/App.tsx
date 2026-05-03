@@ -12,6 +12,7 @@ import { useExplorerToggle } from './hooks/useExplorerToggle'
 import { useStageShortcuts } from './hooks/useStageShortcuts'
 import { useRunShortcut } from './hooks/useRunShortcut'
 import { useSymbolFinderShortcut } from './hooks/useSymbolFinderShortcut'
+import { useTabShortcuts } from './hooks/useTabShortcuts'
 import { useDeepLink } from './hooks/useDeepLink'
 import { useMouseHistoryNav } from './hooks/useMouseHistoryNav'
 
@@ -22,6 +23,7 @@ export function App() {
   useStageShortcuts()
   useRunShortcut()
   useSymbolFinderShortcut()
+  useTabShortcuts()
   useDeepLink()
   useMouseHistoryNav()
 

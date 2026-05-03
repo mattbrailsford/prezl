@@ -277,10 +277,14 @@ src/
                       across stage boundaries), useMouseHistoryNav
                       (XButton1/2 → goBack/goForward; capture-phase;
                       suppressed while video demo is open),
-                      useRunShortcut (Ctrl+Enter / F5), useRenderedFile
-                      (useScreenIndex / useCurrentScreen /
-                      useCurrentStage / useVisibleFiles / useSymbolTable
-                      / useActiveRenderedFile).
+                      useRunShortcut (Ctrl+Enter / F5), useTabShortcuts
+                      (Ctrl+W close active tab, Ctrl+Home re-apply
+                      screen.open — id resolution via the symbol table
+                      so it works even when the file is already active;
+                      pendingNavigation bumps regardless),
+                      useRenderedFile (useScreenIndex / useCurrentScreen
+                      / useCurrentStage / useVisibleFiles /
+                      useSymbolTable / useActiveRenderedFile).
 ```
 
 ## Directive system invariants
@@ -390,10 +394,10 @@ flash. `flash: false` (the `screen.open` path) means persistent reveal
 advance would flash distractingly.
 
 **Capture-phase shortcuts.** Global shortcuts (zoom, Ctrl+E,
-Ctrl+Enter / F5 / Ctrl+F5, Ctrl+T, screen navigation) register with
-`{ capture: true }` so any focused control can't claim them first.
-The F5 / Ctrl+F5 capture binding also suppresses the WebView's
-default page-refresh.
+Ctrl+Enter / F5 / Ctrl+F5, Ctrl+T, Ctrl+W, Ctrl+Home, screen
+navigation) register with `{ capture: true }` so any focused control
+can't claim them first. The F5 / Ctrl+F5 capture binding also
+suppresses the WebView's default page-refresh.
 
 **Screen navigation:**
 
@@ -579,12 +583,67 @@ modal initially returned `null` when closed and then declared another
 across renders and crashed the whole tree, blanking the UI. ALL hooks
 must come before any early return.
 
+## Markdown intros (`.prezl/` folder + MarkdownView)
+
+`.md` files render as styled markdown via `MarkdownView` when opened.
+Dispatch happens in `CodeView.tsx` — if `inferLanguage(activeFile) ===
+'markdown'`, render `MarkdownView` instead of the line-numbered code
+view. The component consumes the same `RenderedFile` everything else
+does, so directive line stripping and `show=`/`file=` gating Just Work
+in markdown. Region directives (`collapse=`, `focus=`) are parsed but
+ignored — they don't make sense without line numbers.
+
+Markdown rendering uses `marked` (GFM enabled — tables, task lists,
+strikethrough, autolinks). Code fences upgrade to Shiki output in a
+second async pass after the highlighter is ready; the base HTML shows
+immediately so there's no blank moment. Styles in `globals.css` under
+`.prezl-md`.
+
+**`.prezl/` private folder.** The Rust file walker (`commands.rs`)
+allow-lists exactly one dotfolder name — `.prezl/` — so files at
+`files/.prezl/**` are loaded into `rawFiles` like any other source
+but never appear in the explorer (filtered at the
+`ExplorerTree.tsx` boundary, not in `computeFileVisibility`, so the
+files still participate in symbol tables / parsing). Tabs already
+use `path.split('/').pop()` so `.prezl/intro.md` shows as
+`intro.md` without any tab-specific change. Intended pattern:
+`stage.open: .prezl/intro.md` opens the intro on stage entry; the
+"presenter close survives step transition" rule means closing it
+sticks for the rest of the stage.
+
+**Link shorthand in markdown.** `MarkdownView` decorates anchor
+hrefs at layout time:
+
+- `[label](path[#id][@line])` — uses `parseTargetShorthand` (now
+  exported from `schema.ts`); resolves `#id` against the project-wide
+  symbol table; click calls `navigateToFileLine`. Files in
+  `visitedFilesInStage` get a `✓` tick + muted styling — same
+  visited tracking the cover list uses.
+- `[label](demo://<id>)` — looks up the demo in `demosById` (built
+  by `buildDemoIndex` in `stageList.ts`, cached on the store at
+  `setProject` time alongside `screenIndex`); click calls `runDemo`
+  with the resolved demo. Demo `id:` is a project-wide identifier on
+  `urlDemo` / `videoDemo` (first-wins on duplicates). Unresolved ids
+  render muted with `⚠` — visible mistake without breaking the
+  page. Renders with a `▶` play affordance.
+- `https?://`, `mailto:`, `tel:`, `ftp:` — `tauri-plugin-shell`
+  opens externally.
+- `#anchor` — native browser scroll (marked auto-generates heading
+  ids).
+
+Decoration is a side-effect on the anchor element via dataset
+attributes (`data-prezl-link-kind`, etc.), and a delegated click
+handler at the container dispatches without re-parsing the href.
+Same pattern as `.prezl-symbol` spans in `CodeView`.
+
 ## Demo fixture
 
 `examples/demo/` — four-stage project with one stepped stage; use it
 to verify parser/renderer changes. The `preview` stage is the
-heaviest: step→stage open inheritance, per-step `open` swapping the
-file, an `autoLaunch: 'end'` trailing video, file-level focus tinting,
-and a `demo: ~` reset of an inherited override. Switching screens
-should re-apply folds and never flash. Per-stage walkthrough:
+heaviest: a `.prezl/intro.md` README (markdown rendering + link
+shorthand + a `demo://backoffice-walkthrough` link to the next
+stage's demo), step→stage open inheritance, per-step `open` swapping
+the file, an `autoLaunch: 'end'` trailing video, file-level focus
+tinting, and a `demo: ~` reset of an inherited override. Switching
+screens should re-apply folds and never flash. Per-stage walkthrough:
 `examples/demo/README.md`.

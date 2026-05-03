@@ -251,4 +251,225 @@
     text-decoration: underline solid rgb(var(--color-app-accent));
     cursor: pointer;
   }
+
+  /* Rendered markdown view — used for `.md` files. The container wraps the
+     HTML produced by `marked` plus Shiki-highlighted code fences. Layout is
+     reading-width with comfortable line height; tokens reuse the dark theme
+     so a markdown surface feels like part of the IDE rather than docs from
+     a different design language. */
+  .prezl-md {
+    color: rgb(var(--color-text));
+    line-height: 1.65;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: auto;
+    max-width: 60rem;
+  }
+
+  .prezl-md h1,
+  .prezl-md h2,
+  .prezl-md h3,
+  .prezl-md h4,
+  .prezl-md h5,
+  .prezl-md h6 {
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.5em 0 0.6em;
+    color: rgb(var(--color-text));
+  }
+  .prezl-md h1 {
+    font-size: 1.9em;
+    margin-top: 0;
+    border-bottom: 1px solid rgb(var(--color-app-border));
+    padding-bottom: 0.3em;
+  }
+  .prezl-md h2 {
+    font-size: 1.45em;
+    border-bottom: 1px solid rgb(var(--color-app-border));
+    padding-bottom: 0.25em;
+  }
+  .prezl-md h3 {
+    font-size: 1.2em;
+  }
+  .prezl-md h4 {
+    font-size: 1.05em;
+  }
+
+  .prezl-md p,
+  .prezl-md ul,
+  .prezl-md ol,
+  .prezl-md blockquote,
+  .prezl-md table,
+  .prezl-md pre {
+    margin: 0.85em 0;
+  }
+
+  /* Tailwind preflight removes list-style and padding from ul/ol; opt back
+     in for the rendered markdown surface so bullets and numbers actually
+     show. Three-level nesting picks up the conventional disc → circle →
+     square ladder. */
+  .prezl-md ul {
+    padding-left: 1.5em;
+    list-style-type: disc;
+  }
+  .prezl-md ol {
+    padding-left: 1.5em;
+    list-style-type: decimal;
+  }
+  .prezl-md ul ul {
+    list-style-type: circle;
+  }
+  .prezl-md ul ul ul {
+    list-style-type: square;
+  }
+  .prezl-md li + li {
+    margin-top: 0.25em;
+  }
+  .prezl-md li > ul,
+  .prezl-md li > ol {
+    margin: 0.35em 0;
+  }
+  .prezl-md li::marker {
+    color: rgb(var(--color-app-muted));
+  }
+  /* GFM task-list items render as `<li class="task-list-item"><input
+     type=checkbox>…</li>`. The checkbox is the affordance — drop the marker
+     on these and pull the indent flush so the box lines up with sibling
+     prose. */
+  .prezl-md li.task-list-item {
+    list-style: none;
+    margin-left: -1.2em;
+  }
+  .prezl-md li.task-list-item::marker {
+    content: '';
+  }
+
+  .prezl-md a {
+    color: rgb(var(--color-app-accent));
+    text-decoration: underline;
+    text-decoration-color: rgba(var(--color-app-accent) / 0.5);
+    text-underline-offset: 3px;
+  }
+  .prezl-md a:hover {
+    text-decoration-color: rgb(var(--color-app-accent));
+  }
+  .prezl-md a[data-prezl-link-kind='prezl'] {
+    cursor: pointer;
+  }
+  .prezl-md a[data-prezl-link-kind='prezl'][data-prezl-visited='true'] {
+    color: rgb(var(--color-app-muted));
+    text-decoration-color: rgba(var(--color-app-muted) / 0.5);
+  }
+  .prezl-md a[data-prezl-link-kind='prezl'][data-prezl-visited='true']::before {
+    content: '✓ ';
+    color: rgba(var(--color-focus) / 0.85);
+  }
+
+  /* `demo://<id>` links — surface a play affordance so the reader knows the
+     link triggers a demo rather than navigating to a file. Unresolved ids
+     get the same kind attribute but render muted with no affordance, so the
+     mistake is visible without breaking the page. */
+  .prezl-md a[data-prezl-link-kind='demo'] {
+    cursor: pointer;
+  }
+  .prezl-md a[data-prezl-link-kind='demo']::before {
+    content: '▶ ';
+    color: rgba(var(--color-app-accent) / 0.85);
+    font-size: 0.85em;
+  }
+  .prezl-md a[data-prezl-link-kind='demo'][data-prezl-unresolved='true'] {
+    color: rgb(var(--color-app-muted));
+    text-decoration-color: rgba(var(--color-app-muted) / 0.4);
+    cursor: not-allowed;
+  }
+  .prezl-md a[data-prezl-link-kind='demo'][data-prezl-unresolved='true']::before {
+    content: '⚠ ';
+    color: rgba(var(--color-app-muted) / 0.85);
+  }
+
+  .prezl-md code {
+    font-family:
+      ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+      monospace;
+    font-size: 0.9em;
+    background-color: rgb(var(--color-app-panel));
+    border: 1px solid rgb(var(--color-app-border));
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+  .prezl-md pre {
+    background-color: rgb(var(--color-app-panel));
+    border: 1px solid rgb(var(--color-app-border));
+    border-radius: 6px;
+    padding: 0.85em 1em;
+    overflow-x: auto;
+  }
+  .prezl-md pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.95em;
+  }
+  /* Shiki replaces the inner <code> with its own <pre class="shiki">; flatten
+     the nested padding so we don't double-pad. */
+  .prezl-md pre.shiki {
+    padding: 0.85em 1em;
+  }
+
+  .prezl-md blockquote {
+    border-left: 3px solid rgb(var(--color-app-border));
+    padding: 0.1em 1em;
+    color: rgb(var(--color-text-muted));
+  }
+  .prezl-md blockquote > :first-child {
+    margin-top: 0;
+  }
+  .prezl-md blockquote > :last-child {
+    margin-bottom: 0;
+  }
+
+  .prezl-md table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .prezl-md th,
+  .prezl-md td {
+    border: 1px solid rgb(var(--color-app-border));
+    padding: 0.4em 0.7em;
+    text-align: left;
+  }
+  .prezl-md th {
+    background-color: rgb(var(--color-app-panel));
+    font-weight: 600;
+  }
+
+  .prezl-md hr {
+    border: 0;
+    border-top: 1px solid rgb(var(--color-app-border));
+    margin: 1.5em 0;
+  }
+
+  /* GFM task lists — marked emits <input type=checkbox disabled>. The
+     `li.task-list-item` shape itself is handled in the list block above. */
+  .prezl-md input[type='checkbox'] {
+    margin-right: 0.4em;
+    accent-color: rgb(var(--color-app-accent));
+  }
+
+  .prezl-md img {
+    max-width: 100%;
+    border-radius: 4px;
+  }
+
+  .prezl-md kbd {
+    font-family:
+      ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    background-color: rgb(var(--color-app-panel));
+    border: 1px solid rgb(var(--color-app-border));
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 0.05em 0.4em;
+  }
 }

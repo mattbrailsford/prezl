@@ -290,6 +290,23 @@ to attach a `title`.
 (falls back to the URL or video basename). Useful when two entries
 share a `src` and the picker would otherwise show duplicate labels.
 
+##### Optional `id:` (any demo kind)
+
+```yaml
+demo:
+  id: backoffice-walkthrough
+  type: video
+  src: ./videos/walkthrough.mp4
+```
+
+`id:` makes the demo project-wide-addressable. A markdown intro file
+can reference it via `[label](demo://backoffice-walkthrough)` —
+clicking the link launches the demo regardless of which screen the
+link is on. Duplicate ids resolve first-wins (the second declaration
+just isn't reachable via `demo://`). See the
+[markdown intros guide](../guide/markdown-intros) for the full link
+grammar.
+
 ##### `autoLaunch` invariants
 
 `autoLaunch` opens the modal automatically without a *Run* click. Two

@@ -24,6 +24,7 @@ import {
 } from '@/project/shikiSetup'
 import type { FoldRange, RenderedFile } from '@/project/directiveParser'
 import { PretzelLogo } from './PretzelLogo'
+import { MarkdownView } from './MarkdownView'
 
 /** Static, read-only code viewer. Replaces Monaco — about 2.5 MB of editor
  *  for a fake-IDE viewer was overkill. Uses Shiki for tokens and renders
@@ -389,6 +390,10 @@ export function CodeView() {
         <span className="text-xs opacity-70">{activeFile}</span>
       </div>
     )
+  }
+
+  if (language === 'markdown') {
+    return <MarkdownView rendered={rendered} activeFile={activeFile} />
   }
 
   const focusLines = buildLineSet(rendered.focusRanges)

@@ -74,12 +74,25 @@ Inside the symbol finder modal:
 
 ## Editor tabs
 
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+W` / `Cmd+W` | Close the active tab |
+| `Ctrl+Home` / `Ctrl+H` | Re-apply the current screen's `open:` anchor |
+
+`Ctrl+H` is an alias for laptops without a dedicated Home key.
+
 | Input | Action |
 | --- | --- |
 | Right-click a tab | Open the tab context menu |
 | Context menu: **Close** | Close the right-clicked tab |
 | Context menu: **Close Others** | Close every tab except the right-clicked one |
 | Context menu: **Close All** | Close every open tab |
+
+`Ctrl+Home` is the recovery path when the presenter has closed (or
+navigated away from) the file the screen authored. It re-opens the
+resolved `open:` target and scrolls to its `id` / `line` anchor — same
+landing the screen does on entry. No-op with a status flash on screens
+that don't declare an `open:`.
 
 Closing a tab doesn't push to location history (closing is editing,
 not navigating), so back/forward continues to walk the screens you

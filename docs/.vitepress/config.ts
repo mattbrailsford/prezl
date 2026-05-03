@@ -48,6 +48,7 @@ export default defineConfig({
             { text: 'Directives', link: '/guide/directives' },
             { text: 'Symbol navigation', link: '/guide/symbol-navigation' },
             { text: 'Demos', link: '/guide/demos' },
+            { text: 'Markdown intros', link: '/guide/markdown-intros' },
             { text: 'Multi-project layout', link: '/guide/multi-project' },
             { text: 'VS Code extension', link: '/guide/vscode-extension' },
           ],

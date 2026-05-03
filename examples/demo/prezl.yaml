@@ -15,7 +15,9 @@ stages:
     branch: feature/dashboard-preview
     title: Preview dashboard
     reset: true
-    open: src/dashboard.ts#registerDashboard
+    # Stage entry opens an intro README from the private `.prezl/` folder.
+    # The file is loaded and openable but never appears in the explorer.
+    open: .prezl/intro.md
     # Stage agenda — surfaced under the explorer as a clickable checklist.
     # Items tick once their file has been opened during this stage's tenure.
     cover:
@@ -53,6 +55,9 @@ stages:
     title: Recorded backoffice walkthrough
     open: src/api.ts@1
     demo:
+      # Project-wide id — referenced from the preview stage's intro README
+      # via `[Watch the walkthrough](demo://backoffice-walkthrough)`.
+      id: backoffice-walkthrough
       type: video
       src: ./videos/backoffice-demo.mp4
       startAt: 4.5

@@ -219,9 +219,17 @@ export function ExplorerTree() {
   const { visible: visibleFiles, focused: focusedFiles } = useFileVisibility()
   const pickAndOpen = usePickAndOpenProject()
 
+  // Files under `.prezl/` are presentation-only assets (intros, agendas).
+  // They participate in symbol resolution and can be opened via stage.open
+  // / link clicks, but never appear in the explorer tree.
+  const explorerFiles = useMemo(
+    () => visibleFiles.filter((p) => !p.startsWith('.prezl/')),
+    [visibleFiles],
+  )
+
   const groups = useMemo(
-    () => groupFilesByProject(visibleFiles, projects),
-    [visibleFiles, projects],
+    () => groupFilesByProject(explorerFiles, projects),
+    [explorerFiles, projects],
   )
 
   // Folders whose subtree contains a focused leaf — used to apply a quieter

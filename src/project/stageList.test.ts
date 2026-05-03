@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildScreenIndex, parseScreenList } from './stageList'
-import type { Stage } from '@/types'
+import { buildDemoIndex, buildScreenIndex, parseScreenList } from './stageList'
+import type { Demo, Stage } from '@/types'
 
 const FLAT_STAGES: Stage[] = [
   { id: 'main', order: 1 },
@@ -614,5 +614,70 @@ describe('parseScreenList — stepped', () => {
     expect(
       steppedMatch('preview.render...shell.intro', 'shell.intro'),
     ).toMatch(/inverted range/)
+  })
+})
+
+describe('buildDemoIndex', () => {
+  const videoDemo = (id?: string, title?: string): Demo => ({
+    type: 'video',
+    src: `./videos/${id ?? title ?? 'demo'}.mp4`,
+    ...(id ? { id } : {}),
+    ...(title ? { title } : {}),
+  })
+
+  it('returns an empty map when no demos declare an id', () => {
+    const stages: Stage[] = [
+      { id: 'a', order: 1, demos: [videoDemo(undefined, 'noId')] },
+      { id: 'b', order: 2 },
+    ]
+    expect(buildDemoIndex(stages).size).toBe(0)
+  })
+
+  it('collects ids from stage and step demo lists', () => {
+    const stages: Stage[] = [
+      {
+        id: 'a',
+        order: 1,
+        demos: [videoDemo('walkthrough')],
+      },
+      {
+        id: 'b',
+        order: 2,
+        steps: [
+          { id: 'intro', demos: [videoDemo('teaser')] },
+          { id: 'outro' },
+        ],
+      },
+    ]
+    const idx = buildDemoIndex(stages)
+    expect(idx.get('walkthrough')?.type).toBe('video')
+    expect(idx.get('teaser')?.type).toBe('video')
+    expect(idx.size).toBe(2)
+  })
+
+  it('first-wins on duplicate ids', () => {
+    const first = videoDemo('shared', 'first')
+    const second = videoDemo('shared', 'second')
+    const stages: Stage[] = [
+      { id: 'a', order: 1, demos: [first] },
+      { id: 'b', order: 2, demos: [second] },
+    ]
+    const idx = buildDemoIndex(stages)
+    expect(idx.size).toBe(1)
+    expect(idx.get('shared')).toBe(first)
+  })
+
+  it('skips step.demos when null (explicitly empty)', () => {
+    const stages: Stage[] = [
+      {
+        id: 'a',
+        order: 1,
+        demos: [videoDemo('keep')],
+        steps: [{ id: 's', demos: null }],
+      },
+    ]
+    const idx = buildDemoIndex(stages)
+    expect(idx.size).toBe(1)
+    expect(idx.has('keep')).toBe(true)
   })
 })

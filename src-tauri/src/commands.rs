@@ -156,13 +156,20 @@ pub fn list_project_files(state: State<ProjectRoot>) -> Result<Vec<String>, Comm
     Ok(results)
 }
 
+/// Allow-listed dotfolder name. Anything else starting with '.' is skipped.
+/// `.prezl/` lives under `files/` to host presentation-only assets (intros,
+/// agendas) that shouldn't appear in the project explorer but still need to
+/// be loaded into rawFiles so the renderer can open them.
+const PREZL_ASSETS_DIR: &str = ".prezl";
+
 fn walk(base: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), CommandError> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let name = entry.file_name();
         let name_str = name.to_string_lossy();
-        // Skip hidden / common noise directories.
-        if name_str.starts_with('.') {
+        // Skip hidden / common noise. `.prezl/` is the one allow-listed
+        // dotfolder — see PREZL_ASSETS_DIR.
+        if name_str.starts_with('.') && name_str != PREZL_ASSETS_DIR {
             continue;
         }
         let file_type = entry.file_type()?;

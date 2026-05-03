@@ -99,6 +99,40 @@ describe('schema — demo list shape', () => {
     }
   })
 
+  it('accepts optional `id:` on url + video demos', () => {
+    const r = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          id: 'shell',
+          demos: [
+            { id: 'live', type: 'url', src: 'https://example.com' },
+            { id: 'recorded', type: 'video', src: './v.mp4' },
+          ],
+        },
+      ],
+    })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      const [a, b] = r.data.stages[0].demos!
+      expect((a as { id?: string }).id).toBe('live')
+      expect((b as { id?: string }).id).toBe('recorded')
+    }
+  })
+
+  it('rejects empty-string `id:` on a demo', () => {
+    const r = prezlProjectSchema.safeParse({
+      name: 'Test',
+      stages: [
+        {
+          id: 'shell',
+          demo: { id: '', type: 'video', src: './v.mp4' },
+        },
+      ],
+    })
+    expect(r.success).toBe(false)
+  })
+
   it('rejects both `demo:` and `demos:` on the same stage', () => {
     const r = prezlProjectSchema.safeParse({
       name: 'Test',

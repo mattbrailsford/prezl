@@ -10,7 +10,11 @@ import {
   type VideoDemo,
 } from '@/types'
 import { applyStageEntryReset, reconcileScreenSwitch } from './stageReducer'
-import { buildScreenIndex, type ScreenIndex } from '@/project/stageList'
+import {
+  buildDemoIndex,
+  buildScreenIndex,
+  type ScreenIndex,
+} from '@/project/stageList'
 import { computeVisibleFiles } from '@/project/visibleFiles'
 import { launchUrlDemo } from '@/project/demoLauncher'
 import type { LoadError } from '@/project/schema'
@@ -116,6 +120,10 @@ type AppState = {
   binaryFiles: Set<string>
   /** Cached screen index built once per project load. Null when no project. */
   screenIndex: ScreenIndex | null
+  /** Project-wide demo lookup — `id` -> the resolved Demo. Used by
+   *  markdown `[label](demo://id)` links to dispatch `runDemo` regardless
+   *  of which screen the link is on. Empty when no demos declare an id. */
+  demosById: Map<string, Demo>
   currentScreenId: string | null
   openTabs: string[]
   activeFile: string | null
@@ -358,6 +366,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   rawFiles: new Map(),
   binaryFiles: new Set(),
   screenIndex: null,
+  demosById: new Map(),
   currentScreenId: null,
   openTabs: [],
   activeFile: null,
@@ -380,6 +389,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
 
   setProject: (project, rawFiles, binaryFiles, initialStageId) => {
     const screenIndex = buildScreenIndex(project.stages)
+    const demosById = buildDemoIndex(project.stages)
     const initialScreen: Screen | null =
       (initialStageId
         ? firstScreenOfStage(screenIndex, initialStageId)
@@ -423,6 +433,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       rawFiles,
       binaryFiles,
       screenIndex,
+      demosById,
       currentScreenId: initialScreen?.id ?? null,
       openTabs: firstFile ? [firstFile] : [],
       activeFile: firstFile,
@@ -447,6 +458,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       rawFiles: new Map(),
       binaryFiles: new Set(),
       screenIndex: null,
+      demosById: new Map(),
       currentScreenId: null,
       openTabs: [],
       activeFile: null,
