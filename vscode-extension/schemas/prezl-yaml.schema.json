@@ -204,6 +204,11 @@
           "minLength": 1,
           "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one demo. Falls back to the URL."
         },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional project-wide identifier. Markdown intros can reference this via `[label](demo://this-id)` to launch the demo on click. Duplicates resolve first-wins."
+        },
         "src": { "type": "string", "minLength": 1 },
         "mode": {
           "type": "string",
@@ -221,6 +226,11 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional human label; surfaced as the row label in the Run picker when a screen has more than one demo. Falls back to the file basename."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional project-wide identifier. Markdown intros can reference this via `[label](demo://this-id)` to launch the demo on click. Duplicates resolve first-wins."
         },
         "src": { "type": "string", "minLength": 1 },
         "startAt": { "type": "number", "minimum": 0 },
