@@ -380,6 +380,21 @@
     color: rgba(129 140 248 / 0.85);
     font-size: 0.85em;
   }
+  /* Already-launched demo, scoped to the current open frame. Mirrors the
+     file-link visited treatment so an intro reads consistently whether the
+     link points at a file or a demo. */
+  .prezl-md a[data-prezl-link-kind='demo'][data-prezl-visited='true'] {
+    color: rgb(var(--color-app-muted));
+    text-decoration-color: rgba(var(--color-app-muted) / 0.5);
+  }
+  .prezl-md a[data-prezl-link-kind='demo'][data-prezl-visited='true']::before {
+    content: '✓ ';
+    color: rgba(var(--color-focus) / 0.85);
+    font-size: inherit;
+  }
+  /* Unresolved declared after visited so its lower-specificity selector still
+     wins via source order — a typo'd id can't have actually launched, but
+     keep the cue defensive against dataset drift. */
   .prezl-md a[data-prezl-link-kind='demo'][data-prezl-unresolved='true'] {
     color: rgb(var(--color-app-muted));
     text-decoration-color: rgba(var(--color-app-muted) / 0.4);
@@ -388,6 +403,7 @@
   .prezl-md a[data-prezl-link-kind='demo'][data-prezl-unresolved='true']::before {
     content: '⚠ ';
     color: rgba(var(--color-app-muted) / 0.85);
+    font-size: 0.85em;
   }
 
   .prezl-md code {

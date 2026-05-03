@@ -131,9 +131,12 @@ Same shorthand as `open:` and `cover:`:
 ```
 
 Click navigates via the symbol table, exactly like a click on a
-symbol decoration in code. Files already opened during the current
-stage's tenure get a `✓` tick and a muted color — the same
-visited tracking the cover list uses.
+symbol decoration in code. Files already opened get a `✓` tick and
+a muted color, scoped to the current **open frame** — the markdown
+file's framing. Visits persist across consecutive steps that inherit
+the stage's `open:` (the intro is the same continuous document) but
+reset whenever a step authors its own `open:` (a new framing should
+re-prompt the links). Cross-stage entry resets too.
 
 ### Demos — `[label](demo://<id>)`
 
@@ -155,6 +158,14 @@ Click runs the demo just like the *Run* button would. The link
 renders with a small ▶ play affordance. Unresolved ids render
 muted with a ⚠ — the page still shows but the click is a
 no-op, so a typo is visible without breaking anything.
+
+Once you've launched the demo (Run button, picker selection,
+auto-launch, or a click on this same link), the affordance flips
+to a ✓ tick + muted color — same treatment file links get when
+their target's been opened. Tracking is open-frame-scoped, so the
+tick survives across consecutive steps that inherit the stage's
+intro and resets when a step authors its own `open:` (a fresh
+intro framing → fresh prompt). Cross-stage entry resets too.
 
 Demo ids are project-wide and resolve first-wins on duplicates. A
 README on stage 1 can link to a demo declared on stage 5.
@@ -180,14 +191,24 @@ handles it however it would.
 
 ## Cover or markdown?
 
-Both surface "files to discuss" — pick whichever fits:
+Both surface "things to discuss" — pick whichever fits:
 
 - **Cover** is best for short YAML-driven agendas pinned next to the
-  file tree. It's always visible during the stage; ticks update as
-  you visit each file.
+  file tree. It's always visible during the stage; rows tick as you
+  visit each file or launch each demo.
 - **Markdown intros** are best for richer framing — heading,
   paragraph, links, demo triggers, GFM tables — viewed as the
   active file rather than a sidebar.
 
-A stage can have both. They don't conflict; visited tracking is
-shared (the same `visitedFilesInStage` set ticks both surfaces).
+Both surfaces accept the same kinds of references — file paths
+(`path[#id][@line]`) and demo triggers (`demo://<id>`) — so a
+markdown intro and a cover list can mention the same file or the
+same demo by the same identifier.
+
+A stage can have both. They don't conflict — but visited tracking
+uses different scopes: cover ticks are stage-scoped (with smart
+cover-reference resets between steps), markdown link ticks (both
+file and demo flavours) are open-frame-scoped (reset whenever a
+step authors its own `open:`). File opens feed both sets; demo
+launches feed both sets. The two scopes simply invalidate at
+different boundaries.

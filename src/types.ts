@@ -25,17 +25,36 @@ export type SymbolTarget = {
   id?: string
 }
 
-/** One entry in a stage/step's `cover:` list — a file the presenter wants to
- *  remember to discuss. `file` is the only required field. `id` (or `line`)
- *  optionally targets a specific anchor inside the file; click handlers route
- *  through the symbol table to scroll there. `title` overrides the display
- *  text in the cover list (otherwise the file's basename is shown). */
-export type CoverItem = {
+/** A file entry in a `cover:` list — a path the presenter wants to remember
+ *  to discuss. `file` is required; `id` / `line` optionally target an anchor
+ *  inside it; `title` overrides the row label (otherwise the file's basename
+ *  is shown). */
+export type CoverFileItem = {
+  kind: 'file'
   file: string
   id?: string
   line?: number
   title?: string
 }
+
+/** A demo entry in a `cover:` list — references a project-wide demo by `id:`
+ *  (the same id markdown intros use via `[label](demo://this-id)`). Click in
+ *  the cover list runs the demo, mirroring the picker's launch path. `title`
+ *  overrides the row label (otherwise the resolved demo's title or src
+ *  basename is shown). Unresolved ids render muted with a ⚠ — same
+ *  treatment as markdown's unresolved demo links. */
+export type CoverDemoItem = {
+  kind: 'demo'
+  demoId: string
+  title?: string
+}
+
+/** One entry in a stage/step's `cover:` list — either a file path the
+ *  presenter wants to discuss, or a demo trigger that mirrors markdown's
+ *  `demo://<id>` link. The two variants share the agenda surface (clickable
+ *  checklist under the file tree); ticks come from `visitedFilesInStage` for
+ *  files and `launchedDemosInStage` for demos. */
+export type CoverItem = CoverFileItem | CoverDemoItem
 
 export type UrlDemo = {
   type: 'url'
@@ -164,6 +183,18 @@ export type Screen = {
    *  inherited screens share the reference, so visited tracking persists
    *  across them naturally. */
   cover?: CoverItem[]
+  /** Stable identity for the "open frame" — separate from runtime `open`
+   *  because that resolves to `undefined` on inherited steps after the
+   *  first (so the reducer treats them as "no opinion" and preserves
+   *  presenter-driven activeFile changes). For visited-link invalidation
+   *  we want the opposite: every consecutive step that inherits the
+   *  stage's `open` should share a reference, so markdown link visits
+   *  persist across the whole stage-level intro. A step that authors its
+   *  own `open` (or omits but resolves via partial-merge) gets a distinct
+   *  reference, which signals "fresh framing → re-prompt link visits."
+   *  Cross-stage transitions full-reset visited tracking and never
+   *  consult this. */
+  openIdentity?: OpenTarget | null
 }
 
 export type PrezlProject = {

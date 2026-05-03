@@ -183,20 +183,30 @@ on step transitions within the stage). Two effects:
 
 ## Stage cover (presenter agenda)
 
-A stage can declare a `cover:` array of files (and optional anchors) the
-presenter wants to remember to discuss during that stage. Surfaced as a
-small clickable list under the file tree (`StageCoverList`); items tick
-once their file has been opened during the current stage's tenure.
+A stage can declare a `cover:` array of items the presenter wants to
+remember to surface during that stage. Surfaced as a small clickable
+list under the file tree (`StageCoverList`). Two shapes (discriminated
+union — `kind: 'file' | 'demo'` after parse):
 
-Authoring shorthand: `path[#id][@line]` mini-grammar (parsed by
-`parseTargetShorthand` in `schema.ts`) — either suffix optional, either
-order. Object form `{ file, id?, line?, title? }` covers what shorthand
-can't (custom row `title`, or a partial `{ id }` in `open` that inherits
-the file from the previous resolved open). Single-item shorthand: a
-bare string/object is equivalent to a one-element list — mirrors the
-`demo:` / `demos:` pair. See `docs/reference/yaml-schema.md` for
-the full grammar (npm-scoped path edge cases like `@types/foo.ts`,
-`@head` literal preservation, etc.).
+- **File entries** — a path with optional `#id` / `@line`. Tick once
+  the file has been opened during the current stage's tenure.
+- **Demo entries** — a `demo://<id>` reference resolved against the
+  same project-wide `demosById` index markdown intros use. Click
+  fires `runDemo` (same launching path as the Run button / picker /
+  markdown demo link). Tick once the demo id has been launched in
+  this stage's tenure (any launch site counts: cover row, Run button,
+  picker selection, markdown link, autoLaunch start/end). Unresolved
+  ids render muted with a ⚠ — visible authoring mistake without
+  breaking the agenda; click is a no-op.
+
+Authoring shorthand for files: `path[#id][@line]` mini-grammar (parsed
+by `parseTargetShorthand` in `schema.ts`) — either suffix optional,
+either order. Object form `{ file, id?, line?, title? }` covers what
+shorthand can't. Authoring shorthand for demos: `demo://<id>` (mirrors
+markdown's link grammar) or `{ demo: '<id>', title? }` object form.
+Single-item shorthand: a bare string/object is equivalent to a
+one-element list — mirrors the `demo:` / `demos:` pair. See
+`docs/reference/yaml-schema.md` for the full grammar.
 
 Steps may override the stage cover list with a step-level `cover:` —
 same stage→step resolution as `demos` (omit → stage default, `~` →
@@ -205,24 +215,49 @@ shares the tri-state shape but its omitted-step semantics are
 different — see "The screen model". Cover does **not** propagate
 across stage boundaries; each stage is its own agenda.
 
-Visited tracking lives in `visitedFilesInStage: Set<string>` on the
-store. Cleared on every cross-stage entry (forward, back, dropdown);
-added to whenever `activeFile` changes (via `switchScreen`,
-`openFile`, `setActiveFile`, `navigateToFileLine`, and the back/forward
-`applyHistoryLocation` path). The list is by file, so opening the
-target file ticks every cover item pointing at it — there's no
-per-anchor visit detection. Click routes through
-`navigateToFileLine` when the cover item resolves an `id` against the
-current symbol table, otherwise falls back to `openFile`.
+Visited tracking has two parallel sets on the store:
 
+- `visitedFilesInStage: Set<string>` — file paths visited during the
+  current stage. Added to whenever `activeFile` changes (via
+  `switchScreen`, `openFile`, `setActiveFile`, `navigateToFileLine`,
+  and the back/forward `applyHistoryLocation` path).
+- `launchedDemosInStage: Set<string>` — demo ids launched during the
+  current stage. Added to from every site that flips `demoState`
+  into a launching/showing form (`runDemo`'s `launching` transition,
+  the autoLaunch start hook in `switchScreen`, and the trailing-end
+  hook in `switchScreenRelative`), plus seeded by the initial
+  autoLaunch on `setProject`.
+
+Both sets reset on every cross-stage entry (forward, back, dropdown).
 When stepping within a stage, a step transition whose cover *reference*
 differs from the previous step's clears any visited entries that appear
-in the new cover, so files listed under the new step's framing are
-prompted to be re-visited. Visited entries that aren't in the new
-cover stay ticked. Stage→step resolution preserves cover identity
-across steps that don't override (consecutive inheriting steps all
-resolve to the same stage list reference), so the common "every step
-shares the stage's cover" case never triggers a reset.
+in the new cover (files filtered against `kind: 'file'` items, demo
+ids filtered against `kind: 'demo'` items) so each step's framing
+re-prompts. Items visited under the previous step that aren't on the
+new cover stay ticked. Stage→step resolution preserves cover identity
+across steps that don't override, so the common "every step shares the
+stage cover" case never triggers a reset.
+
+File click routes through `navigateToFileLine` when the cover item
+resolves an `id` against the current symbol table, otherwise falls
+back to `openFile`. Demo click routes through `runDemo(demosById.get(
+demoId))` — bypasses the picker because the user already chose by
+clicking this row.
+
+A second visited set, `visitedFilesInOpen`, drives **markdown link
+ticks** under a separate invalidation policy. Same population (any
+`activeFile` change) but resets on a different boundary: the open-
+frame reference. Each screen carries `openIdentity` alongside
+runtime `open`. `openIdentity` always inherits from `stage.open`
+when a step omits/`null`s its open — including non-first steps,
+where runtime `open` deliberately drops to `undefined` to preserve
+presenter actions. So consecutive inheriting steps share a stable
+reference (no markdown-link reset), and a step that authors its own
+`open` gets a fresh reference (full reset of `visitedFilesInOpen` on
+that transition). Cross-stage transitions full-reset both sets.
+This keeps cover ticks stable across stage-level cover sharing while
+letting markdown intros re-prompt link visits whenever a step shifts
+the framing.
 
 ## Architecture at a glance
 
@@ -625,7 +660,16 @@ hrefs at layout time:
   with the resolved demo. Demo `id:` is a project-wide identifier on
   `urlDemo` / `videoDemo` (first-wins on duplicates). Unresolved ids
   render muted with `⚠` — visible mistake without breaking the
-  page. Renders with a `▶` play affordance.
+  page. Renders with a `▶` play affordance, flipping to a muted
+  `✓` once launched. Launch tracking lives on the store as
+  `launchedDemosInOpen: Set<string>` (keyed by demo id), populated
+  at every site that flips `demoState` into a "showing" form
+  (`runDemo`'s `launching` transition plus the three autoLaunch
+  entry points: initial in `setProject`, `autoLaunchStartFor` in
+  `switchScreen`, trailing-end in `switchScreenRelative`). Reset
+  policy mirrors `visitedFilesInOpen` exactly — cross-stage entry
+  or open-frame reference change clears it; consecutive steps that
+  inherit the stage's `open` preserve it.
 - `https?://`, `mailto:`, `tel:`, `ftp:` — `tauri-plugin-shell`
   opens externally.
 - `#anchor` — native browser scroll (marked auto-generates heading

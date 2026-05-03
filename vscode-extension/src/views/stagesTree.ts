@@ -121,6 +121,22 @@ function coverTreeItem(
   ownerKey: string,
   index: number,
 ): vscode.TreeItem {
+  if (cover.kind === 'demo') {
+    const label = cover.title ?? cover.demoId
+    const item = new vscode.TreeItem(
+      label,
+      vscode.TreeItemCollapsibleState.None,
+    )
+    item.description = `demo://${cover.demoId}`
+    // `play` is the same icon family as the runtime cover row's lucide
+    // Play — keeps the two surfaces visually parallel.
+    item.iconPath = new vscode.ThemeIcon('play')
+    item.tooltip = coverTooltip(cover)
+    item.id = `${ownerKey}#cover#${index}`
+    // No command — the IDE can't actually launch a Prezl demo. The entry
+    // still surfaces in the tree so the agenda reads complete.
+    return item
+  }
   const label = cover.title ?? basename(cover.file)
   const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None)
   // Description shows the anchor / line / file context so the row stays
@@ -147,6 +163,11 @@ function coverTreeItem(
 
 function coverTooltip(cover: CoverItemInfo): vscode.MarkdownString {
   const md = new vscode.MarkdownString()
+  if (cover.kind === 'demo') {
+    md.appendMarkdown(`demo \`${cover.demoId}\``)
+    if (cover.title) md.appendMarkdown(` · ${cover.title}`)
+    return md
+  }
   md.appendMarkdown(`\`${cover.file}\``)
   if (cover.id) md.appendMarkdown(` · id \`${cover.id}\``)
   if (cover.line) md.appendMarkdown(` · line ${cover.line}`)
@@ -200,10 +221,14 @@ export async function openScreenCommand(arg: {
 }
 
 /** Open a cover item: resolve `id` against the file's `@prezl` anchors
- *  when present, otherwise honour `line`, otherwise open at line 1. */
+ *  when present, otherwise honour `line`, otherwise open at line 1. Demo
+ *  cover entries are no-ops here — the IDE can't fire a Prezl demo, and
+ *  the tree row carries no `command` so this isn't reached for them; the
+ *  guard is defensive against an old serialized arg shape after upgrade. */
 export async function openCoverItemCommand(
   arg: CoverItemInfo,
 ): Promise<void> {
+  if (arg.kind === 'demo') return
   const folders = vscode.workspace.workspaceFolders
   if (!folders) return
   for (const folder of folders) {

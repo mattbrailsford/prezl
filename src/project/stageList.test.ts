@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildDemoIndex, buildScreenIndex, parseScreenList } from './stageList'
-import type { Demo, Stage } from '@/types'
+import type { CoverItem, Demo, Stage } from '@/types'
 
 const FLAT_STAGES: Stage[] = [
   { id: 'main', order: 1 },
@@ -359,18 +359,24 @@ describe('buildScreenIndex', () => {
       {
         id: 'shell',
         order: 1,
-        cover: [{ file: 'a.ts' }, { file: 'b.ts', id: 'foo' }],
+        cover: [
+          { kind: 'file', file: 'a.ts' },
+          { kind: 'file', file: 'b.ts', id: 'foo' },
+        ],
       },
     ]
     const idx = buildScreenIndex(stages)
     expect(idx.byId.shell.cover).toEqual([
-      { file: 'a.ts' },
-      { file: 'b.ts', id: 'foo' },
+      { kind: 'file', file: 'a.ts' },
+      { kind: 'file', file: 'b.ts', id: 'foo' },
     ])
   })
 
   it('every step in a stage inherits the stage cover by default', () => {
-    const stageCover = [{ file: 'a.ts' }, { file: 'b.ts' }]
+    const stageCover: CoverItem[] = [
+      { kind: 'file', file: 'a.ts' },
+      { kind: 'file', file: 'b.ts' },
+    ]
     const stages: Stage[] = [
       {
         id: 'shell',
@@ -386,8 +392,11 @@ describe('buildScreenIndex', () => {
   })
 
   it('a step can override the stage cover; later omitted steps fall back to stage default', () => {
-    const stageCover = [{ file: 'a.ts' }]
-    const stepCover = [{ file: 'b.ts' }, { file: 'c.ts' }]
+    const stageCover: CoverItem[] = [{ kind: 'file', file: 'a.ts' }]
+    const stepCover: CoverItem[] = [
+      { kind: 'file', file: 'b.ts' },
+      { kind: 'file', file: 'c.ts' },
+    ]
     const stages: Stage[] = [
       {
         id: 'shell',
@@ -408,7 +417,7 @@ describe('buildScreenIndex', () => {
   })
 
   it('a step can clear cover to nothing with null', () => {
-    const stageCover = [{ file: 'a.ts' }]
+    const stageCover: CoverItem[] = [{ kind: 'file', file: 'a.ts' }]
     const stages: Stage[] = [
       {
         id: 'shell',
@@ -430,7 +439,7 @@ describe('buildScreenIndex', () => {
   })
 
   it('cover does not propagate across stage boundaries', () => {
-    const aCover = [{ file: 'a.ts' }]
+    const aCover: CoverItem[] = [{ kind: 'file', file: 'a.ts' }]
     const stages: Stage[] = [
       { id: 'first', order: 1, cover: aCover },
       { id: 'second', order: 2 },
@@ -488,6 +497,36 @@ describe('buildScreenIndex', () => {
     expect(idx.byId['shell.b'].demos).toBe(stepBDemo)
     // null also resolves to undefined (explicitly empty).
     expect(idx.byId['shell.c'].demos).toBeUndefined()
+  })
+
+  it('threads stable openIdentity across consecutive inheriting steps', () => {
+    // Markdown link visits key off this reference. Steps that omit `open`
+    // (or reset to stage default with `null`) should all share the
+    // stage.open reference; a step that authors its own `open` gets a
+    // distinct reference so visited-link state invalidates.
+    const stageOpen = { file: 'intro.md' }
+    const stepCOpen = { file: 'other.md' }
+    const stages: Stage[] = [
+      {
+        id: 'shell',
+        order: 1,
+        open: stageOpen,
+        steps: [
+          { id: 'a' }, // omit → inherit stage.open
+          { id: 'b' }, // omit → inherit stage.open (runtime open is undefined)
+          { id: 'c', open: stepCOpen }, // authored → own ref
+          { id: 'd', open: null }, // null → reset to stage.open
+        ],
+      },
+    ]
+    const idx = buildScreenIndex(stages)
+    expect(idx.byId['shell.a'].openIdentity).toBe(stageOpen)
+    expect(idx.byId['shell.b'].openIdentity).toBe(stageOpen)
+    expect(idx.byId['shell.c'].openIdentity).toBe(stepCOpen)
+    expect(idx.byId['shell.d'].openIdentity).toBe(stageOpen)
+    // Implicit single-screen stages also expose openIdentity.
+    const flat = buildScreenIndex([{ id: 'solo', order: 1, open: stageOpen }])
+    expect(flat.byId.solo.openIdentity).toBe(stageOpen)
   })
 })
 

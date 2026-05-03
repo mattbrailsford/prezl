@@ -8,12 +8,21 @@ export type OpenTarget = {
   id: string | null
 } | null
 
-export type CoverItemInfo = {
+export type CoverFileItemInfo = {
+  kind: 'file'
   file: string
   line: number | null
   id: string | null
   title: string | null
 }
+
+export type CoverDemoItemInfo = {
+  kind: 'demo'
+  demoId: string
+  title: string | null
+}
+
+export type CoverItemInfo = CoverFileItemInfo | CoverDemoItemInfo
 
 export type StepInfo = {
   id: string
@@ -241,14 +250,26 @@ function parseCover(raw: unknown): CoverItemInfo[] | undefined {
   return single ? [single] : undefined
 }
 
+const DEMO_PREFIX = 'demo://'
+
+/** Mirror of the runtime cover-item parser in `src/project/schema.ts`.
+ *  Two shapes:
+ *  - File: `path[#id][@line]` shorthand or `{ file, id?, line?, title? }`
+ *  - Demo: `demo://<id>` shorthand or `{ demo: '<id>', title? }` — surfaced
+ *    in the activity-bar tree with a play icon; clicking does nothing in
+ *    the IDE (the runtime is what fires demos), but the entry remains
+ *    visible so the agenda is complete. */
 function parseCoverItem(raw: unknown): CoverItemInfo | null {
-  // Shorthand: `path[#id][@line]`, mirroring runtime parseTargetShorthand.
-  // Falls back to the bare path on a malformed suffix so a stray separator
-  // doesn't break the tree silently.
   if (typeof raw === 'string') {
     if (!raw) return null
+    if (raw.startsWith(DEMO_PREFIX)) {
+      const demoId = raw.slice(DEMO_PREFIX.length)
+      if (!demoId) return null
+      return { kind: 'demo', demoId, title: null }
+    }
     const parsed = parseTargetShorthand(raw)
     return {
+      kind: 'file',
       file: parsed.file ?? raw,
       line: parsed.line ?? null,
       id: parsed.id ?? null,
@@ -257,8 +278,16 @@ function parseCoverItem(raw: unknown): CoverItemInfo | null {
   }
   if (!raw || typeof raw !== 'object') return null
   const o = raw as Record<string, unknown>
+  if (typeof o.demo === 'string' && o.demo) {
+    return {
+      kind: 'demo',
+      demoId: o.demo,
+      title: typeof o.title === 'string' ? o.title : null,
+    }
+  }
   if (typeof o.file !== 'string' || !o.file) return null
   return {
+    kind: 'file',
     file: o.file,
     line: typeof o.line === 'number' ? o.line : null,
     id: typeof o.id === 'string' ? o.id : null,

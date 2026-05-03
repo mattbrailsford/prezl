@@ -95,6 +95,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
         order: order++,
         title: stage.title,
         open: stage.open,
+        openIdentity: stage.open,
         demos: stage.demos,
         cover: stage.cover,
       }
@@ -136,6 +137,19 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
               : step.open.file === undefined && prevOpenWithFile?.file
                 ? { ...step.open, file: prevOpenWithFile.file }
                 : step.open
+        // openIdentity is the stable per-frame reference for visited-link
+        // invalidation. Always inherits stage.open when the step omits or
+        // explicitly resets its open — including non-first steps, where
+        // runtime `open` deliberately drops to `undefined` to preserve
+        // presenter actions. Step-level authored opens (full or partial)
+        // get the step's own object reference, so the markdown intro's
+        // visited links re-prompt under the new framing.
+        const openIdentity: OpenTarget | null | undefined =
+          step.open === undefined
+            ? stage.open
+            : step.open === null
+              ? stage.open
+              : step.open
         // Stage→step resolution for demos/cover. No step-to-step chain:
         //   undefined → stage.demos / stage.cover (shared reference, so
         //               consecutive inheriting steps satisfy the ref-
@@ -161,6 +175,7 @@ export function buildScreenIndex(stages: Stage[]): ScreenIndex {
           order: order++,
           title: step.title,
           open,
+          openIdentity,
           demos,
           cover,
         }

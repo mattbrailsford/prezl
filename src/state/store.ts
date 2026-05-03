@@ -33,9 +33,11 @@ type HistoryLocation = {
   file: string | null
 }
 
-/** Per-(screen, file) scroll positions for back/forward restore. Mutated in
- *  place from the code viewer's onScroll handler — never observed reactively,
- *  so it lives outside Zustand state to avoid spurious re-renders. */
+/** Per-(screen, file) scroll positions. Used both by back/forward to restore
+ *  exact prior locations, and by tab clicks within a screen to land where the
+ *  user last left that tab. Cross-screen tab clicks fall through to top-of-
+ *  file: pixel scrollTop is only meaningful within a single rendering, and
+ *  `show=` directives can change a file's line layout between screens. */
 const scrollPositions = new Map<string, number>()
 
 function scrollKey(screenId: string, file: string | null): string {
@@ -167,6 +169,31 @@ type AppState = {
    *  added to whenever activeFile changes. The cover list reads this to mark
    *  which entries have been visited in this run through the stage. */
   visitedFilesInStage: Set<string>
+  /** File paths visited under the current "open frame" — the stable
+   *  reference identity from `screen.openIdentity`. Reset on cross-stage
+   *  entry AND on step transitions where the open frame reference
+   *  changes (i.e. a step authored its own `open`). Markdown link
+   *  decoration reads this so a link clicked under one step's framing
+   *  re-prompts when the next step shifts the framing, while staying
+   *  ticked across consecutive steps that inherit the stage's open. */
+  visitedFilesInOpen: Set<string>
+  /** Ids of demos launched under the current open frame. Same reset
+   *  policy as `visitedFilesInOpen` — cross-stage entry or open-frame
+   *  reference change clears it. Populated from every site that flips
+   *  `demoState` into a "showing" form (runDemo's `launching`
+   *  transition, plus the three autoLaunch entry points), but only for
+   *  demos that declared an `id:` — id-less demos can't be referenced
+   *  from markdown anyway, and tracking by id matches the consumer.
+   *  Read by `MarkdownView` to tick `demo://id` links the presenter has
+   *  already triggered, mirroring the `✓` treatment file links get. */
+  launchedDemosInOpen: Set<string>
+  /** Ids of demos launched during the current stage's tenure. Stage-
+   *  scoped parallel to `visitedFilesInStage` for cover-list ticks on
+   *  `demo://<id>` cover entries. Cross-stage entry full-resets;
+   *  within-stage cover-reference changes filter out ids that appear in
+   *  the new cover (so a demo listed under a new step's framing un-ticks
+   *  to re-prompt). Same write sites as `launchedDemosInOpen`. */
+  launchedDemosInStage: Set<string>
   /** Monotonic counter bumped when something explicitly asks the explorer to
    *  reveal the active file's folder chain (e.g. a cover-list click). The
    *  auto-reveal effect on activeFile change handles the "new file becomes
@@ -217,12 +244,89 @@ function updateVisitedForScreenChange(
   }
   let visited = current
   if (options.coverChanged && options.nextCover) {
-    const newCoverFiles = new Set(options.nextCover.map((c) => c.file))
+    const newCoverFiles = new Set<string>()
+    for (const c of options.nextCover) {
+      if (c.kind === 'file') newCoverFiles.add(c.file)
+    }
     const filtered = new Set<string>()
     for (const f of current) if (!newCoverFiles.has(f)) filtered.add(f)
     if (filtered.size !== current.size) visited = filtered
   }
   return updateVisitedSet(visited, { addFile: options.addFile })
+}
+
+/** Stage-scoped launched-demo set transition. Mirrors
+ *  `updateVisitedForScreenChange` for cover demo entries — cross-stage entry
+ *  full-resets, and a within-stage cover-reference change clears any launched
+ *  ids that appear in the new cover so the presenter is prompted to re-launch
+ *  them under the new step's framing. Demos that were launched but aren't on
+ *  the new cover stay ticked (parallel to file ticks). */
+function updateLaunchedDemosInStageForScreenChange(
+  current: Set<string>,
+  options: {
+    crossingStage: boolean
+    coverChanged: boolean
+    nextCover: CoverItem[] | undefined
+  },
+): Set<string> {
+  if (options.crossingStage) {
+    return current.size === 0 ? current : new Set()
+  }
+  if (!options.coverChanged || !options.nextCover) return current
+  const newCoverDemos = new Set<string>()
+  for (const c of options.nextCover) {
+    if (c.kind === 'demo') newCoverDemos.add(c.demoId)
+  }
+  if (newCoverDemos.size === 0) return current
+  const filtered = new Set<string>()
+  for (const id of current) if (!newCoverDemos.has(id)) filtered.add(id)
+  return filtered.size === current.size ? current : filtered
+}
+
+/** Visited-set transition for the open-frame-scoped set. Cross-stage entry
+ *  full-resets (same as the stage-scoped set). Within a stage, when the
+ *  step transition crosses an open-frame boundary (`openIdentity` reference
+ *  differs) the entire set clears — markdown link decoration treats the
+ *  new framing as a fresh prompt. Same-frame step transitions persist
+ *  visits, mirroring how cover-inheriting steps don't dirty cover ticks. */
+function updateVisitedInOpenForScreenChange(
+  current: Set<string>,
+  options: {
+    crossingStage: boolean
+    openFrameChanged: boolean
+    addFile: string | null
+  },
+): Set<string> {
+  if (options.crossingStage || options.openFrameChanged) {
+    return options.addFile ? new Set([options.addFile]) : new Set()
+  }
+  return updateVisitedSet(current, { addFile: options.addFile })
+}
+
+/** Add a demo's id to the launched set, returning the input reference
+ *  unchanged when the demo has no id or is already present. Same
+ *  reference-stability discipline as `updateVisitedSet`. */
+function addLaunchedDemo(current: Set<string>, demo: Demo): Set<string> {
+  if (!demo.id || current.has(demo.id)) return current
+  const next = new Set(current)
+  next.add(demo.id)
+  return next
+}
+
+/** Launched-demo set transition for screen changes. Same boundary as
+ *  `updateVisitedInOpenForScreenChange` — cross-stage entry or open-frame
+ *  reference change clears the set. There's no per-screen "add" here
+ *  (unlike the file sets, which seed with the new active file): demo
+ *  launches are recorded at the moment of launch, not on every screen
+ *  arrival. */
+function updateLaunchedDemosForScreenChange(
+  current: Set<string>,
+  options: { crossingStage: boolean; openFrameChanged: boolean },
+): Set<string> {
+  if (options.crossingStage || options.openFrameChanged) {
+    return current.size === 0 ? current : new Set()
+  }
+  return current
 }
 
 type AppActions = {
@@ -350,6 +454,31 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
           addFile: activeFile,
         },
       ),
+      visitedFilesInOpen: updateVisitedInOpenForScreenChange(
+        state.visitedFilesInOpen,
+        {
+          crossingStage,
+          openFrameChanged:
+            !crossingStage && previous?.openIdentity !== target.openIdentity,
+          addFile: activeFile,
+        },
+      ),
+      launchedDemosInOpen: updateLaunchedDemosForScreenChange(
+        state.launchedDemosInOpen,
+        {
+          crossingStage,
+          openFrameChanged:
+            !crossingStage && previous?.openIdentity !== target.openIdentity,
+        },
+      ),
+      launchedDemosInStage: updateLaunchedDemosInStageForScreenChange(
+        state.launchedDemosInStage,
+        {
+          crossingStage,
+          coverChanged: !crossingStage && previous?.cover !== target.cover,
+          nextCover: target.cover,
+        },
+      ),
     })
 
     if (crossingStage) {
@@ -385,6 +514,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   lastEndAutoLaunchedScreenId: null,
   explorerResetToken: 0,
   visitedFilesInStage: new Set(),
+  visitedFilesInOpen: new Set(),
+  launchedDemosInOpen: new Set(),
+  launchedDemosInStage: new Set(),
   explorerRevealToken: 0,
 
   setProject: (project, rawFiles, binaryFiles, initialStageId) => {
@@ -448,6 +580,16 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
         reset: true,
         addFile: firstFile,
       }),
+      visitedFilesInOpen: updateVisitedSet(new Set(), {
+        reset: true,
+        addFile: firstFile,
+      }),
+      launchedDemosInOpen: initialAutoStart
+        ? addLaunchedDemo(new Set(), initialAutoStart)
+        : new Set(),
+      launchedDemosInStage: initialAutoStart
+        ? addLaunchedDemo(new Set(), initialAutoStart)
+        : new Set(),
     })
   },
 
@@ -471,6 +613,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       pendingScrollTop: null,
       lastEndAutoLaunchedScreenId: null,
       visitedFilesInStage: new Set(),
+      visitedFilesInOpen: new Set(),
+      launchedDemosInOpen: new Set(),
+      launchedDemosInStage: new Set(),
     })
   },
 
@@ -537,6 +682,31 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
           addFile: next.activeFile,
         },
       ),
+      visitedFilesInOpen: updateVisitedInOpenForScreenChange(
+        state.visitedFilesInOpen,
+        {
+          crossingStage,
+          openFrameChanged:
+            !crossingStage && previous?.openIdentity !== target.openIdentity,
+          addFile: next.activeFile,
+        },
+      ),
+      launchedDemosInOpen: updateLaunchedDemosForScreenChange(
+        state.launchedDemosInOpen,
+        {
+          crossingStage,
+          openFrameChanged:
+            !crossingStage && previous?.openIdentity !== target.openIdentity,
+        },
+      ),
+      launchedDemosInStage: updateLaunchedDemosInStageForScreenChange(
+        state.launchedDemosInStage,
+        {
+          crossingStage,
+          coverChanged: !crossingStage && previous?.cover !== target.cover,
+          nextCover: target.cover,
+        },
+      ),
       ...(resetting
         ? { explorerResetToken: state.explorerResetToken + 1 }
         : {}),
@@ -546,7 +716,14 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
     if (get().demoState.kind === 'closed') {
       const autoStart = autoLaunchStartFor(previous, target)
       if (autoStart) {
-        set({ demoState: { kind: 'video', demo: autoStart } })
+        set((s) => ({
+          demoState: { kind: 'video', demo: autoStart },
+          launchedDemosInOpen: addLaunchedDemo(s.launchedDemosInOpen, autoStart),
+          launchedDemosInStage: addLaunchedDemo(
+            s.launchedDemosInStage,
+            autoStart,
+          ),
+        }))
       }
     }
     if (crossingStage) {
@@ -587,6 +764,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
         set({
           demoState: { kind: 'video', demo: autoEnd, trailing: true },
           lastEndAutoLaunchedScreenId: current.id,
+          launchedDemosInOpen: addLaunchedDemo(state.launchedDemosInOpen, autoEnd),
+          launchedDemosInStage: addLaunchedDemo(
+            state.launchedDemosInStage,
+            autoEnd,
+          ),
         })
         return
       }
@@ -597,13 +779,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   },
 
   openFile: (path) => {
-    set((s) => ({
-      openTabs: s.openTabs.includes(path) ? s.openTabs : [...s.openTabs, path],
-      activeFile: path,
-      visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
-        addFile: path,
-      }),
-    }))
+    set((s) => {
+      const patch: Partial<AppState> = {
+        openTabs: s.openTabs.includes(path) ? s.openTabs : [...s.openTabs, path],
+        activeFile: path,
+        visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
+          addFile: path,
+        }),
+        visitedFilesInOpen: updateVisitedSet(s.visitedFilesInOpen, {
+          addFile: path,
+        }),
+      }
+      if (path !== s.activeFile && s.currentScreenId) {
+        const top = getScrollPosition(s.currentScreenId, path)
+        if (top != null) patch.pendingScrollTop = top
+      }
+      return patch
+    })
     recordCurrent()
   },
 
@@ -612,7 +804,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       const openTabs = s.openTabs.filter((p) => p !== path)
       const activeFile =
         s.activeFile === path ? (openTabs[openTabs.length - 1] ?? null) : s.activeFile
-      return { openTabs, activeFile }
+      const patch: Partial<AppState> = { openTabs, activeFile }
+      if (activeFile !== s.activeFile && activeFile && s.currentScreenId) {
+        const top = getScrollPosition(s.currentScreenId, activeFile)
+        if (top != null) patch.pendingScrollTop = top
+      }
+      return patch
     }),
 
   closeOtherTabs: (path) =>
@@ -624,12 +821,22 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   closeAllTabs: () => set({ openTabs: [], activeFile: null }),
 
   setActiveFile: (path) => {
-    set((s) => ({
-      activeFile: path,
-      visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
-        addFile: path,
-      }),
-    }))
+    set((s) => {
+      const patch: Partial<AppState> = {
+        activeFile: path,
+        visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
+          addFile: path,
+        }),
+        visitedFilesInOpen: updateVisitedSet(s.visitedFilesInOpen, {
+          addFile: path,
+        }),
+      }
+      if (path !== s.activeFile && path && s.currentScreenId) {
+        const top = getScrollPosition(s.currentScreenId, path)
+        if (top != null) patch.pendingScrollTop = top
+      }
+      return patch
+    })
     recordCurrent()
   },
 
@@ -673,10 +880,12 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       demo = list[0]
     }
 
-    set({
+    set((s) => ({
       demoState: { kind: 'launching', demo },
       statusMessage: 'Preparing...',
-    })
+      launchedDemosInOpen: addLaunchedDemo(s.launchedDemosInOpen, demo),
+      launchedDemosInStage: addLaunchedDemo(s.launchedDemosInStage, demo),
+    }))
     await sleep(BUILD_DELAY_MS)
     if (get().demoState.kind !== 'launching') return
     set({ statusMessage: 'Ready' })
@@ -712,6 +921,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
       activeFile: file,
       pendingNavigation: { file, line },
       visitedFilesInStage: updateVisitedSet(s.visitedFilesInStage, {
+        addFile: file,
+      }),
+      visitedFilesInOpen: updateVisitedSet(s.visitedFilesInOpen, {
         addFile: file,
       }),
     }))

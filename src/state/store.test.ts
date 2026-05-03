@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAppStore } from './store'
-import type { PrezlProject, Stage, VideoDemo } from '@/types'
+import type { CoverItem, PrezlProject, Stage, VideoDemo } from '@/types'
 
 const TRAILING_VIDEO: VideoDemo = {
   type: 'video',
@@ -228,10 +228,17 @@ describe('store — stage-level reset flag', () => {
         id: 'preview',
         order: 1,
         steps: [
-          { id: 'a', cover: [{ file: 'dashboard.ts' }], open: { file: 'dashboard.ts' } },
+          {
+            id: 'a',
+            cover: [{ kind: 'file', file: 'dashboard.ts' }],
+            open: { file: 'dashboard.ts' },
+          },
           {
             id: 'b',
-            cover: [{ file: 'dashboard.ts' }, { file: 'api.ts' }],
+            cover: [
+              { kind: 'file', file: 'dashboard.ts' },
+              { kind: 'file', file: 'api.ts' },
+            ],
             open: { file: 'api.ts' },
           },
         ],
@@ -269,7 +276,7 @@ describe('store — stage-level reset flag', () => {
   it('step transition with the same cover reference does not clear visits', () => {
     // Sticky-forward inheritance: step b inherits step a's cover by reference
     // (no override). Same reference means no cover change, so visits survive.
-    const sharedCover = [{ file: 'dashboard.ts' }]
+    const sharedCover: CoverItem[] = [{ kind: 'file', file: 'dashboard.ts' }]
     const stages: Stage[] = [
       {
         id: 'preview',
@@ -308,6 +315,67 @@ describe('store — stage-level reset flag', () => {
     expect(visited.has('api.ts')).toBe(true) // step b's open
   })
 
+  it('step transition that authors its own open clears visitedFilesInOpen', () => {
+    // Stage-level open: every step inherits → openIdentity reference is
+    // stable → markdown-link visits should persist across the stage.
+    // When a step authors its own open, openIdentity reference changes →
+    // visitedFilesInOpen clears so markdown link decoration re-prompts.
+    const stages: Stage[] = [
+      {
+        id: 'preview',
+        order: 1,
+        open: { file: 'intro.md' },
+        steps: [
+          { id: 'a' },
+          { id: 'b' }, // inherits stage.open → same openIdentity ref
+          { id: 'c', open: { file: 'other.md' } }, // authored → new openIdentity
+        ],
+      },
+    ]
+    const files = ['intro.md', 'other.md', 'dashboard.ts']
+    const rawFiles = new Map(files.map((f) => [f, '']))
+    const project: PrezlProject = { name: 'Test', stages, files }
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
+    expect(useAppStore.getState().currentScreenId).toBe('preview.a')
+
+    // Click a markdown link (simulated): visit dashboard.ts.
+    useAppStore.getState().navigateToFileLine('dashboard.ts', 1)
+    expect(useAppStore.getState().visitedFilesInOpen.has('dashboard.ts')).toBe(
+      true,
+    )
+
+    // Step a → b: same stage open inherited → no reset.
+    useAppStore.getState().switchScreen('preview.b')
+    expect(useAppStore.getState().visitedFilesInOpen.has('dashboard.ts')).toBe(
+      true,
+    )
+
+    // Step b → c: c authors its own open → openIdentity changes →
+    // visitedFilesInOpen full-resets so the link re-prompts.
+    useAppStore.getState().switchScreen('preview.c')
+    const inOpen = useAppStore.getState().visitedFilesInOpen
+    expect(inOpen.has('dashboard.ts')).toBe(false)
+    // The new active file (other.md) seeds the fresh set.
+    expect(inOpen.has('other.md')).toBe(true)
+    // And visitedFilesInStage stays untouched by the open-frame change —
+    // cover-list ticks aren't disturbed by per-step open authoring.
+    expect(useAppStore.getState().visitedFilesInStage.has('dashboard.ts')).toBe(
+      true,
+    )
+  })
+
+  it('cross-stage entry clears visitedFilesInOpen too', () => {
+    const { project, rawFiles } = projectWithReset()
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'main')
+    useAppStore.getState().openFile('extra.ts')
+    expect(useAppStore.getState().visitedFilesInOpen.has('extra.ts')).toBe(true)
+
+    useAppStore.getState().switchScreen('preview.a')
+    const inOpen = useAppStore.getState().visitedFilesInOpen
+    expect(inOpen.has('extra.ts')).toBe(false)
+    expect(inOpen.has('dashboard.ts')).toBe(true)
+  })
+
   it('back-nav into a reset stage does not trigger a reset', () => {
     const { project, rawFiles } = projectWithReset()
     useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
@@ -327,5 +395,252 @@ describe('store — stage-level reset flag', () => {
     // still be on the tab strip.
     expect(useAppStore.getState().openTabs).toContain('api.ts')
     expect(useAppStore.getState().explorerResetToken).toBe(tokenAfterForward)
+  })
+})
+
+describe('store — launchedDemosInOpen tracking', () => {
+  beforeEach(() => {
+    useAppStore.getState().clearProject()
+  })
+
+  it('seeds the set with the initial autoLaunch start demo on setProject', () => {
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [{ id: 'shell', order: 1, demos: [startDemo] }]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
+    expect(useAppStore.getState().launchedDemosInOpen.has('intro-clip')).toBe(
+      true,
+    )
+  })
+
+  it('initial autoLaunch without an id leaves the set empty', () => {
+    const startDemo: VideoDemo = {
+      type: 'video',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [{ id: 'shell', order: 1, demos: [startDemo] }]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
+    expect(useAppStore.getState().launchedDemosInOpen.size).toBe(0)
+  })
+
+  it('trailing autoLaunch on forward advance adds the demo id', () => {
+    const trailing: VideoDemo = {
+      type: 'video',
+      id: 'wrap-up',
+      src: './v.mp4',
+      autoLaunch: 'end',
+    }
+    const stages: Stage[] = [
+      {
+        id: 'preview',
+        order: 1,
+        steps: [
+          { id: 'a' },
+          { id: 'b', demos: [trailing] },
+          { id: 'c' },
+        ],
+      },
+    ]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'preview')
+    useAppStore.getState().switchScreenRelative(1) // a -> b
+    expect(useAppStore.getState().launchedDemosInOpen.has('wrap-up')).toBe(false)
+    // b -> ?: trailing fires, demoState becomes video, id ticks.
+    useAppStore.getState().switchScreenRelative(1)
+    expect(useAppStore.getState().launchedDemosInOpen.has('wrap-up')).toBe(true)
+  })
+
+  it('autoLaunch start on cross-stage entry adds the demo id', () => {
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'lead-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [
+      { id: 'main', order: 1 },
+      { id: 'preview', order: 2, demos: [startDemo] },
+    ]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'main')
+    expect(useAppStore.getState().launchedDemosInOpen.size).toBe(0)
+    useAppStore.getState().switchScreen('preview')
+    expect(useAppStore.getState().launchedDemosInOpen.has('lead-clip')).toBe(true)
+  })
+
+  it('cross-stage entry clears the set', () => {
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [
+      { id: 'shell', order: 1, demos: [startDemo] },
+      { id: 'next', order: 2 },
+    ]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
+    expect(useAppStore.getState().launchedDemosInOpen.has('intro-clip')).toBe(
+      true,
+    )
+    useAppStore.getState().switchScreen('next')
+    expect(useAppStore.getState().launchedDemosInOpen.size).toBe(0)
+  })
+
+  it('step transition that authors its own open clears the set', () => {
+    // Mirrors visitedFilesInOpen invalidation: a new open frame means a new
+    // intro framing, so previously-launched demo ticks shouldn't bleed
+    // through. Inheriting steps preserve.
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [
+      {
+        id: 'preview',
+        order: 1,
+        open: { file: 'intro.md' },
+        demos: [startDemo],
+        steps: [
+          { id: 'a' }, // inherits open → seeded by initial autoLaunch
+          { id: 'b' }, // inherits → tick survives
+          { id: 'c', open: { file: 'other.md' } }, // authored → clears
+        ],
+      },
+    ]
+    const files = ['intro.md', 'other.md']
+    const rawFiles = new Map(files.map((f) => [f, '']))
+    const project: PrezlProject = { name: 'Test', stages, files }
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
+    expect(useAppStore.getState().launchedDemosInOpen.has('intro-clip')).toBe(
+      true,
+    )
+    useAppStore.getState().switchScreen('preview.b')
+    expect(useAppStore.getState().launchedDemosInOpen.has('intro-clip')).toBe(
+      true,
+    )
+    useAppStore.getState().switchScreen('preview.c')
+    expect(useAppStore.getState().launchedDemosInOpen.size).toBe(0)
+  })
+})
+
+describe('store — launchedDemosInStage tracking', () => {
+  beforeEach(() => {
+    useAppStore.getState().clearProject()
+  })
+
+  it('seeds the set with the initial autoLaunch start demo on setProject', () => {
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [{ id: 'shell', order: 1, demos: [startDemo] }]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
+    expect(
+      useAppStore.getState().launchedDemosInStage.has('intro-clip'),
+    ).toBe(true)
+  })
+
+  it('cross-stage entry clears the set', () => {
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [
+      { id: 'shell', order: 1, demos: [startDemo] },
+      { id: 'next', order: 2 },
+    ]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'shell')
+    expect(
+      useAppStore.getState().launchedDemosInStage.has('intro-clip'),
+    ).toBe(true)
+    useAppStore.getState().switchScreen('next')
+    expect(useAppStore.getState().launchedDemosInStage.size).toBe(0)
+  })
+
+  it('persists across step transitions that author their own open', () => {
+    // Stage-scoped, unlike launchedDemosInOpen — the open-frame change that
+    // resets the open-scoped set leaves the stage-scoped one intact (cover
+    // ticks for demos behave like cover ticks for files: they don't dirty
+    // when the open frame shifts within the same stage).
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [
+      {
+        id: 'preview',
+        order: 1,
+        open: { file: 'intro.md' },
+        demos: [startDemo],
+        steps: [
+          { id: 'a' },
+          { id: 'b', open: { file: 'other.md' } },
+        ],
+      },
+    ]
+    const files = ['intro.md', 'other.md']
+    const rawFiles = new Map(files.map((f) => [f, '']))
+    const project: PrezlProject = { name: 'Test', stages, files }
+    useAppStore.getState().setProject(project, rawFiles, new Set(), 'preview')
+    expect(
+      useAppStore.getState().launchedDemosInStage.has('intro-clip'),
+    ).toBe(true)
+    useAppStore.getState().switchScreen('preview.b')
+    // Open-frame changed (b authors its own open) → InOpen clears, but
+    // InStage stays ticked because the stage hasn't changed.
+    expect(useAppStore.getState().launchedDemosInOpen.size).toBe(0)
+    expect(
+      useAppStore.getState().launchedDemosInStage.has('intro-clip'),
+    ).toBe(true)
+  })
+
+  it('cover-reference change clears demo ids that appear in the new cover', () => {
+    // Parallel to visitedFilesInStage: when a step's cover lists a demo, an
+    // already-launched id of that demo un-ticks so the presenter is
+    // prompted to re-launch under the new framing. Demos NOT in the new
+    // cover stay ticked.
+    const startDemo: VideoDemo = {
+      type: 'video',
+      id: 'intro-clip',
+      src: './v.mp4',
+      autoLaunch: 'start',
+    }
+    const stages: Stage[] = [
+      {
+        id: 'preview',
+        order: 1,
+        demos: [startDemo],
+        steps: [
+          { id: 'a' },
+          { id: 'b', cover: [{ kind: 'demo', demoId: 'intro-clip' }] },
+        ],
+      },
+    ]
+    const project: PrezlProject = { name: 'Test', stages, files: [] }
+    useAppStore.getState().setProject(project, new Map(), new Set(), 'preview')
+    expect(
+      useAppStore.getState().launchedDemosInStage.has('intro-clip'),
+    ).toBe(true)
+    useAppStore.getState().switchScreen('preview.b')
+    expect(useAppStore.getState().launchedDemosInStage.size).toBe(0)
   })
 })

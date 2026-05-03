@@ -174,7 +174,24 @@
         {
           "type": "string",
           "minLength": 1,
-          "description": "Shorthand: `path`, `path#id`, `path@line`, or `path#id@line` — same shape as `open` shorthand."
+          "description": "Shorthand. File: `path`, `path#id`, `path@line`, or `path#id@line` — same shape as `open` shorthand. Demo trigger: `demo://<id>` references a project-wide demo `id:` so the cover list can launch it the way markdown's `[label](demo://<id>)` link does."
+        },
+        {
+          "type": "object",
+          "required": ["demo"],
+          "additionalProperties": false,
+          "properties": {
+            "demo": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Project-wide demo `id:` to launch when the cover row is clicked. Same lookup markdown intros use; first-wins on duplicates."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional human label for the cover row; falls back to the resolved demo's title or src basename."
+            }
+          }
         },
         {
           "type": "object",

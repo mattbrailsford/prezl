@@ -13,6 +13,12 @@ slice of the runtime.
   directive also tints the explorer leaf (and its `src/` folder) on
   this stage — exercises the file-level focus path.
 - **`preview`** (3 steps — `intro` / `fetchImpl` / `chartHelpers`):
+  Carries a stage `cover:` agenda surfaced under the file tree. The
+  list mixes file rows (`dashboard.ts`, `api.ts`, etc.) with a
+  `demo://backoffice-walkthrough` row that triggers the same demo
+  the intro README links to — exercises the cover demo path and
+  cross-stage `demosById` resolution (the demo is declared on the
+  next stage).
   - `preview.intro` — `dashboard.ts` open at `registerDashboard`,
     focus on `render()`. `Chart rendering helpers` collapsed at the
     bottom.

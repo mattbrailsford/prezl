@@ -108,30 +108,59 @@ const symbolTarget = z.object({
   id: z.string().min(1).optional(),
 })
 
-/** `cover` items are presenter reminders — files (and optional anchors) to
- *  discuss during a stage. Authoring shorthand mirrors `open`: a path
- *  string, optionally suffixed with `#anchorId` (jump to symbol) and/or
- *  `@line` (jump to line). The object form adds `title` for a custom row
- *  display label (falls back to the file's basename otherwise). */
+const DEMO_PREFIX = 'demo://'
+
+/** `cover` items are presenter reminders. Two shapes:
+ *
+ *  - **File**: a path string, optionally suffixed with `#anchorId` and/or
+ *    `@line` (mirrors `open` shorthand). Object form: `{ file, id?, line?,
+ *    title? }`.
+ *  - **Demo**: a `demo://<id>` string referencing a project-wide demo `id:`.
+ *    Object form: `{ demo: '<id>', title? }`. Click runs the demo, same as
+ *    markdown's `[label](demo://<id>)` link. Mirrors that link grammar so an
+ *    intro markdown's link list and a stage's cover list can mention the
+ *    same demo by the same id.
+ *
+ *  The discriminator is added at parse time (`kind: 'file' | 'demo'`) so
+ *  downstream code can switch on shape without pattern-matching strings.
+ *  Falling back to the literal path on a malformed shorthand suffix keeps
+ *  authoring round-tripping rather than blowing up the load on a stray
+ *  separator in a filename. */
 const coverItem = z.union([
   z
     .string()
     .min(1)
     .transform((s) => {
+      if (s.startsWith(DEMO_PREFIX)) {
+        const demoId = s.slice(DEMO_PREFIX.length)
+        return { kind: 'demo' as const, demoId }
+      }
       const parsed = parseTargetShorthand(s)
-      // Cover items must always have a file — falling back to the full
-      // string when the parser couldn't extract one keeps malformed input
-      // round-tripping rather than blowing up the whole load on a stray
-      // separator in a path.
       const file = parsed.file ?? s
-      return { file, id: parsed.id, line: parsed.line }
-    }),
-  z.object({
-    file: z.string().min(1),
-    line: z.number().int().positive().optional(),
-    id: z.string().min(1).optional(),
-    title: z.string().min(1).optional(),
-  }),
+      return { kind: 'file' as const, file, id: parsed.id, line: parsed.line }
+    })
+    .refine(
+      (v) => v.kind !== 'demo' || v.demoId.length > 0,
+      { message: 'demo:// cover shorthand must include an id' },
+    ),
+  z
+    .object({
+      demo: z.string().min(1),
+      title: z.string().min(1).optional(),
+    })
+    .transform((o) => ({
+      kind: 'demo' as const,
+      demoId: o.demo,
+      title: o.title,
+    })),
+  z
+    .object({
+      file: z.string().min(1),
+      line: z.number().int().positive().optional(),
+      id: z.string().min(1).optional(),
+      title: z.string().min(1).optional(),
+    })
+    .transform((o) => ({ kind: 'file' as const, ...o })),
 ])
 
 /** Cover lists accept either a single item (string shorthand or object

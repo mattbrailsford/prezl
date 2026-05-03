@@ -414,12 +414,47 @@ describe('schema — cover string shorthand', () => {
     expect(r.ok).toBe(true)
     if (r.ok) {
       expect(r.cover).toEqual([
-        { file: 'src/api.ts' },
-        { file: 'src/api.ts', id: 'fetchData' },
-        { file: 'src/api.ts', line: 42 },
-        { file: 'src/api.ts', id: 'fetchData', line: 42 },
+        { kind: 'file', file: 'src/api.ts' },
+        { kind: 'file', file: 'src/api.ts', id: 'fetchData' },
+        { kind: 'file', file: 'src/api.ts', line: 42 },
+        { kind: 'file', file: 'src/api.ts', id: 'fetchData', line: 42 },
       ])
     }
+  })
+
+  it('parses demo:// shorthand into a demo cover entry', () => {
+    const r = parseStageCover([
+      'demo://walkthrough',
+      'src/api.ts',
+    ])
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.cover).toEqual([
+        { kind: 'demo', demoId: 'walkthrough' },
+        { kind: 'file', file: 'src/api.ts' },
+      ])
+    }
+  })
+
+  it('parses the demo object form into a demo cover entry', () => {
+    const r = parseStageCover([
+      { demo: 'walkthrough', title: 'Watch the walkthrough' },
+    ])
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.cover).toEqual([
+        {
+          kind: 'demo',
+          demoId: 'walkthrough',
+          title: 'Watch the walkthrough',
+        },
+      ])
+    }
+  })
+
+  it('rejects an empty demo:// id', () => {
+    const r = parseStageCover(['demo://'])
+    expect(r.ok).toBe(false)
   })
 })
 
@@ -490,8 +525,8 @@ describe('schema — cover list', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.stages[0].cover).toEqual([
-        { file: 'src/dashboard.ts' },
-        { file: 'src/api.ts' },
+        { kind: 'file', file: 'src/dashboard.ts' },
+        { kind: 'file', file: 'src/api.ts' },
       ])
     }
   })
@@ -506,7 +541,7 @@ describe('schema — cover list', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.stages[0].cover).toEqual([
-        { file: 'src/dashboard.ts', id: 'registerDashboard' },
+        { kind: 'file', file: 'src/dashboard.ts', id: 'registerDashboard' },
       ])
     }
   })
@@ -526,6 +561,7 @@ describe('schema — cover list', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.stages[0].cover?.[0]).toEqual({
+        kind: 'file',
         file: 'src/api.ts',
         id: 'fetchData',
         title: 'Data fetching',
@@ -543,7 +579,7 @@ describe('schema — cover list', () => {
     expect(stringForm.success).toBe(true)
     if (stringForm.success) {
       expect(stringForm.data.stages[0].cover).toEqual([
-        { file: 'src/api.ts', id: 'fetchData' },
+        { kind: 'file', file: 'src/api.ts', id: 'fetchData' },
       ])
     }
     const objectForm = prezlProjectSchema.safeParse({
@@ -558,7 +594,7 @@ describe('schema — cover list', () => {
     expect(objectForm.success).toBe(true)
     if (objectForm.success) {
       expect(objectForm.data.stages[0].cover).toEqual([
-        { file: 'src/api.ts', title: 'Data fetching' },
+        { kind: 'file', file: 'src/api.ts', title: 'Data fetching' },
       ])
     }
   })

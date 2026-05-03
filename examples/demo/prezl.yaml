@@ -19,13 +19,20 @@ stages:
     # The file is loaded and openable but never appears in the explorer.
     open: .prezl/intro.md
     # Stage agenda — surfaced under the explorer as a clickable checklist.
-    # Items tick once their file has been opened during this stage's tenure.
+    # File rows tick once the file has been opened during this stage's
+    # tenure; demo rows tick once the demo has been launched (from the
+    # cover row, the Run button, the picker, the markdown intro link, or
+    # autoLaunch). Both reset on cross-stage entry.
     cover:
       - src/dashboard.ts#registerDashboard
       - src/api.ts#fetchDashboardData
       - file: src/dashboard.ts
         id: renderCharts
         title: Chart helpers
+      # Same demo id the markdown intro links to via
+      # `[…](demo://backoffice-walkthrough)` — declared on the next
+      # stage, resolved project-wide.
+      - demo://backoffice-walkthrough
     steps:
       - id: intro
         title: Overview

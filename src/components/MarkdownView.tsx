@@ -27,8 +27,15 @@ import { markedImageAttrs } from '@/project/markedImageAttrs'
  *
  *  - `[text](path[#id][@line])` — prezl shorthand → click navigates via
  *    `navigateToFileLine`, with the line resolved from the symbol table
- *    when `#id` is given. Files already in `visitedFilesInStage` get the
- *    visited treatment (tick + muted).
+ *    when `#id` is given. Files already in `visitedFilesInOpen` (visits
+ *    under the current open frame; resets when a step authors its own
+ *    `open`, persists across consecutive steps that inherit the stage's
+ *    open) get the visited treatment (tick + muted).
+ *  - `[text](demo://<id>)` — runs the demo on click. Demos already in
+ *    `launchedDemosInOpen` (same open-frame reset policy as
+ *    `visitedFilesInOpen`) get the same tick + muted treatment, so
+ *    presenters can see at a glance which demos they've already shown
+ *    under the current intro framing.
  *  - `[text](#anchor)` — markdown heading anchor; native browser scroll.
  *  - `[text](http(s)://…)` / `mailto:` / `tel:` — opens externally via the
  *    Tauri shell plugin. */
@@ -41,7 +48,8 @@ export function MarkdownView({
 }) {
   const screen = useCurrentScreen()
   const symbolTable = useSymbolTable()
-  const visitedFiles = useAppStore((s) => s.visitedFilesInStage)
+  const visitedFiles = useAppStore((s) => s.visitedFilesInOpen)
+  const launchedDemos = useAppStore((s) => s.launchedDemosInOpen)
   const navigateToFileLine = useAppStore((s) => s.navigateToFileLine)
   const openFile = useAppStore((s) => s.openFile)
   const runDemo = useAppStore((s) => s.runDemo)
@@ -154,9 +162,10 @@ export function MarkdownView({
         symbolTable,
         visitedFiles,
         demosById,
+        launchedDemos,
       })
     })
-  }, [html, symbolTable, visitedFiles, projectFiles, demosById])
+  }, [html, symbolTable, visitedFiles, projectFiles, demosById, launchedDemos])
 
   // Scroll save/restore: matches CodeView's contract so goBack/goForward
   // round-trips through markdown views feel the same as code views.
@@ -321,6 +330,7 @@ type DecorateContext = {
   symbolTable: Map<string, { file: string; line: number }>
   visitedFiles: Set<string>
   demosById: Map<string, unknown>
+  launchedDemos: Set<string>
 }
 
 /** Tag the anchor with `data-prezl-link-kind` so the container's click
@@ -343,6 +353,11 @@ function decorateAnchor(a: HTMLAnchorElement, href: string, ctx: DecorateContext
       a.dataset.prezlUnresolved = 'true'
     } else {
       delete a.dataset.prezlUnresolved
+    }
+    if (ctx.launchedDemos.has(id)) {
+      a.dataset.prezlVisited = 'true'
+    } else {
+      delete a.dataset.prezlVisited
     }
     return
   }

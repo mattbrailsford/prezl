@@ -352,10 +352,18 @@ when stepping back.
 
 #### Stage `cover:` — presenter agenda
 
-A list of files (and optional anchors) the presenter wants to remember
-to discuss while in this stage. Surfaced as a small clickable section
-under the file tree; rows tick once their file has been opened during
-the current stage's tenure.
+A list of items the presenter wants to remember to surface while in
+this stage. Surfaced as a small clickable section under the file
+tree. Two item shapes:
+
+- **File entries** — a path (with optional `#id` / `@line`) the
+  presenter wants to discuss. Tick once the file has been opened
+  during the current stage's tenure.
+- **Demo entries** — a `demo://<id>` reference to a project-wide
+  demo `id:` (the same id markdown intros use via
+  `[label](demo://this-id)` links). Click runs the demo, just like
+  the *Run* button or a markdown demo link. Tick once the demo has
+  been launched in the current stage's tenure.
 
 ```yaml
 - id: preview
@@ -363,27 +371,34 @@ the current stage's tenure.
     - src/dashboard.ts                         # bare path
     - src/api.ts#fetchDashboardData            # path#id shorthand
     - src/api.ts@42                            # path@line shorthand
-    - file: src/dashboard.ts                   # full object form
+    - file: src/dashboard.ts                   # full file object form
       id: renderCharts
       title: Chart helpers                     # optional — overrides the row's basename
+    - demo://backoffice-walkthrough            # demo trigger shorthand
+    - demo: backoffice-walkthrough             # demo object form
+      title: Watch the walkthrough             # optional — overrides the row label
 ```
 
-Each item is either a string shorthand (the same `path[#id][@line]`
-mini-grammar `open` accepts) or the object form with `file` (required),
-`id?`, `line?`, `title?`.
+File items use the `path[#id][@line]` mini-grammar `open` accepts, or
+the object form with `file` (required), `id?`, `line?`, `title?`.
+Demo items use `demo://<id>` shorthand, or the object form with
+`demo` (required) and `title?`. Mixing both kinds in one list is
+fine — they share the surface.
 
 `title` overrides the row's display text (otherwise the file's
-basename is shown). `id` resolves through the same project-wide symbol
-table the click-to-jump path uses.
+basename or the resolved demo's title is shown). `id` (on a file
+item) resolves through the same project-wide symbol table the
+click-to-jump path uses.
 
-`cover:` also accepts a **single item** (string or object) as a
-shorthand for a one-element list, mirroring how `demo:` is the
-single-item form of `demos:`:
+`cover:` also accepts a **single item** (string or object, file or
+demo) as a shorthand for a one-element list, mirroring how `demo:`
+is the single-item form of `demos:`:
 
 ```yaml
 cover: src/api.ts#fetchData          # shorthand for a one-item list
 cover:                                # explicit list — same result
   - src/api.ts#fetchData
+cover: demo://walkthrough            # demo single-item shorthand
 ```
 
 **Inheritance.** Steps resolve `cover` stage→step only, exactly like
@@ -391,19 +406,28 @@ cover:                                # explicit list — same result
 replaces it; `cover: ~` clears it for that step. Cover does not
 propagate across stage boundaries — each stage is its own agenda.
 
-**Visited tracking.** "Visited" is keyed by file path and cleared on
-every cross-stage transition (forward, back, or via the dropdown).
-Opening the file ticks every cover row pointing at it, regardless of
-whether the presenter actually scrolled to a specific anchor — the
-goal is "did I cover this file" rather than per-anchor accounting.
+**Visited tracking.** "Visited" is keyed by file path for file
+entries and by demo `id:` for demo entries. Both sets clear on every
+cross-stage transition (forward, back, or via the dropdown). Opening
+a file ticks every cover row pointing at it (regardless of which
+anchor) and launching a demo ticks every cover row pointing at it
+(regardless of where the launch came from — Run button, picker,
+markdown link, autoLaunch, or the cover row itself).
 
 When stepping within a stage, a step that authors its own `cover:`
 (different reference from the previous step's resolved cover) clears
-the tick on any file appearing in the new cover, so each step's
-agenda starts fresh. Files visited under the previous step's framing
-that aren't in the new cover stay ticked. Steps that inherit the
-stage cover (no override) all resolve to the same list reference, so
-they don't trigger a reset.
+the tick on any file or demo id appearing in the new cover, so each
+step's agenda starts fresh. Items visited under the previous step's
+framing that aren't in the new cover stay ticked. Steps that inherit
+the stage cover (no override) all resolve to the same list
+reference, so they don't trigger a reset.
+
+**Demo ids.** Cover demo entries resolve against the same
+project-wide index markdown's `[label](demo://<id>)` does (built
+from every stage's and step's `demo:` / `demos:` whose entries
+declare an `id:`; first-wins on duplicates). An unresolved id
+renders muted with a ⚠ — visible mistake without breaking the
+agenda.
 
 ## Notes
 

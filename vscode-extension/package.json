@@ -2,7 +2,7 @@
   "name": "prezl-vscode",
   "displayName": "Prezl",
   "description": "Authoring support for Prezl directives and prezl.yaml.",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "publisher": "mattbrailsford",
   "license": "ISC",
   "repository": {
