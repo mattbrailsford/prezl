@@ -14,6 +14,8 @@ import { useCurrentScreen, useSymbolTable } from '@/hooks/useRenderedFile'
 import { PREZL_THEME, getHighlighter } from '@/project/shikiSetup'
 import type { RenderedFile } from '@/project/directiveParser'
 import { parseTargetShorthand } from '@/project/schema'
+import { convertProjectFileSrc } from '@/project/assetSrc'
+import { markedImageAttrs } from '@/project/markedImageAttrs'
 
 /** Renders `.md` files as styled markdown. The `rendered.text` it consumes
  *  has already been through the directive parser, so `<!-- @prezl ... -->`
@@ -45,6 +47,7 @@ export function MarkdownView({
   const runDemo = useAppStore((s) => s.runDemo)
   const demosById = useAppStore((s) => s.demosById)
   const projectFiles = useAppStore((s) => s.project?.files ?? EMPTY_FILES)
+  const rootPath = useAppStore((s) => s.project?.rootPath ?? null)
   const uiScale = useAppStore((s) => s.preferences.uiScale)
   const pendingScrollTop = useAppStore((s) => s.pendingScrollTop)
   const consumePendingScrollTop = useAppStore((s) => s.consumePendingScrollTop)
@@ -56,21 +59,50 @@ export function MarkdownView({
   // CommonMark deviation we don't want).
   const baseHtml = useMemo(() => {
     const m = new Marked({ gfm: true, breaks: false })
+    m.use(markedImageAttrs)
     return m.parse(rendered.text, { async: false }) as string
   }, [rendered.text])
+
+  // Image src rewriting needs to happen synchronously before mount so the
+  // browser doesn't fire 404 fetches against the WebView's base URL for
+  // `![...](./diagram.png)`-style paths. Resolved against the markdown
+  // file's own directory under <rootPath>/files (natural markdown
+  // convention); absolute, http(s), data:, and blob: srcs pass through
+  // unchanged.
+  const htmlWithImagesResolved = useMemo(() => {
+    if (!rootPath || !baseHtml.includes('<img')) return baseHtml
+    const doc = new DOMParser().parseFromString(
+      `<div>${baseHtml}</div>`,
+      'text/html',
+    )
+    const root = doc.body.firstElementChild as HTMLElement | null
+    if (!root) return baseHtml
+    const imgs = root.querySelectorAll('img[src]')
+    let touched = false
+    imgs.forEach((node) => {
+      const img = node as HTMLImageElement
+      const src = img.getAttribute('src') ?? ''
+      const resolved = resolveImageSrc(src, activeFile, rootPath)
+      if (resolved !== src) {
+        img.setAttribute('src', resolved)
+        touched = true
+      }
+    })
+    return touched ? root.innerHTML : baseHtml
+  }, [baseHtml, activeFile, rootPath])
 
   // Second pass: upgrade code fences to Shiki output. Async because the
   // highlighter is lazy-loaded; the base HTML renders immediately and code
   // blocks just appear unstyled until tokens arrive (no flash, no blank).
-  const [html, setHtml] = useState<string>(baseHtml)
+  const [html, setHtml] = useState<string>(htmlWithImagesResolved)
   useEffect(() => {
-    setHtml(baseHtml)
+    setHtml(htmlWithImagesResolved)
     let cancelled = false
     ;(async () => {
       const h = await getHighlighter()
       if (cancelled) return
       const doc = new DOMParser().parseFromString(
-        `<div>${baseHtml}</div>`,
+        `<div>${htmlWithImagesResolved}</div>`,
         'text/html',
       )
       const root = doc.body.firstElementChild as HTMLElement | null
@@ -104,7 +136,7 @@ export function MarkdownView({
     return () => {
       cancelled = true
     }
-  }, [baseHtml])
+  }, [htmlWithImagesResolved])
 
   // Decorate links once the HTML is in the DOM. Re-runs when the visited set
   // or symbol table change so a freshly visited target gets ticked without a
@@ -221,6 +253,67 @@ const EMPTY_FILES: string[] = []
 function extractCodeLang(className: string): string | null {
   const m = /\blanguage-([\w-]+)\b/.exec(className)
   return m ? m[1] : null
+}
+
+/** Resolve an `<img src>` from rendered markdown into something the WebView
+ *  can fetch. Relative paths join against the markdown file's own directory
+ *  (so `![](./diagram.png)` next to `intro.md` works the way it does on
+ *  GitHub); paths starting with `/` are project-root-relative (where
+ *  `prezl.yaml` lives), matching the convention videos and the project
+ *  logo already use for presentation assets that sit outside `files/`.
+ *  URLs with a scheme (http, https, data, blob, file) and protocol-
+ *  relative forms pass through untouched.
+ *
+ *  `..` can walk out of `files/` into rootPath — handy when the author
+ *  keeps presentation assets next to `prezl.yaml` and intros under
+ *  `files/.prezl/`. Anything past rootPath (more `..`s than depth) is
+ *  refused; the original src is returned so the browser surfaces the
+ *  broken-image affordance instead of us silently hitting an unrelated
+ *  filesystem location. */
+function resolveImageSrc(
+  src: string,
+  activeFile: string,
+  rootPath: string,
+): string {
+  if (!src) return src
+  if (/^[a-z][a-z0-9+.-]*:/i.test(src)) return src
+  if (src.startsWith('//')) return src
+
+  let combined: string
+  if (src.startsWith('/')) {
+    combined = `${rootPath}/${src.slice(1)}`
+  } else {
+    const dir = activeFile.includes('/')
+      ? activeFile.slice(0, activeFile.lastIndexOf('/'))
+      : ''
+    const fromMd = dir ? `${dir}/${src}` : src
+    combined = `${rootPath}/files/${fromMd}`
+  }
+  const normalized = normaliseAbsolutePath(combined, rootPath)
+  if (normalized == null) return src
+  return convertProjectFileSrc(normalized)
+}
+
+/** Collapse `.` and `..` segments in an absolute (already-prefixed-with-
+ *  rootPath) forward-slash path, refusing to walk above rootPath. Returns
+ *  the cleaned path on success, `null` on escape. */
+function normaliseAbsolutePath(path: string, rootPath: string): string | null {
+  // Split rootPath off the front so we can normalise the remaining
+  // suffix against a counter that won't underflow into the host
+  // filesystem (drive letters, etc.).
+  if (!path.startsWith(rootPath + '/')) return null
+  const suffix = path.slice(rootPath.length + 1)
+  const out: string[] = []
+  for (const seg of suffix.split('/')) {
+    if (seg === '' || seg === '.') continue
+    if (seg === '..') {
+      if (out.length === 0) return null
+      out.pop()
+      continue
+    }
+    out.push(seg)
+  }
+  return out.length ? `${rootPath}/${out.join('/')}` : rootPath
 }
 
 type DecorateContext = {

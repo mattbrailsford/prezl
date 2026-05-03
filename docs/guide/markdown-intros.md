@@ -54,6 +54,52 @@ strikethrough, autolinks, fenced code blocks. Code blocks are
 syntax-highlighted with the same Shiki theme as the code viewer, so
 a `ts` fence in markdown matches a `.ts` file open in another tab.
 
+Images resolve like they do on GitHub — relative paths are read
+relative to the markdown file's own directory:
+
+```markdown
+![Architecture diagram](./diagrams/arch.png)
+![Sibling intro asset](logo.svg)
+![From the project root](/assets/banner.png)
+```
+
+A leading `/` means **project-root-relative** — where `prezl.yaml`
+lives — same convention videos and the project logo use. So
+`/assets/banner.png` → `<project>/assets/banner.png`. `..` segments
+can walk out of `files/` into the project root if the author keeps
+presentation assets next to `prezl.yaml` rather than under `files/`.
+
+`http(s)://`, `data:`, `blob:`, and `file:` URLs pass through
+unchanged. Anything that would walk above the project root is refused
+(the broken-image affordance shows instead of silently hitting an
+unrelated filesystem location).
+
+### Image attributes
+
+Pandoc / `markdown-it-attrs` style — append `{...}` immediately after
+the image to set classes, id, or attributes:
+
+```markdown
+![Diagram](./d.png){.small width=200}
+![Logo](/logo.svg){#brand-mark style="float: right" loading=lazy}
+![Step](step.png){.bordered title="hover text"}
+```
+
+Recognised inside the braces:
+
+- `.name` — adds `name` to the class list (multiple allowed)
+- `#name` — sets the id
+- `key=value` — value may be unquoted, single-, or double-quoted
+- `key` — boolean attribute
+
+The attribute name list is limited to image-relevant keys (`class`,
+`id`, `width`, `height`, `style`, `align`, `loading`, `decoding`,
+`fetchpriority`, `referrerpolicy`, `crossorigin`, `sizes`, `srcset`,
+`title`) plus `data-*` and `aria-*`. Anything else — including
+event handlers like `onclick` — is dropped. Tailwind utility classes
+won't apply (JIT scans source files only); style your own classes
+under `.prezl-md` in `globals.css` if you want a reusable look.
+
 Prezl's `@prezl` directives are accepted in markdown via the HTML
 comment form:
 
