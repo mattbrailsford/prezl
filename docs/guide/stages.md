@@ -165,39 +165,60 @@ clear for that step. See [Demos](./demos).
 
 ## Stage cover (presenter agenda)
 
-A stage can declare a `cover:` list — files (and optional anchors) the
-presenter wants to remember to discuss while in this stage. The list
-is rendered as a small clickable section under the file tree; rows tick
-once their file has been opened during the stage's tenure.
+A stage can declare a `cover:` list — items the presenter wants to
+remember to surface while in this stage. The list is rendered as a
+small clickable section under the file tree. Two item shapes:
+
+- **File entries** — a path (with optional `#id` / `@line`) the
+  presenter wants to discuss. Tick once the file has been opened
+  during the stage's tenure.
+- **Demo entries** — a `demo://<id>` reference to a project-wide
+  demo `id:` (the same id markdown intros use via
+  `[label](demo://this-id)` links). Click runs the demo, just like
+  the *Run* button or a markdown demo link. Tick once the demo has
+  been launched in the stage's tenure (any launch site counts —
+  cover row, Run button, picker, markdown link, autoLaunch).
 
 ```yaml
 - id: preview
   cover:
-    - src/dashboard.ts                       # bare path — "open at top"
-    - src/api.ts#fetchDashboardData          # path#id — open at anchor
-    - src/api.ts@42                          # path@line — open at line
-    - file: src/dashboard.ts                 # full object form
+    - src/dashboard.ts                       # file: bare path
+    - src/api.ts#fetchDashboardData          # file: path#id shorthand
+    - src/api.ts@42                          # file: path@line shorthand
+    - file: src/dashboard.ts                 # file: full object form
       id: renderCharts
-      title: Chart helpers                   # optional row label
+      title: Chart helpers
+    - demo://backoffice-walkthrough          # demo: shorthand
+    - demo: backoffice-walkthrough           # demo: full object form
+      title: Watch the walkthrough
 ```
 
-Each entry is either a string shorthand (same `path[#id][@line]`
-grammar `open` accepts) or the object form with `file` (required),
-optional `id` / `line` / `title`. A single-item agenda can drop the
-list dash entirely — `cover: src/foo.ts#fetchData` is shorthand for a
-one-element list, mirroring `demo:` vs `demos:`.
+File entries use the `path[#id][@line]` mini-grammar `open` accepts,
+or the object form with `file` (required), optional `id` / `line` /
+`title`. Demo entries use `demo://<id>` shorthand or the object form
+with `demo` (required) and optional `title`. The two kinds mix freely
+in one list. A single-item agenda can drop the list dash entirely —
+`cover: src/foo.ts#fetchData` (or `cover: demo://walkthrough`) is
+shorthand for a one-element list, mirroring `demo:` vs `demos:`.
+
+Demo entries resolve against the project-wide index of demo `id:`s —
+see [Demos § Identifying a demo](./demos#identifying-a-demo). An
+unresolved id renders muted with a ⚠ — visible authoring mistake
+without breaking the agenda.
 
 Steps inherit `cover` from the stage with the same stage→step-only
 resolution as `demos`. Override per step by setting your own
 `cover:`, or write `cover: ~` to clear it for that step. Cover never
 propagates across stage boundaries — each stage is its own agenda.
 
-**Visited tracking** is keyed by file: opening the file ticks every
-cover row pointing at it (regardless of whether the presenter scrolled
-to a specific anchor). Ticks clear on every cross-stage transition. If
-a step within the stage authors a different cover list, ticks for any
-file appearing in the new list clear too, so each step's framing
-starts fresh.
+**Visited tracking** is keyed by file path for file entries and by
+demo `id:` for demo entries. Both sets clear on every cross-stage
+transition. Opening a file ticks every cover row pointing at it
+(regardless of which anchor); launching a demo ticks every cover row
+pointing at it (regardless of where the launch came from). If a step
+within the stage authors a different cover list, ticks for any item
+(file or demo) appearing in the new list clear too, so each step's
+framing starts fresh.
 
 ## Decluttering on cross-stage entry
 

@@ -53,11 +53,14 @@ singular name.
 ```yaml
 demo:
   type: url
+  id: backoffice-walkthrough
   src: https://example.com/demo/dashboard
   mode: external
 ```
 
 - **`src`** must be `http://` or `https://`.
+- **`id`** — optional project-wide identifier. See
+  [Identifying a demo](#identifying-a-demo) below.
 - **`mode`** — only `external` is supported today (default if omitted).
   The URL opens in whatever the OS treats as the default browser. The
   Run button returns to its idle state immediately; Prezl doesn't own
@@ -68,6 +71,7 @@ demo:
 ```yaml
 demo:
   type: video
+  id: walkthrough-clip
   src: ./videos/backoffice-demo.mp4
   startAt: 4.5
   stopAt: 32.0
@@ -80,6 +84,8 @@ demo:
 - **`src`** is a path relative to the project root, or an absolute
   `http(s)://` URL for hosted media. Videos typically live in a
   sibling `videos/` folder.
+- **`id`** — optional project-wide identifier. See
+  [Identifying a demo](#identifying-a-demo) below.
 - **`startAt`** — seconds into the file to begin playback.
 - **`stopAt`** — seconds at which to pause the playback. The Play chip
   is replaced with a **Restart** chip; clicking it replays from
@@ -129,6 +135,42 @@ demos:
 
 When the screen has just one demo the title is unused (Run launches
 directly without opening the picker).
+
+## Identifying a demo
+
+Adding an `id:` to a demo lets other surfaces reference it by name:
+
+- **Cover list entries** — `cover: demo://<id>` (or the object form
+  `{ demo: <id>, title? }`) puts a clickable row in the stage agenda
+  that fires the same demo as the Run button. See
+  [Stages § Stage cover](./stages#stage-cover-presenter-agenda).
+- **Markdown intro links** — `[label](demo://<id>)` in a markdown
+  intro file decorates the link with a ▶ play affordance and runs
+  the demo on click. See
+  [Markdown intros § Demos](./markdown-intros#demos-label-demo-id).
+
+```yaml
+- id: preview
+  open: .prezl/intro.md
+  demos:
+    - type: video
+      id: walkthrough           # referenced from cover + markdown
+      src: ./videos/walkthrough.mp4
+  cover:
+    - demo://walkthrough        # same id; clicking runs the demo
+```
+
+Ids are project-wide and resolve **first-wins** on duplicates — a
+README on stage 1 can link to a demo declared on stage 5. Surfaces
+that reference an unknown id render muted with a ⚠ rather than
+silently breaking. The Run button itself doesn't need an `id:`; only
+add one when something else (cover, markdown, future references)
+points at the demo.
+
+Once a demo with an `id:` has been launched in the current stage,
+its cover-list and markdown-link tick markers flip to ✓ — same
+visited treatment file references get. Tracking resets on every
+cross-stage transition.
 
 ## Per-step demo overrides
 
