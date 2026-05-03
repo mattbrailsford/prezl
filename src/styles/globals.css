@@ -344,14 +344,17 @@
     content: '';
   }
 
+  /* Lighter than --color-app-accent (indigo-500) so links survive projector
+     desaturation — indigo-400 keeps the same hue family but reads cleanly
+     from the back of a room. */
   .prezl-md a {
-    color: rgb(var(--color-app-accent));
+    color: rgb(129 140 248);
     text-decoration: underline;
-    text-decoration-color: rgba(var(--color-app-accent) / 0.5);
+    text-decoration-color: rgba(129 140 248 / 0.5);
     text-underline-offset: 3px;
   }
   .prezl-md a:hover {
-    text-decoration-color: rgb(var(--color-app-accent));
+    text-decoration-color: rgb(129 140 248);
   }
   .prezl-md a[data-prezl-link-kind='prezl'] {
     cursor: pointer;
@@ -374,7 +377,7 @@
   }
   .prezl-md a[data-prezl-link-kind='demo']::before {
     content: '▶ ';
-    color: rgba(var(--color-app-accent) / 0.85);
+    color: rgba(129 140 248 / 0.85);
     font-size: 0.85em;
   }
   .prezl-md a[data-prezl-link-kind='demo'][data-prezl-unresolved='true'] {
