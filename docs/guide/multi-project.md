@@ -36,11 +36,18 @@ Files route to projects by **longest-prefix match** on `path`. Given:
 src/Backend/Program.cs           → Backend
 src/Backend/Api/Weather.cs       → Backend
 src/Frontend/App.tsx             → Frontend
-README.md                        → Files (catch-all)
+README.md                        → (hidden — no matching project)
 ```
 
-Files matching no declared project go into a synthetic `Files` group at
-the bottom.
+Declaring `projects:` is treated as an **inclusion list**: files that
+match no project don't appear in the explorer at all. The reasoning is
+that if you've gone to the trouble of enumerating the parts of your
+solution, you're orchestrating what the audience sees — a stray
+root-level `README.md` or lockfile shouldn't sneak in next to the things
+you actually want to talk about.
+
+If you want a flat tree that surfaces every file, omit `projects:`
+entirely (the default behaviour).
 
 ## Icon → color mapping
 
@@ -80,10 +87,10 @@ projects:
 
 ## Collapsing groups
 
-Every project header (and the catch-all `Files` header) is clickable:
-click to collapse the whole group. Groups start expanded. Collapse state
-is kept alongside folder expand state in the same session — it doesn't
-persist across stage changes (since each stage may show different files).
+Every project header is clickable: click to collapse the whole group.
+Groups start expanded. Collapse state is kept alongside folder expand
+state in the same session — it doesn't persist across stage changes
+(since each stage may show different files).
 
 ## When you probably don't need it
 

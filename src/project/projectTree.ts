@@ -40,6 +40,12 @@ export type GroupedTree = Array<TreeProjectGroup | TreeCatchAll>
  * undefined or empty, every file goes under a single catch-all group (which
  * the explorer can render inline with no group header).
  *
+ * When `projects` is declared, it acts as an inclusion list: files that
+ * match no project are dropped from the explorer entirely. Declaring
+ * `projects:` is taken as orchestration intent ("these are the parts I
+ * want to show"), not just a grouping hint — authors who need a flat
+ * tree with every root file should omit `projects:` instead.
+ *
  * Empty groups (no visible files) are dropped from the result.
  */
 export function groupFilesByProject(
@@ -61,14 +67,10 @@ export function groupFilesByProject(
   }
 
   const buckets: { rel: string; full: string }[][] = projects.map(() => [])
-  const unmatched: { rel: string; full: string }[] = []
 
   for (const path of files) {
     const idx = routeToProject(path, projects)
-    if (idx === null) {
-      unmatched.push({ rel: path, full: path })
-      continue
-    }
+    if (idx === null) continue
     const rel = relativize(path, projects[idx].path)
     buckets[idx].push({ rel, full: path })
   }
@@ -84,13 +86,6 @@ export function groupFilesByProject(
       colorKey: projects[i].color,
       key,
       children: buildSubtree(buckets[i], key),
-    })
-  }
-  if (unmatched.length > 0) {
-    groups.push({
-      kind: 'catch-all',
-      key: '__catchall__',
-      children: buildSubtree(unmatched, '__catchall__'),
     })
   }
   return groups

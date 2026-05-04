@@ -17,7 +17,7 @@ describe('groupFilesByProject', () => {
     expect(groupFilesByProject([], [])).toEqual([])
   })
 
-  it('routes each file to the project with the longest matching path', () => {
+  it('routes each file to the project with the longest matching path and drops unmatched files', () => {
     const tree = groupFilesByProject(
       [
         'src/Backend/Program.cs',
@@ -30,12 +30,20 @@ describe('groupFilesByProject', () => {
         { name: 'Frontend', path: 'src/Frontend' },
       ],
     )
-    expect(tree.map((g) => g.kind)).toEqual(['project', 'project', 'catch-all'])
-    const [backend, frontend, catchAll] = tree
+    // Declaring `projects:` is an inclusion list — README.md matches no
+    // project and is dropped rather than appearing under a catch-all.
+    expect(tree.map((g) => g.kind)).toEqual(['project', 'project'])
+    const [backend, frontend] = tree
     expect((backend as { name: string }).name).toBe('Backend')
     expect((frontend as { name: string }).name).toBe('Frontend')
-    // Catch-all picks up README.md which didn't match either project
-    expect(catchAll.children.map((n) => n.kind === 'file' ? n.fullPath : n.name)).toContain('README.md')
+  })
+
+  it('returns [] when projects are declared but no files match any of them', () => {
+    const tree = groupFilesByProject(
+      ['README.md', 'LICENSE'],
+      [{ name: 'Backend', path: 'src/Backend' }],
+    )
+    expect(tree).toEqual([])
   })
 
   it('drops projects with no visible files', () => {
