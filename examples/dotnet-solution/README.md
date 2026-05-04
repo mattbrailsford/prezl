@@ -6,7 +6,7 @@ A two-project Prezl demo to exercise the multi-project explorer:
   WeatherService).
 - `Frontend` — a React+TypeScript client that fetches the forecast.
 
-Both projects live under `files/src/…` and are declared as separate
+Both projects live under `src/…` and are declared as separate
 `projects:` entries in `prezl.yaml`, which tells the explorer to render
 them as distinct top-level nodes with their own icons.
 
