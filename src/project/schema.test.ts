@@ -392,6 +392,38 @@ describe('schema — open string shorthand', () => {
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.open).toEqual({ file: 'src/api.ts@head' })
   })
+
+  it('strips leading "./" so author muscle memory works', () => {
+    const r = parseStageOpen('./src/api.ts')
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.open).toEqual({ file: 'src/api.ts' })
+  })
+
+  it('strips repeated leading "./"', () => {
+    const r = parseStageOpen('././src/api.ts')
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.open).toEqual({ file: 'src/api.ts' })
+  })
+
+  it('strips a single leading "/" as project-root shorthand', () => {
+    const r = parseStageOpen('/src/api.ts')
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.open).toEqual({ file: 'src/api.ts' })
+  })
+
+  it('combines path normalisation with #id / @line peel', () => {
+    const r = parseStageOpen('./src/api.ts#fetchData@42')
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.open).toEqual({ file: 'src/api.ts', id: 'fetchData', line: 42 })
+    }
+  })
+
+  it('normalises "./file" in object form too', () => {
+    const r = parseStageOpen({ file: './src/api.ts' })
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.open).toEqual({ file: 'src/api.ts' })
+  })
 })
 
 describe('schema — cover string shorthand', () => {
@@ -455,6 +487,22 @@ describe('schema — cover string shorthand', () => {
   it('rejects an empty demo:// id', () => {
     const r = parseStageCover(['demo://'])
     expect(r.ok).toBe(false)
+  })
+
+  it('strips leading "./" and "/" from cover paths (string and object form)', () => {
+    const r = parseStageCover([
+      './src/api.ts',
+      '/src/dashboard.ts#registerDashboard',
+      { file: './src/main.ts', title: 'Main' },
+    ])
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.cover).toEqual([
+        { kind: 'file', file: 'src/api.ts' },
+        { kind: 'file', file: 'src/dashboard.ts', id: 'registerDashboard' },
+        { kind: 'file', file: 'src/main.ts', title: 'Main' },
+      ])
+    }
   })
 })
 

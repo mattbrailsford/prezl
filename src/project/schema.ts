@@ -1,9 +1,33 @@
 import { z } from 'zod'
 import type { Demo } from '@/types'
 
+/** Strip leading `./` and `/` so author-text paths line up with the bare
+ *  forward-slash relpaths the Rust walker emits as `rawFiles` map keys.
+ *
+ *  Two common authoring habits we want to accept without the runtime
+ *  silently failing to resolve:
+ *
+ *  - `./src/api.ts` — TypeScript / markdown muscle memory ("relative to
+ *    here"). The project root *is* "here" for prezl.yaml, so the leading
+ *    `./` is redundant. Strip any number so `././foo` collapses too.
+ *  - `/src/api.ts` — read as "from project root", which is the implicit
+ *    base. Strip a single leading slash; protocol-relative `//host/...`
+ *    URLs are deliberately left alone (they're not file paths anyway, but
+ *    being defensive costs nothing).
+ *
+ *  Interior `./` and `..` segments are left to the path-escape guard in
+ *  `joined_within_root` (Rust); they would only ever come from a
+ *  hand-written path the author probably wants to know about. */
+export function normaliseProjectPath(s: string): string {
+  let out = s
+  while (out.startsWith('./')) out = out.slice(2)
+  if (out.startsWith('/') && !out.startsWith('//')) out = out.slice(1)
+  return out
+}
+
 const projectFolder = z.object({
   name: z.string().min(1),
-  path: z.string().min(1),
+  path: z.string().min(1).transform(normaliseProjectPath),
   icon: z.string().optional(),
   /** Color family override. Any key in PROJECT_PALETTE (violet, sky,
    *  yellow, orange, emerald, cyan, red, indigo, pink, amber, slate).
@@ -17,11 +41,17 @@ const projectFolder = z.object({
  *  (`#foo` / `@foo` with no path) are left intact in `file` so an author's
  *  weird filename keeps round-tripping rather than vanishing.
  *
+ *  After the `@` / `#` peel, the remaining file portion is run through
+ *  `normaliseProjectPath` so leading `./` and `/` collapse to bare
+ *  project-relative paths — that's how the rest of the runtime keys things.
+ *
  *  Examples:
  *    "src/api.ts"                     → { file: "src/api.ts" }
  *    "src/api.ts#fetchData"           → { file, id: "fetchData" }
  *    "src/api.ts@42"                  → { file, line: 42 }
  *    "src/api.ts#fetchData@42"        → { file, id, line }
+ *    "./src/api.ts"                   → { file: "src/api.ts" }
+ *    "/src/api.ts"                    → { file: "src/api.ts" }
  *    "node_modules/@types/foo.ts"     → { file: full path } (no peel)
  *    "src/api.ts@notanumber"          → { file: full path } (no peel) */
 export function parseTargetShorthand(s: string): {
@@ -59,7 +89,13 @@ export function parseTargetShorthand(s: string): {
       }
     }
   }
-  return { file: path.length > 0 ? path : undefined, id, line }
+  if (path.length === 0) return { file: undefined, id, line }
+  const normalised = normaliseProjectPath(path)
+  return {
+    file: normalised.length > 0 ? normalised : undefined,
+    id,
+    line,
+  }
 }
 
 /** `open` accepts either a string shorthand or the full object form.
@@ -92,7 +128,11 @@ const openTarget = z.union([
     ),
   z
     .object({
-      file: z.string().min(1).optional(),
+      file: z
+        .string()
+        .min(1)
+        .transform(normaliseProjectPath)
+        .optional(),
       line: z.number().int().positive().optional(),
       id: z.string().min(1).optional(),
     })
@@ -136,7 +176,7 @@ const coverItem = z.union([
         return { kind: 'demo' as const, demoId }
       }
       const parsed = parseTargetShorthand(s)
-      const file = parsed.file ?? s
+      const file = parsed.file ?? normaliseProjectPath(s)
       return { kind: 'file' as const, file, id: parsed.id, line: parsed.line }
     })
     .refine(
@@ -155,7 +195,7 @@ const coverItem = z.union([
     })),
   z
     .object({
-      file: z.string().min(1),
+      file: z.string().min(1).transform(normaliseProjectPath),
       line: z.number().int().positive().optional(),
       id: z.string().min(1).optional(),
       title: z.string().min(1).optional(),
@@ -369,7 +409,7 @@ export const prezlProjectSchema = z.object({
    *  place of the Prezl pretzel mark in the top-left of the editor.
    *  Anything the webview can render in an `<img>` works — SVG, PNG,
    *  JPEG, WebP. Resolved through Tauri's asset protocol. */
-  logo: z.string().min(1).optional(),
+  logo: z.string().min(1).transform(normaliseProjectPath).optional(),
   projects: z.array(projectFolder).optional(),
   stages: z.array(stage).min(1),
 })

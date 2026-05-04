@@ -270,7 +270,7 @@ function parseCoverItem(raw: unknown): CoverItemInfo | null {
     const parsed = parseTargetShorthand(raw)
     return {
       kind: 'file',
-      file: parsed.file ?? raw,
+      file: parsed.file ?? normaliseProjectPath(raw),
       line: parsed.line ?? null,
       id: parsed.id ?? null,
       title: null,
@@ -288,7 +288,7 @@ function parseCoverItem(raw: unknown): CoverItemInfo | null {
   if (typeof o.file !== 'string' || !o.file) return null
   return {
     kind: 'file',
-    file: o.file,
+    file: normaliseProjectPath(o.file),
     line: typeof o.line === 'number' ? o.line : null,
     id: typeof o.id === 'string' ? o.id : null,
     title: typeof o.title === 'string' ? o.title : null,
@@ -301,7 +301,7 @@ function parseOpen(raw: unknown): OpenTarget | undefined {
   if (typeof raw === 'string') {
     const parsed = parseTargetShorthand(raw)
     return {
-      file: parsed.file ?? raw,
+      file: parsed.file ?? normaliseProjectPath(raw),
       line: parsed.line ?? null,
       id: parsed.id ?? null,
     }
@@ -309,7 +309,7 @@ function parseOpen(raw: unknown): OpenTarget | undefined {
   if (typeof raw !== 'object') return undefined
   const o = raw as Record<string, unknown>
   return {
-    file: typeof o.file === 'string' ? o.file : null,
+    file: typeof o.file === 'string' ? normaliseProjectPath(o.file) : null,
     line: typeof o.line === 'number' ? o.line : null,
     id: typeof o.id === 'string' ? o.id : null,
   }
@@ -318,7 +318,12 @@ function parseOpen(raw: unknown): OpenTarget | undefined {
 /** Mirror of `parseTargetShorthand` in `src/project/schema.ts`. Peels
  *  `path[#id][@line]` suffixes from the right; either order works.
  *  `@N` requires N to be a positive integer, otherwise it stays in the
- *  path (so npm-scoped paths / non-numeric tags round-trip cleanly). */
+ *  path (so npm-scoped paths / non-numeric tags round-trip cleanly).
+ *
+ *  After the peel, the file portion is run through `normaliseProjectPath`
+ *  so leading `./` and `/` collapse to bare project-relative paths —
+ *  matching the runtime parser, which is what the activity-bar tree's
+ *  navigation hands off to `vscode.workspace.openTextDocument`. */
 function parseTargetShorthand(s: string): {
   file?: string
   id?: string
@@ -354,7 +359,24 @@ function parseTargetShorthand(s: string): {
       }
     }
   }
-  return { file: path.length > 0 ? path : undefined, id, line }
+  if (path.length === 0) return { file: undefined, id, line }
+  const normalised = normaliseProjectPath(path)
+  return {
+    file: normalised.length > 0 ? normalised : undefined,
+    id,
+    line,
+  }
+}
+
+/** Mirror of `normaliseProjectPath` in `src/project/schema.ts`. Strips
+ *  leading `./` (any number) and a single leading `/` so author-text
+ *  paths line up with the bare project-relative paths the runtime keys
+ *  on. Protocol-relative (`//host/...`) deliberately untouched. */
+function normaliseProjectPath(s: string): string {
+  let out = s
+  while (out.startsWith('./')) out = out.slice(2)
+  if (out.startsWith('/') && !out.startsWith('//')) out = out.slice(1)
+  return out
 }
 
 /** Resolve a screen id (e.g. "preview" or "preview.intro") to its

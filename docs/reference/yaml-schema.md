@@ -428,6 +428,27 @@ declare an `id:`; first-wins on duplicates). An unresolved id
 renders muted with a ⚠ — visible mistake without breaking the
 agenda.
 
+## Path normalisation
+
+Wherever `prezl.yaml` (or a markdown intro link) names a project file,
+the path is **project-root-relative** — `prezl.yaml` sits at the
+project root, and that's the implicit base for `open:`, `cover:`,
+markdown links, and any other path string the runtime resolves.
+
+Two leading-shorthand forms are accepted as syntactic sugar and
+normalised to the bare form before lookup:
+
+- `./src/api.ts` — TypeScript / markdown muscle memory ("relative to
+  here"). Stripped, including repeated `./` segments.
+- `/src/api.ts` — read as "from project root", which is exactly the
+  implicit base. The single leading slash is stripped.
+
+Both resolve identically to `src/api.ts`. Protocol-relative URLs
+(`//host/...`) are deliberately left untouched. Interior `./` and
+`..` segments are not normalised — a path that tries to walk above
+the project root is refused at the OS boundary, surfacing as a
+load-time error rather than silently reaching outside the project.
+
 ## Notes
 
 - YAML anchors / references are supported by the `yaml` parser Prezl
