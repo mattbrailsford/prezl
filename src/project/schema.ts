@@ -368,8 +368,7 @@ export const prezlProjectSchema = z.object({
   /** Optional path (relative to the project root) to an image used in
    *  place of the Prezl pretzel mark in the top-left of the editor.
    *  Anything the webview can render in an `<img>` works — SVG, PNG,
-   *  JPEG, WebP. Resolved through Tauri's asset protocol, so the file
-   *  doesn't need to live under `files/`. */
+   *  JPEG, WebP. Resolved through Tauri's asset protocol. */
   logo: z.string().min(1).optional(),
   projects: z.array(projectFolder).optional(),
   stages: z.array(stage).min(1),

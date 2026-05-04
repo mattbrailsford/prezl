@@ -137,29 +137,32 @@ const IGNORED_DIR_NAMES: &[&str] = &[
     ".vscode",
 ];
 
-/// Walk <project>/files recursively and return every file path relative to it,
-/// using forward slashes. Skips dotfiles and common build-output directories.
+/// Manifest filenames hidden from the explorer at the project root.
+const MANIFEST_NAMES: &[&str] = &["prezl.yaml", "prezl.yml"];
+
+/// Walk the project root recursively and return every file path relative to
+/// it, using forward slashes. Skips dotfiles, common build-output
+/// directories, and the project's own manifest file.
 #[tauri::command]
 pub fn list_project_files(state: State<ProjectRoot>) -> Result<Vec<String>, CommandError> {
     let root = {
         let guard = state.0.lock().unwrap();
         guard.clone().ok_or(CommandError::NoActiveProject)?
     };
-    let files_root = root.join("files");
-    if !files_root.is_dir() {
+    if !root.is_dir() {
         return Ok(Vec::new());
     }
 
     let mut results: Vec<String> = Vec::new();
-    walk(&files_root, &files_root, &mut results)?;
+    walk(&root, &root, &mut results)?;
     results.sort();
     Ok(results)
 }
 
 /// Allow-listed dotfolder name. Anything else starting with '.' is skipped.
-/// `.prezl/` lives under `files/` to host presentation-only assets (intros,
-/// agendas) that shouldn't appear in the project explorer but still need to
-/// be loaded into rawFiles so the renderer can open them.
+/// `.prezl/` sits at the project root and hosts presentation-only assets
+/// (intros, videos, agendas) that shouldn't appear in the explorer but still
+/// need to be loaded into rawFiles so the renderer can open them.
 const PREZL_ASSETS_DIR: &str = ".prezl";
 
 fn walk(base: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), CommandError> {
@@ -179,6 +182,11 @@ fn walk(base: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), CommandErr
             }
             walk(base, &entry.path(), out)?;
         } else if file_type.is_file() {
+            // Hide the project manifest from the explorer; it lives at the
+            // root as the project marker, not as a presentable source file.
+            if dir == base && MANIFEST_NAMES.contains(&name_str.as_ref()) {
+                continue;
+            }
             let full = entry.path();
             let rel = full.strip_prefix(base).map_err(|e| CommandError::Io(e.to_string()))?;
             let mut parts: Vec<String> = Vec::new();
@@ -202,11 +210,9 @@ pub fn read_project_file(
         let guard = state.0.lock().unwrap();
         guard.clone().ok_or(CommandError::NoActiveProject)?
     };
-    // Files referenced by branches live under `files/`. Rooting here also
-    // prevents the webview from reading prezl.yaml or other sibling files via
-    // this command.
-    let files_root = root.join("files");
-    let full = joined_within_root(&files_root, &rel_path)?;
+    // Files referenced by branches resolve against the project root. The
+    // path-escape guard in `joined_within_root` prevents traversal above it.
+    let full = joined_within_root(&root, &rel_path)?;
     // Non-UTF-8 (binary) files return Ok(None) so the caller can skip them
     // without aborting the whole project load.
     match fs::read_to_string(&full) {

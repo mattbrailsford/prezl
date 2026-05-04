@@ -634,17 +634,21 @@ second async pass after the highlighter is ready; the base HTML shows
 immediately so there's no blank moment. Styles in `globals.css` under
 `.prezl-md`.
 
-**`.prezl/` private folder.** The Rust file walker (`commands.rs`)
-allow-lists exactly one dotfolder name — `.prezl/` — so files at
-`files/.prezl/**` are loaded into `rawFiles` like any other source
-but never appear in the explorer (filtered at the
-`ExplorerTree.tsx` boundary, not in `computeFileVisibility`, so the
-files still participate in symbol tables / parsing). Tabs already
-use `path.split('/').pop()` so `.prezl/intro.md` shows as
+**`.prezl/` private folder.** The project root is the file root —
+there's no `files/` wrapper. The Rust file walker (`commands.rs`)
+walks the root directly and allow-lists exactly one dotfolder name
+— `.prezl/` — so files at `.prezl/**` are loaded into `rawFiles`
+like any other source but never appear in the explorer (filtered at
+the `ExplorerTree.tsx` boundary, not in `computeFileVisibility`, so
+the files still participate in symbol tables / parsing). The walker
+also hides `prezl.yaml` / `prezl.yml` from the root listing — the
+manifest is the project marker, not a presentable file. Tabs
+already use `path.split('/').pop()` so `.prezl/intro.md` shows as
 `intro.md` without any tab-specific change. Intended pattern:
 `stage.open: .prezl/intro.md` opens the intro on stage entry; the
 "presenter close survives step transition" rule means closing it
-sticks for the rest of the stage.
+sticks for the rest of the stage. Videos and other presenter-private
+binaries typically live under `.prezl/videos/`.
 
 **Link shorthand in markdown.** `MarkdownView` decorates anchor
 hrefs at layout time:

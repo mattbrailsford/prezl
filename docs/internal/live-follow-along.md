@@ -158,7 +158,9 @@ New module `src-tauri/src/broadcast.rs`:
   - `GET /assets/*path` — served from `RustEmbed` (`dist-viewer/`)
   - `GET /api/bundle?session=...` — returns `{ manifest: string,
     rootPath: string, files: { [path: string]: string } }` — the YAML
-    string and a flat map of every file under `<root>/files/`. Reuses
+    string and a flat map of every file under `<root>` (excluding the
+    manifest, dotfolders other than `.prezl/`, and standard build dirs).
+    Reuses
     `commands::list_project_files` + `commands::read_project_file`
     internals (factor the path-escape check into a shared helper).
   - `GET /api/ws?session=...` — websocket; on connect, send the
@@ -246,7 +248,7 @@ Work:
   local-ip-address, nanoid
 - `src-tauri/src/lib.rs` — register `BroadcastState`, wire new commands
 - `src-tauri/src/commands.rs` — `start_broadcast`, `stop_broadcast`,
-  `broadcast_state`; factor `<root>/files/` path-escape check into a
+  `broadcast_state`; factor the project-root path-escape check into a
   shared helper used by `read_project_file` AND the new bundle endpoint
 - `src-tauri/src/broadcast.rs` — new module with axum routes, channel,
   embedded viewer assets

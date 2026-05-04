@@ -34,10 +34,11 @@ The goal is not to build a real IDE. The goal is a believable, deterministic, co
 
 ## How it works
 
-A Prezl project is a folder with a `prezl.yaml` and a `files/` directory.
-The YAML declares the stages of the presentation; visibility, folding,
-and highlights come from inline `@prezl` comment directives colocated
-with the code.
+A Prezl project is any folder with a `prezl.yaml` manifest at its root —
+your source files sit alongside the manifest, the way they would in any
+normal repository. The YAML declares the stages of the presentation;
+visibility, folding, and highlights come from inline `@prezl` comment
+directives colocated with the code.
 
 See the [user docs](https://mattbrailsford.github.io/prezl/) for the
 full guide — project structure, stages, directives, demos, and the

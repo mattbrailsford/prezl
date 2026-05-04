@@ -23,8 +23,8 @@ projects:
 Each entry:
 
 - **`name`** — shown as the group header.
-- **`path`** — path under `files/` that this project rooted at. Files
-  inside this path group under this header.
+- **`path`** — path (relative to the project root) that this project is
+  rooted at. Files inside this path group under this header.
 - **`icon`** *(optional)* — hint for the glyph Prezl shows (see below).
 - **`color`** *(optional)* — override the auto-derived accent color.
 
@@ -33,10 +33,10 @@ Each entry:
 Files route to projects by **longest-prefix match** on `path`. Given:
 
 ```
-files/src/Backend/Program.cs           → Backend
-files/src/Backend/Api/Weather.cs       → Backend
-files/src/Frontend/App.tsx             → Frontend
-files/README.md                        → Files (catch-all)
+src/Backend/Program.cs           → Backend
+src/Backend/Api/Weather.cs       → Backend
+src/Frontend/App.tsx             → Frontend
+README.md                        → Files (catch-all)
 ```
 
 Files matching no declared project go into a synthetic `Files` group at

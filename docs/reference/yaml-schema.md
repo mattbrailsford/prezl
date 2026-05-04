@@ -24,11 +24,10 @@ Displayed in the titlebar.
 
 Path to an image (SVG, PNG, JPEG, WebP — anything an `<img>` tag can
 render) used in place of the Prezl pretzel mark in the top-left of the
-editor. Resolved relative to the project root, so the file doesn't have
-to live under `files/` — `logo: brand.svg` next to `prezl.yaml` is the
-typical layout. Absolute paths and `https://` URLs are also accepted.
-The tinted accent square is dropped when a custom logo is set so the
-mark renders on its own.
+editor. Resolved relative to the project root — `logo: brand.svg` next
+to `prezl.yaml` is the typical layout. Absolute paths and `https://`
+URLs are also accepted. The tinted accent square is dropped when a
+custom logo is set so the mark renders on its own.
 
 ### `projects` (optional, array)
 
@@ -37,7 +36,7 @@ Declares a multi-project layout. See the
 
 ```yaml
 - name: Backend              # required
-  path: src/Backend          # required — path under files/
+  path: src/Backend          # required — path relative to project root
   icon: dotnet               # optional — glyph + color hint
   color: violet              # optional — overrides icon's default color
 ```

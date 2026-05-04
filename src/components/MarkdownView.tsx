@@ -268,17 +268,12 @@ function extractCodeLang(className: string): string | null {
  *  can fetch. Relative paths join against the markdown file's own directory
  *  (so `![](./diagram.png)` next to `intro.md` works the way it does on
  *  GitHub); paths starting with `/` are project-root-relative (where
- *  `prezl.yaml` lives), matching the convention videos and the project
- *  logo already use for presentation assets that sit outside `files/`.
- *  URLs with a scheme (http, https, data, blob, file) and protocol-
- *  relative forms pass through untouched.
+ *  `prezl.yaml` lives). URLs with a scheme (http, https, data, blob, file)
+ *  and protocol-relative forms pass through untouched.
  *
- *  `..` can walk out of `files/` into rootPath — handy when the author
- *  keeps presentation assets next to `prezl.yaml` and intros under
- *  `files/.prezl/`. Anything past rootPath (more `..`s than depth) is
- *  refused; the original src is returned so the browser surfaces the
- *  broken-image affordance instead of us silently hitting an unrelated
- *  filesystem location. */
+ *  Anything that walks above rootPath via `..` is refused; the original src
+ *  is returned so the browser surfaces the broken-image affordance instead
+ *  of us silently hitting an unrelated filesystem location. */
 function resolveImageSrc(
   src: string,
   activeFile: string,
@@ -296,7 +291,7 @@ function resolveImageSrc(
       ? activeFile.slice(0, activeFile.lastIndexOf('/'))
       : ''
     const fromMd = dir ? `${dir}/${src}` : src
-    combined = `${rootPath}/files/${fromMd}`
+    combined = `${rootPath}/${fromMd}`
   }
   const normalized = normaliseAbsolutePath(combined, rootPath)
   if (normalized == null) return src
