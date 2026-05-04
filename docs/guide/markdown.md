@@ -1,50 +1,15 @@
-# Markdown intros
+# Markdown rendering
 
-Sometimes the cleanest way to open a stage is a short README — an
-agenda, a framing paragraph, a list of files you're about to walk
-through. Prezl renders any `.md` file as styled markdown when it's
-the active file, with prezl's own link shorthand wired into anchor
-hrefs so links can jump to symbols, files, or demos.
+Any `.md` file in your project renders as styled markdown when it's
+the active file — GFM tables, task lists, fenced code with Shiki
+highlighting, images, and a link grammar that ties prezl's file,
+symbol, and demo references into anchor hrefs.
 
-## Where to put intro files
-
-A repository convention: drop them under `.prezl/` at the project
-root. That folder is **loaded** but never appears in the explorer
-tree, so intros stay invisible to the audience while still being
-addressable from `prezl.yaml`:
-
-```
-my-project/
-├─ prezl.yaml
-├─ .prezl/
-│  └─ intro.md             # not in the explorer
-└─ src/
-   └─ dashboard.ts         # in the explorer
-```
-
-`.prezl/` is the only allow-listed dotfolder at the project root —
-`.git/`, `.idea/`, etc. are still ignored as before.
-
-You don't *have* to put intros under `.prezl/` — any `.md` file
-renders as markdown when opened. Use `.prezl/` when you specifically
-don't want the file to clutter the explorer.
-
-## Wiring an intro to a stage
-
-```yaml
-- id: preview
-  title: Preview the dashboard
-  open: .prezl/intro.md
-  cover:
-    - src/dashboard.ts#registerDashboard
-    - src/api.ts#fetchDashboardData
-```
-
-The stage's first screen (and any step that omits its own `open:`)
-opens the intro. Closing the tab — or stepping forward into a step
-with its own `open:` — moves on. See
-[the stage open docs](./stages#per-stage-keys) for the full
-resolution rules.
+Markdown rendering is just a viewer mode — it kicks in whenever a
+`.md` tab is active. There's no special "intro" or "doc" type; the
+file itself is what determines the rendering. Common uses include
+stage intros, agendas, and runbooks, but anything that fits in
+markdown works.
 
 ## Markdown features
 
@@ -58,7 +23,7 @@ relative to the markdown file's own directory:
 
 ```markdown
 ![Architecture diagram](./diagrams/arch.png)
-![Sibling intro asset](logo.svg)
+![Sibling asset](logo.svg)
 ![From the project root](/assets/banner.png)
 ```
 
@@ -131,8 +96,8 @@ Click navigates via the symbol table, exactly like a click on a
 symbol decoration in code. Files already opened get a `✓` tick and
 a muted color, scoped to the current **open frame** — the markdown
 file's framing. Visits persist across consecutive steps that inherit
-the stage's `open:` (the intro is the same continuous document) but
-reset whenever a step authors its own `open:` (a new framing should
+the stage's `open:` (the same continuous document) but reset
+whenever a step authors its own `open:` (a new framing should
 re-prompt the links). Cross-stage entry resets too.
 
 ### Demos — `[label](demo://<id>)`
@@ -161,20 +126,20 @@ auto-launch, or a click on this same link), the affordance flips
 to a ✓ tick + muted color — same treatment file links get when
 their target's been opened. Tracking is open-frame-scoped, so the
 tick survives across consecutive steps that inherit the stage's
-intro and resets when a step authors its own `open:` (a fresh
-intro framing → fresh prompt). Cross-stage entry resets too.
+markdown file and resets when a step authors its own `open:` (a
+fresh framing → fresh prompt). Cross-stage entry resets too.
 
 Demo ids are project-wide and resolve first-wins on duplicates. A
-README on stage 1 can link to a demo declared on stage 5.
+markdown file on stage 1 can link to a demo declared on stage 5.
 
 ### In-document anchors — `[label](#some-id)`
 
 Native browser scroll within the markdown view. Heading ids aren't
 auto-generated; if you want a self-link target, drop a raw HTML
-`<a id="some-id"></a>` next to the heading. Most intros are short
-enough that a top-down read doesn't need internal anchors at all —
-the prezl-flavoured `[label](path[#id])` form is what cross-stage
-intros usually want.
+`<a id="some-id"></a>` next to the heading. Most short markdown
+files don't need internal anchors at all — the prezl-flavoured
+`[label](path[#id])` form is what cross-stage references usually
+want.
 
 ### External — `https://`, `mailto:`, `tel:`, `ftp:`
 
@@ -186,6 +151,48 @@ Left as a regular link. If the path doesn't resolve to a known
 project file, prezl doesn't intercept the click — the browser
 handles it however it would.
 
+## Pattern: stage intros under `.prezl/`
+
+A common use is opening a short README at the start of a stage —
+an agenda, a framing paragraph, a list of files you're about to
+walk through. Drop intros under `.prezl/` at the project root:
+that folder is **loaded** but never appears in the explorer tree,
+so the file stays invisible to the audience while still being
+addressable from `prezl.yaml`:
+
+```
+my-project/
+├─ prezl.yaml
+├─ .prezl/
+│  └─ intro.md             # not in the explorer
+└─ src/
+   └─ dashboard.ts         # in the explorer
+```
+
+`.prezl/` is the only allow-listed dotfolder at the project root —
+`.git/`, `.idea/`, etc. are still ignored as before.
+
+You don't *have* to put markdown files under `.prezl/` — any `.md`
+file renders as markdown when opened. Use `.prezl/` when you
+specifically don't want the file to clutter the explorer.
+
+Wire it to a stage via `open:`:
+
+```yaml
+- id: preview
+  title: Preview the dashboard
+  open: .prezl/intro.md
+  cover:
+    - src/dashboard.ts#registerDashboard
+    - src/api.ts#fetchDashboardData
+```
+
+The stage's first screen (and any step that omits its own `open:`)
+opens the intro. Closing the tab — or stepping forward into a step
+with its own `open:` — moves on. See
+[the stage open docs](./stages#per-stage-keys) for the full
+resolution rules.
+
 ## Cover or markdown?
 
 Both surface "things to discuss" — pick whichever fits:
@@ -193,13 +200,13 @@ Both surface "things to discuss" — pick whichever fits:
 - **Cover** is best for short YAML-driven agendas pinned next to the
   file tree. It's always visible during the stage; rows tick as you
   visit each file or launch each demo.
-- **Markdown intros** are best for richer framing — heading,
+- **Markdown documents** are best for richer framing — heading,
   paragraph, links, demo triggers, GFM tables — viewed as the
   active file rather than a sidebar.
 
 Both surfaces accept the same kinds of references — file paths
 (`path[#id][@line]`) and demo triggers (`demo://<id>`) — so a
-markdown intro and a cover list can mention the same file or the
+markdown document and a cover list can mention the same file or the
 same demo by the same identifier.
 
 A stage can have both. They don't conflict — but visited tracking

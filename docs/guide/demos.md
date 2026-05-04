@@ -144,10 +144,10 @@ Adding an `id:` to a demo lets other surfaces reference it by name:
   `{ demo: <id>, title? }`) puts a clickable row in the stage agenda
   that fires the same demo as the Run button. See
   [Stages § Stage cover](./stages#stage-cover-presenter-agenda).
-- **Markdown intro links** — `[label](demo://<id>)` in a markdown
-  intro file decorates the link with a ▶ play affordance and runs
-  the demo on click. See
-  [Markdown intros § Demos](./markdown-intros#demos-label-demo-id).
+- **Markdown links** — `[label](demo://<id>)` in a markdown file
+  decorates the link with a ▶ play affordance and runs the demo on
+  click. See
+  [Markdown rendering § Demos](./markdown#demos-label-demo-id).
 
 ```yaml
 - id: preview

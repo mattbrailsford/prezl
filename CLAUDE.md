@@ -618,7 +618,7 @@ modal initially returned `null` when closed and then declared another
 across renders and crashed the whole tree, blanking the UI. ALL hooks
 must come before any early return.
 
-## Markdown intros (`.prezl/` folder + MarkdownView)
+## Markdown rendering (`MarkdownView`) and `.prezl/` private folder
 
 `.md` files render as styled markdown via `MarkdownView` when opened.
 Dispatch happens in `CodeView.tsx` — if `inferLanguage(activeFile) ===
@@ -642,13 +642,12 @@ like any other source but never appear in the explorer (filtered at
 the `ExplorerTree.tsx` boundary, not in `computeFileVisibility`, so
 the files still participate in symbol tables / parsing). The walker
 also hides `prezl.yaml` / `prezl.yml` from the root listing — the
-manifest is the project marker, not a presentable file. Tabs
-already use `path.split('/').pop()` so `.prezl/intro.md` shows as
-`intro.md` without any tab-specific change. Intended pattern:
-`stage.open: .prezl/intro.md` opens the intro on stage entry; the
-"presenter close survives step transition" rule means closing it
-sticks for the rest of the stage. Videos and other presenter-private
-binaries typically live under `.prezl/videos/`.
+manifest is the project marker, not a presentable file. Tabs already
+use `path.split('/').pop()` so e.g. `.prezl/intro.md` shows as
+`intro.md` without any tab-specific change. Common uses: presenter-
+private markdown (intros, notes, agendas) opened via `stage.open`,
+videos under `.prezl/videos/`, or any other binaries the author
+doesn't want exposed in the explorer.
 
 **Link shorthand in markdown.** `MarkdownView` decorates anchor
 hrefs at layout time:
@@ -688,9 +687,10 @@ Same pattern as `.prezl-symbol` spans in `CodeView`.
 
 `examples/demo/` — four-stage project with one stepped stage; use it
 to verify parser/renderer changes. The `preview` stage is the
-heaviest: a `.prezl/intro.md` README (markdown rendering + link
-shorthand + a `demo://backoffice-walkthrough` link to the next
-stage's demo), step→stage open inheritance, per-step `open` swapping
+heaviest: a `.prezl/intro.md` opened via `stage.open` (markdown
+rendering + link shorthand + a `demo://backoffice-walkthrough` link
+to the next stage's demo), step→stage open inheritance, per-step
+`open` swapping
 the file, an `autoLaunch: 'end'` trailing video, file-level focus
 tinting, and a `demo: ~` reset of an inherited override. Switching
 screens should re-apply folds and never flash. Per-stage walkthrough:

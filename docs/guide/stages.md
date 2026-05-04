@@ -173,9 +173,9 @@ small clickable section under the file tree. Two item shapes:
   presenter wants to discuss. Tick once the file has been opened
   during the stage's tenure.
 - **Demo entries** — a `demo://<id>` reference to a project-wide
-  demo `id:` (the same id markdown intros use via
-  `[label](demo://this-id)` links). Click runs the demo, just like
-  the *Run* button or a markdown demo link. Tick once the demo has
+  demo `id:` (the same id markdown links use via
+  `[label](demo://this-id)`). Click runs the demo, just like the
+  *Run* button or a markdown demo link. Tick once the demo has
   been launched in the stage's tenure (any launch site counts —
   cover row, Run button, picker, markdown link, autoLaunch).
 

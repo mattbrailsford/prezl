@@ -298,12 +298,12 @@ demo:
   src: ./videos/walkthrough.mp4
 ```
 
-`id:` makes the demo project-wide-addressable. A markdown intro file
-can reference it via `[label](demo://backoffice-walkthrough)` —
-clicking the link launches the demo regardless of which screen the
-link is on. Duplicate ids resolve first-wins (the second declaration
-just isn't reachable via `demo://`). See the
-[markdown intros guide](../guide/markdown-intros) for the full link
+`id:` makes the demo project-wide-addressable. A markdown file can
+reference it via `[label](demo://backoffice-walkthrough)` — clicking
+the link launches the demo regardless of which screen the link is
+on. Duplicate ids resolve first-wins (the second declaration just
+isn't reachable via `demo://`). See the
+[markdown rendering guide](../guide/markdown) for the full link
 grammar.
 
 ##### `autoLaunch` invariants
@@ -359,10 +359,10 @@ tree. Two item shapes:
   presenter wants to discuss. Tick once the file has been opened
   during the current stage's tenure.
 - **Demo entries** — a `demo://<id>` reference to a project-wide
-  demo `id:` (the same id markdown intros use via
-  `[label](demo://this-id)` links). Click runs the demo, just like
-  the *Run* button or a markdown demo link. Tick once the demo has
-  been launched in the current stage's tenure.
+  demo `id:` (the same id markdown links use via
+  `[label](demo://this-id)`). Click runs the demo, just like the
+  *Run* button or a markdown demo link. Tick once the demo has been
+  launched in the current stage's tenure.
 
 ```yaml
 - id: preview
@@ -430,7 +430,7 @@ agenda.
 
 ## Path normalisation
 
-Wherever `prezl.yaml` (or a markdown intro link) names a project file,
+Wherever `prezl.yaml` (or a markdown link) names a project file,
 the path is **project-root-relative** — `prezl.yaml` sits at the
 project root, and that's the implicit base for `open:`, `cover:`,
 markdown links, and any other path string the runtime resolves.

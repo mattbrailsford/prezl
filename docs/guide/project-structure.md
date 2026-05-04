@@ -14,7 +14,7 @@ my-talk/
     dashboard.ts
     api.ts
   .prezl/           # optional — presentation-private assets
-    intro.md         # markdown intros opened from `open:`
+    intro.md         # e.g. a stage intro opened from `open:`
     videos/
       demo.mp4
 ```
@@ -26,7 +26,7 @@ my-talk/
   to this manifest's directory — the project root.
 - **`.prezl/`** is the one allow-listed dotfolder. Files inside it load
   into the project but never appear in the explorer — perfect for
-  presenter-only assets like markdown intros or demo videos.
+  presenter-only assets like markdown notes or demo videos.
 
 The explorer shows everything else at the project root, minus the usual
 noise: dotfolders (`.git`, `.idea`, `.vscode`), build outputs
