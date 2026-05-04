@@ -21,7 +21,7 @@ Slide decks are bad at showing code that evolves. Live IDE demos are powerful bu
 - Code is **explorable, but only within curated boundaries**.
 - Progression through the talk is modelled as **stages** (often visualised as git branches), not slides.
 - Each stage can optionally declare **steps** — build-style sub-navigation within a stage, the same way a slide can fade in bullet points one at a time.
-- Each stage (or step) can launch a **demo scene** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
+- Each stage (or step) can launch one or more **demo scenes** — a URL, a fullscreen video with pause cues, etc. — without actually running any code.
 
 The goal is not to build a real IDE. The goal is a believable, deterministic, code-first presentation surface for speakers, trainers, and DevRel.
 
@@ -46,19 +46,19 @@ YAML schema.
 
 ## Status
 
-Pre-1.0; all the v1 milestones from the original spec are landed:
+Pre-1.0, but the core experience is in place:
 
 - Tauri 2 desktop app with custom window chrome
 - Static, read-only code viewer (Shiki for tokens — no editor library)
-- Collapsible, resizable, project-grouped file explorer
-- Stage selector + Run button wired into the titlebar
+- Markdown rendering for `.md` files (GFM, Shiki-highlighted fences, link shorthand including `demo://` references)
+- Collapsible, resizable, project-grouped file explorer; `.prezl/` folder for presenter-private content (intros, videos, notes)
+- Stage selector + Run button wired into the titlebar; Run opens a picker when a stage declares multiple demos
 - `@prezl` directive system: `id`, `show`, `focus`, `collapse`, `file` — colocated with code, refactor-safe; selectors target stages or `stage.step` ids
-- Fake build + URL demo (opens in default browser)
-- Fullscreen video demo with pause cues for talking-over
+- URL demos (open in default browser) and fullscreen video demos with pause cues for talking-over
 - Click-to-jump symbol navigation
 - Rider-style `Ctrl+T` fuzzy symbol finder
-- Intra-stage **steps** (build-style sub-navigation within a slide)
-- Stage **cover** (presenter agenda surfaced under the file tree, ticked as files are visited)
+- Intra-stage **steps** (build-style sub-navigation within a stage)
+- Stage **cover** (presenter agenda of files and demos surfaced under the file tree, ticked as they're visited or launched)
 - `prezl://` deep links + back-to-presentation shortcut for slide-deck integration
 - Companion VS Code extension for authoring directives and `prezl.yaml`
 - Presentation-friendly UI zoom (`Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`), `Ctrl+E` to hide explorer, `F11` for fullscreen — all persisted across sessions
