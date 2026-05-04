@@ -8,23 +8,22 @@ hrefs so links can jump to symbols, files, or demos.
 
 ## Where to put intro files
 
-A repository convention: drop them under `files/.prezl/`. That
-folder is **loaded** but never appears in the explorer tree, so
-intros stay invisible to the audience while still being addressable
-from `prezl.yaml`:
+A repository convention: drop them under `.prezl/` at the project
+root. That folder is **loaded** but never appears in the explorer
+tree, so intros stay invisible to the audience while still being
+addressable from `prezl.yaml`:
 
 ```
 my-project/
 ├─ prezl.yaml
-└─ files/
-   ├─ .prezl/
-   │  └─ intro.md          # not in the explorer
-   └─ src/
-      └─ dashboard.ts      # in the explorer
+├─ .prezl/
+│  └─ intro.md             # not in the explorer
+└─ src/
+   └─ dashboard.ts         # in the explorer
 ```
 
-The `.prezl/` folder is the only allow-listed dotfolder in `files/`
-— `.git/`, `.idea/`, etc. are still ignored as before.
+`.prezl/` is the only allow-listed dotfolder at the project root —
+`.git/`, `.idea/`, etc. are still ignored as before.
 
 You don't *have* to put intros under `.prezl/` — any `.md` file
 renders as markdown when opened. Use `.prezl/` when you specifically
@@ -65,14 +64,12 @@ relative to the markdown file's own directory:
 
 A leading `/` means **project-root-relative** — where `prezl.yaml`
 lives — same convention videos and the project logo use. So
-`/assets/banner.png` → `<project>/assets/banner.png`. `..` segments
-can walk out of `files/` into the project root if the author keeps
-presentation assets next to `prezl.yaml` rather than under `files/`.
+`/assets/banner.png` → `<project>/assets/banner.png`.
 
 `http(s)://`, `data:`, `blob:`, and `file:` URLs pass through
-unchanged. Anything that would walk above the project root is refused
-(the broken-image affordance shows instead of silently hitting an
-unrelated filesystem location).
+unchanged. Anything that would walk above the project root via `..`
+is refused (the broken-image affordance shows instead of silently
+hitting an unrelated filesystem location).
 
 ### Image attributes
 
@@ -147,7 +144,7 @@ trigger it:
 demo:
   id: backoffice-walkthrough
   type: video
-  src: ./videos/walkthrough.mp4
+  src: ./.prezl/videos/walkthrough.mp4
 ```
 
 ```markdown

@@ -205,7 +205,7 @@ export async function openScreenCommand(arg: {
       )
       return
     }
-    const filePath = path.join(project.filesRoot, target.file)
+    const filePath = path.join(project.root, target.file)
     const uri = vscode.Uri.file(filePath)
     const lineNumber = (target.line ?? 1) - 1
     const doc = await vscode.workspace.openTextDocument(uri)
@@ -237,7 +237,7 @@ export async function openCoverItemCommand(
     const project = await loadProject(manifest)
     if (!project) continue
 
-    const filePath = path.join(project.filesRoot, arg.file)
+    const filePath = path.join(project.root, arg.file)
     const uri = vscode.Uri.file(filePath)
     let doc: vscode.TextDocument
     try {

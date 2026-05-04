@@ -43,7 +43,7 @@ export class PrezlSelectorDefinitionProvider
     }
     if (!target.file) return manifestStageLocation(project, ref)
 
-    const filePath = path.join(project.filesRoot, target.file)
+    const filePath = path.join(project.root, target.file)
     const fileUri = vscode.Uri.file(filePath)
     const lineNumber = (target.line ?? 1) - 1
     return new vscode.Location(
@@ -54,8 +54,8 @@ export class PrezlSelectorDefinitionProvider
 }
 
 /** In `prezl.yaml`: clicking an `id:` value jumps to the matching
- *  `@prezl id=` anchor; clicking a `file:` value opens that file under
- *  the project's `files/` directory. */
+ *  `@prezl id=` anchor; clicking a `file:` value opens that file relative
+ *  to the project root. */
 export class PrezlYamlDefinitionProvider
   implements vscode.DefinitionProvider
 {
@@ -71,7 +71,7 @@ export class PrezlYamlDefinitionProvider
     if (fileMatch && cursorInsideValue(fileMatch, position.character)) {
       const project = await currentProject(document.uri)
       if (!project) return null
-      const filePath = path.join(project.filesRoot, fileMatch[3])
+      const filePath = path.join(project.root, fileMatch[3])
       try {
         await vscode.workspace.fs.stat(vscode.Uri.file(filePath))
       } catch {

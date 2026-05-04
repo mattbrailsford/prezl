@@ -1,34 +1,38 @@
 # Project structure
 
-A Prezl project is a folder containing a single `prezl.yaml` manifest and a
-`files/` directory with the source files being presented.
+A Prezl project is any folder with a `prezl.yaml` manifest at its root.
+The folder *is* the project root — your source files sit alongside the
+manifest, the way they would in any normal repository.
 
 ## Folder layout
 
 ```
 my-talk/
-  prezl.yaml        # required — the manifest
-  files/            # required — source files the editor renders
-    src/
-      main.ts
-      dashboard.ts
-      api.ts
-  videos/           # optional — referenced by video demos
-    demo.mp4
+  prezl.yaml        # required — the manifest (and project marker)
+  src/              # your source — anything you'd expect to see in
+    main.ts          # the explorer
+    dashboard.ts
+    api.ts
+  .prezl/           # optional — presentation-private assets
+    intro.md         # markdown intros opened from `open:`
+    videos/
+      demo.mp4
 ```
 
 - **`prezl.yaml`** declares the presentation flow: name, projects
-  (optional), stages, demos. `prezl.yml` is also accepted as a
-  fallback if you reach for the wrong extension out of habit.
-- **`files/`** is the root the Prezl editor shows. Paths in YAML (like
-  `open.file`) and directives (`@prezl file=[...]`) are relative to this
-  directory.
-- **`videos/`** (or any folder you like) holds media referenced from video
-  demos. The YAML just points at a path relative to the project root.
+  (optional), stages, demos. `prezl.yml` is also accepted as a fallback
+  if you reach for the wrong extension out of habit. Paths in YAML
+  (like `open.file`) and directives (`@prezl file=[...]`) are relative
+  to this manifest's directory — the project root.
+- **`.prezl/`** is the one allow-listed dotfolder. Files inside it load
+  into the project but never appear in the explorer — perfect for
+  presenter-only assets like markdown intros or demo videos.
 
-You're free to add any other folders (a README, scripts, an `assets/` dir
-for a README) — Prezl only touches what's inside `files/` and what's
-referenced from `prezl.yaml`.
+The explorer shows everything else at the project root, minus the usual
+noise: dotfolders (`.git`, `.idea`, `.vscode`), build outputs
+(`node_modules`, `target`, `dist`, `bin`, `obj`), and the manifest
+itself. So you can point Prezl at an existing repository without moving
+anything.
 
 ## Minimal `prezl.yaml`
 

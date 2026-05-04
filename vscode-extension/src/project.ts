@@ -61,8 +61,9 @@ export type StageInfo = {
 export type Project = {
   /** Absolute path to prezl.yaml/.yml. */
   manifestPath: string
-  /** Absolute path to the project's `files/` directory. */
-  filesRoot: string
+  /** Absolute path to the project root (the directory containing the
+   *  manifest). YAML file references resolve against this. */
+  root: string
   name: string
   stages: StageInfo[]
   /** Flat ordered list of every screen id (stage + stage.step) — the order
@@ -224,10 +225,9 @@ function parseProject(yaml: string, manifestPath: string): Project | null {
     })
   }
 
-  const filesRoot = path.join(path.dirname(manifestPath), 'files')
   return {
     manifestPath,
-    filesRoot,
+    root: path.dirname(manifestPath),
     name,
     stages,
     orderedScreenIds: ordered,

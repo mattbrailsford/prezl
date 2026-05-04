@@ -35,12 +35,12 @@ A Prezl project is a folder containing:
 ```
 my-talk/
   prezl.yaml         ← the manifest: stages, demos, metadata
-  files/
-    src/
-      main.ts        ← ordinary source files, marked up with @prezl comments
-      dashboard.ts
-  videos/
-    demo.mp4         ← optional: video demos referenced from prezl.yaml
+  src/
+    main.ts          ← ordinary source files, marked up with @prezl comments
+    dashboard.ts
+  .prezl/            ← optional: presenter-private assets
+    videos/
+      demo.mp4       ← video demos referenced from prezl.yaml
 ```
 
 The YAML declares stages. The source files carry inline `@prezl` comments
@@ -79,8 +79,8 @@ Once Prezl is running:
 
 That's it. Keep reading for:
 
-- [Project structure](./project-structure) — what goes in `prezl.yaml` and
-  `files/`
+- [Project structure](./project-structure) — what goes in `prezl.yaml`
+  and how the project root is laid out
 - [Stages](./stages) — how stages drive the presentation flow
 - [Directives](./directives) — the `@prezl` comment grammar
 - [Demos](./demos) — URL and video scenes
