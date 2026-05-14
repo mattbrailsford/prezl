@@ -5,8 +5,8 @@ import { useAppStore } from '@/state/store'
  * Ctrl+Enter / Cmd+Enter / F5 / Ctrl+F5 triggers the Run action. Capture
  * phase so any focused element (textarea, button) can't claim the key
  * first, and so the WebView's F5 / Ctrl+F5 page-refresh defaults are
- * suppressed in favour of launching a demo. Ctrl+R still does native
- * refresh.
+ * suppressed in favour of launching a demo. Cmd+R / Ctrl+R reload is
+ * handled separately by useReloadShortcut.
  *
  * Same dispatch as the Run button: zero demos → status toast, one →
  * launch directly, more than one → open the picker. When the picker is

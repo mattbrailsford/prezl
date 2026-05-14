@@ -123,7 +123,9 @@ selection.
 
 Run button behaviour (also wired into Ctrl+Enter, F5, and Ctrl+F5 —
 F5 keeps presenter-clicker compatibility; Ctrl+F5 catches the muscle-
-memory hard-refresh; Ctrl+R still does native refresh):
+memory hard-refresh; Cmd+R / Ctrl+R is reload, wired separately by
+`useReloadShortcut` because WKWebView on macOS doesn't bind it
+natively the way WebView2 on Windows does):
 
 - Empty list → button disabled, status toast "No demo configured".
 - Exactly one → launch directly (URL demo opens externally; video
@@ -312,7 +314,13 @@ src/
                       across stage boundaries), useMouseHistoryNav
                       (XButton1/2 → goBack/goForward; capture-phase;
                       suppressed while video demo is open),
-                      useRunShortcut (Ctrl+Enter / F5), useTabShortcuts
+                      useHistoryShortcut (Cmd+[/] on Mac, Alt+Left/Right
+                      everywhere → goBack/goForward; same suppression
+                      rules as the mouse binding),
+                      useRunShortcut (Ctrl+Enter / F5),
+                      useReloadShortcut (Cmd+R / Ctrl+R — WKWebView
+                      doesn't bind reload natively the way WebView2
+                      does), useTabShortcuts
                       (Ctrl+W close active tab, Ctrl+Home re-apply
                       screen.open — id resolution via the symbol table
                       so it works even when the file is already active;

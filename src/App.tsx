@@ -11,10 +11,12 @@ import { useUiScale } from './hooks/useUiScale'
 import { useExplorerToggle } from './hooks/useExplorerToggle'
 import { useStageShortcuts } from './hooks/useStageShortcuts'
 import { useRunShortcut } from './hooks/useRunShortcut'
+import { useReloadShortcut } from './hooks/useReloadShortcut'
 import { useSymbolFinderShortcut } from './hooks/useSymbolFinderShortcut'
 import { useTabShortcuts } from './hooks/useTabShortcuts'
 import { useDeepLink } from './hooks/useDeepLink'
 import { useMouseHistoryNav } from './hooks/useMouseHistoryNav'
+import { useHistoryShortcut } from './hooks/useHistoryShortcut'
 
 export function App() {
   usePreferencesPersistence()
@@ -22,10 +24,12 @@ export function App() {
   useExplorerToggle()
   useStageShortcuts()
   useRunShortcut()
+  useReloadShortcut()
   useSymbolFinderShortcut()
   useTabShortcuts()
   useDeepLink()
   useMouseHistoryNav()
+  useHistoryShortcut()
 
   const project = useAppStore((s) => s.project)
   const isRouting = useAppStore((s) => s.isRouting)
