@@ -649,6 +649,14 @@ private markdown (intros, notes, agendas) opened via `stage.open`,
 videos under `.prezl/videos/`, or any other binaries the author
 doesn't want exposed in the explorer.
 
+The asset protocol scope in `tauri.conf.json` (`assetProtocol.scope`)
+must include `**/.*/**` (and `**/.*`) on top of `**`. Tauri's glob
+matcher follows the Unix `dotglob` rule — bare `**` skips path
+components starting with `.`, so anything served to the webview via
+`convertFileSrc` from inside `.prezl/` (markdown-referenced images,
+demo videos) 403s without those extra patterns. Files loaded via
+`read_project_file` (IPC) are unaffected — different code path.
+
 **Link shorthand in markdown.** `MarkdownView` decorates anchor
 hrefs at layout time:
 
