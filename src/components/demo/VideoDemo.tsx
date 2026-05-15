@@ -68,7 +68,9 @@ export function VideoDemo() {
   // (e.g. end of file, browser-initiated pause) flip it on, and any play
   // event flips it off. The `ended` event also flips atEnd on so videos
   // without a stopAt cue still hit the carry-on close path naturally —
-  // critical for trailing videos that simply play through.
+  // critical for trailing videos that simply play through. `seeked` clears
+  // atEnd when scrubbing back below the end so Space resumes playback
+  // rather than closing the modal (mirrors useVideoCues' stopAt re-arm).
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
@@ -78,13 +80,20 @@ export function VideoDemo() {
       setAtEnd(false)
     }
     const onEnded = () => setAtEnd(true)
+    const onSeeked = () => {
+      const stopAt = demo?.stopAt
+      const endThreshold = stopAt ?? (Number.isFinite(video.duration) ? video.duration : Infinity)
+      if (video.currentTime < endThreshold - 0.05) setAtEnd(false)
+    }
     video.addEventListener('pause', onPause)
     video.addEventListener('play', onPlay)
     video.addEventListener('ended', onEnded)
+    video.addEventListener('seeked', onSeeked)
     return () => {
       video.removeEventListener('pause', onPause)
       video.removeEventListener('play', onPlay)
       video.removeEventListener('ended', onEnded)
+      video.removeEventListener('seeked', onSeeked)
     }
   }, [demo])
 
