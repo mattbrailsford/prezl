@@ -459,9 +459,12 @@ explicitly skips (`demoState.kind === 'video'` or `'picker'`) and the
 modal handles: Space/PageDown play-pause until the clip ends (`stopAt`
 or natural `ended`), then close — and advance the deck if
 `demoState.trailing` (the trailing video IS the leaving act);
-Escape/PageUp close without advancing. So PageDown drives playback
-inside the video and screen nav outside; PageUp closes the video or
-walks backward.
+Cmd+W / Ctrl+W and PageUp close without advancing. Esc is deliberately
+unbound on the video modal — accidental presses mid-clip lost the
+playback position and forced a full rewatch, so close requires either
+the modifier-keyed Cmd+W / Ctrl+W or PageUp (the clicker's natural
+back). So PageDown drives playback inside the video and screen nav
+outside; PageUp closes the video or walks backward.
 
 **Symbol decorations are inline.** `useSymbolTable` (`Map<id, {file,
 line}>` of every anchor on the current screen) feeds a token-walking

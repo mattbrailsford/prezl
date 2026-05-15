@@ -221,7 +221,7 @@ but its omitted-step semantics are different — see
 | `Space` / `PageDown` / pause chip | Play / pause. At `stopAt`: close and continue. |
 | Drag on the video | Scrub relative to the current playhead — drag right to go forward, left to go back. A progress bar with cue markers appears at the bottom while you drag, and fades back out on release. |
 | Restart chip click | Replay from `startAt` — deliberate, nav keys won't do this |
-| `Esc` / `PageUp` / × button | Close the demo |
+| `Ctrl+W` / `Cmd+W` / `PageUp` / × button | Close the demo. `Esc` is intentionally **not** bound — too easy to fat-finger mid-clip and lose the playback position. |
 
 Scrubbing back across a cue re-arms it, so the next forward pass fires
 the cue again — handy for showing the same beat twice.

@@ -54,7 +54,7 @@ shortcut goes here before deciding what to launch.
 | Shortcut | Action |
 | --- | --- |
 | `Space` / `PageDown` | Play / pause. At `stopAt`: close and continue (forward nav default). |
-| `Esc` / `PageUp` | Close the demo |
+| `Ctrl+W` / `Cmd+W` / `PageUp` | Close the demo. `Esc` is intentionally **not** bound here — too easy to fat-finger mid-clip and lose the playback position. |
 | Restart chip click | Replay the clip from `startAt` (deliberate; nav keys won't do this). |
 
 ## Editor symbols

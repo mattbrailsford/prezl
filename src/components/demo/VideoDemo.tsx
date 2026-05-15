@@ -274,7 +274,13 @@ export function VideoDemo() {
   }, [demo, bumpCursorActivity])
 
   // Keyboard map while the modal is up:
-  //   Escape / PageUp   -> close (back to editor) — always stays put
+  //   Cmd+W / Ctrl+W / PageUp -> close (back to editor) — always stays put.
+  //                              Escape is deliberately NOT bound: it's too
+  //                              easy to fat-finger mid-clip and losing the
+  //                              playback position is expensive (rewatch
+  //                              from the start). A modifier-keyed close
+  //                              is the universal "close current thing"
+  //                              shortcut and harder to hit by accident.
   //   Space / PageDown  -> toggle play/pause; once the clip has hit its
   //                        stopAt, this is the "carry on" close. For a
   //                        regular (lead-with-video) demo it just
@@ -289,7 +295,12 @@ export function VideoDemo() {
   useEffect(() => {
     if (!demo) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.code === 'PageUp') {
+      const isCloseShortcut =
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        !e.altKey &&
+        (e.key === 'w' || e.key === 'W')
+      if (isCloseShortcut || e.code === 'PageUp') {
         e.preventDefault()
         e.stopPropagation()
         closeDemo()
