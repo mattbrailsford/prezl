@@ -263,6 +263,10 @@
     user-select: text;
     -webkit-user-select: text;
     cursor: auto;
+  }
+  /* Scrollbar lives on the outer `.prezl-md` so it stays flush with the
+     panel's right edge; the content column is capped here instead. */
+  .prezl-md-content {
     max-width: 60rem;
   }
 
@@ -434,6 +438,23 @@
      the nested padding so we don't double-pad. */
   .prezl-md pre.shiki {
     padding: 0.85em 1em;
+  }
+
+  /* Mermaid swaps a <pre><code class="language-mermaid"> for a wrapping div
+     holding an inline SVG. Centre the diagram and let it scale to the column
+     width rather than overflowing. */
+  .prezl-md .prezl-mermaid {
+    background-color: rgb(var(--color-app-panel));
+    border: 1px solid rgb(var(--color-app-border));
+    border-radius: 6px;
+    padding: 0.85em 1em;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+  .prezl-md .prezl-mermaid svg {
+    max-width: 100%;
+    height: auto;
   }
 
   .prezl-md blockquote {

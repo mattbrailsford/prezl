@@ -12,6 +12,7 @@ import { saveScrollPosition, useAppStore } from '@/state/store'
 import { editorFontSize } from '@/hooks/useUiScale'
 import { useCurrentScreen, useSymbolTable } from '@/hooks/useRenderedFile'
 import { PREZL_THEME, getHighlighter } from '@/project/shikiSetup'
+import { renderMermaid } from '@/project/mermaidSetup'
 import type { RenderedFile } from '@/project/directiveParser'
 import { parseTargetShorthand } from '@/project/schema'
 import { convertProjectFileSrc } from '@/project/assetSrc'
@@ -99,44 +100,71 @@ export function MarkdownView({
     return touched ? root.innerHTML : baseHtml
   }, [baseHtml, activeFile, rootPath])
 
-  // Second pass: upgrade code fences to Shiki output. Async because the
-  // highlighter is lazy-loaded; the base HTML renders immediately and code
-  // blocks just appear unstyled until tokens arrive (no flash, no blank).
+  // Second pass: upgrade code fences. `language-mermaid` fences render as
+  // inline SVG diagrams (mermaid is lazy-loaded ~1 MB on first use); other
+  // fences go to Shiki. Both are async; the base HTML renders immediately
+  // and blocks upgrade in place as each lib resolves.
   const [html, setHtml] = useState<string>(htmlWithImagesResolved)
   useEffect(() => {
     setHtml(htmlWithImagesResolved)
     let cancelled = false
     ;(async () => {
-      const h = await getHighlighter()
-      if (cancelled) return
       const doc = new DOMParser().parseFromString(
         `<div>${htmlWithImagesResolved}</div>`,
         'text/html',
       )
       const root = doc.body.firstElementChild as HTMLElement | null
       if (!root) return
-      const codeBlocks = root.querySelectorAll('pre > code')
-      let touched = false
-      codeBlocks.forEach((codeEl) => {
-        const lang = extractCodeLang(codeEl.className) ?? 'plaintext'
-        const code = codeEl.textContent ?? ''
-        try {
-          const highlighted = h.codeToHtml(code, {
-            lang,
-            theme: PREZL_THEME,
-          })
-          const wrapper = doc.createElement('div')
-          wrapper.innerHTML = highlighted
-          const newPre = wrapper.firstElementChild
-          if (newPre) {
-            codeEl.parentElement!.replaceWith(newPre)
-            touched = true
-          }
-        } catch {
-          // unsupported language or grammar miss — leave the original
-          // <pre><code> in place. Plain monospace is still readable.
+      const codeBlocks = Array.from(root.querySelectorAll('pre > code'))
+      const mermaidBlocks: Element[] = []
+      const shikiBlocks: Element[] = []
+      for (const codeEl of codeBlocks) {
+        if (extractCodeLang(codeEl.className) === 'mermaid') {
+          mermaidBlocks.push(codeEl)
+        } else {
+          shikiBlocks.push(codeEl)
         }
-      })
+      }
+      let touched = false
+      if (mermaidBlocks.length > 0) {
+        const rendered = await Promise.all(
+          mermaidBlocks.map((codeEl) => renderMermaid(codeEl.textContent ?? '')),
+        )
+        if (cancelled) return
+        mermaidBlocks.forEach((codeEl, i) => {
+          const svg = rendered[i]
+          if (svg == null) return
+          const wrapper = doc.createElement('div')
+          wrapper.className = 'prezl-mermaid'
+          wrapper.innerHTML = svg
+          codeEl.parentElement!.replaceWith(wrapper)
+          touched = true
+        })
+      }
+      if (shikiBlocks.length > 0) {
+        const h = await getHighlighter()
+        if (cancelled) return
+        shikiBlocks.forEach((codeEl) => {
+          const lang = extractCodeLang(codeEl.className) ?? 'plaintext'
+          const code = codeEl.textContent ?? ''
+          try {
+            const highlighted = h.codeToHtml(code, {
+              lang,
+              theme: PREZL_THEME,
+            })
+            const wrapper = doc.createElement('div')
+            wrapper.innerHTML = highlighted
+            const newPre = wrapper.firstElementChild
+            if (newPre) {
+              codeEl.parentElement!.replaceWith(newPre)
+              touched = true
+            }
+          } catch {
+            // unsupported language or grammar miss — leave the original
+            // <pre><code> in place. Plain monospace is still readable.
+          }
+        })
+      }
       if (!cancelled && touched) setHtml(root.innerHTML)
     })().catch(() => {
       /* non-fatal — keep base HTML */
@@ -252,8 +280,12 @@ export function MarkdownView({
       style={containerStyle}
       onClick={onClick}
       onScroll={onScroll}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    >
+      <div
+        className="prezl-md-content"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
   )
 }
 
