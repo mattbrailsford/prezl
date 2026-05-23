@@ -62,6 +62,34 @@ event handlers like `onclick` — is dropped. Tailwind utility classes
 won't apply (JIT scans source files only); style your own classes
 under `.prezl-md` in `globals.css` if you want a reusable look.
 
+### Mermaid diagrams
+
+Fenced blocks tagged `mermaid` render as inline SVG diagrams instead
+of going through Shiki. Any diagram type [mermaid supports](https://mermaid.js.org/intro/)
+works — flowcharts, sequence diagrams, class diagrams, state machines,
+ER, Gantt, and so on:
+
+````markdown
+```mermaid
+sequenceDiagram
+    participant User
+    participant Dashboard
+    participant API
+    User->>Dashboard: open()
+    Dashboard->>API: fetchDashboardData()
+    API-->>Dashboard: { metrics, series }
+```
+````
+
+Diagrams use mermaid's `dark` theme with a transparent background so
+they sit naturally inside prezl's panel styling. A parse error leaves
+the original code block in place rather than blanking the page, so a
+typo is visible without breaking the surrounding markdown.
+
+The diagram is capped at the prose column width and scales down to
+fit; if you have a wide chart, the surrounding panel itself scrolls
+rather than the diagram overflowing.
+
 Prezl's `@prezl` directives are accepted in markdown via the HTML
 comment form:
 
