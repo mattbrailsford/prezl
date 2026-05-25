@@ -26,11 +26,18 @@ export function WindowControls() {
 
   const RestoreIcon = Copy
 
+  const isMac = navigator.userAgent.toLowerCase().includes('mac')
+  const fullscreenShortcut = isMac ? 'Fn+F' : 'F11'
+
   return (
     <div className="flex items-stretch">
       <ControlButton
         onClick={toggleFullscreen}
-        label={isFullscreen ? 'Exit fullscreen (F11)' : 'Enter fullscreen (F11)'}
+        label={
+          isFullscreen
+            ? `Exit fullscreen (${fullscreenShortcut})`
+            : `Enter fullscreen (${fullscreenShortcut})`
+        }
       >
         {isFullscreen ? (
           <Minimize2 className="size-4" />

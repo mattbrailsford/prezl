@@ -4,6 +4,76 @@ use commands::ProjectRoot;
 use tauri::{Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 
+/// Configure the main NSWindow for native macOS fullscreen without
+/// visible chrome.
+///
+/// Tao creates the window borderless (`decorations: false`), which
+/// breaks two things macOS expects of a fullscreen-capable window:
+///
+/// 1. The collection behavior doesn't include
+///    `NSWindowCollectionBehaviorFullScreenPrimary`, so system actions
+///    like Fn+F never route to `toggleFullScreen:` on the window.
+/// 2. During the fullscreen animation, AppKit assumes a standard window
+///    layout and reserves title-bar space at the top — content shifts
+///    down and you see a gap above the React header until the
+///    transition settles.
+///
+/// Fix is the same trick VS Code and Slack use: give the window a
+/// `Titled` + `FullSizeContentView` style (so AppKit lays it out as a
+/// normal titled window whose content extends under the title bar) but
+/// make the title bar visually absent — transparent backdrop, hidden
+/// title, hidden traffic-light buttons. The custom React `WindowControls`
+/// keeps owning close/minimise/maximise/fullscreen.
+#[cfg(target_os = "macos")]
+fn configure_macos_window(window: &tauri::WebviewWindow) {
+    use objc2_app_kit::{
+        NSWindow, NSWindowButton, NSWindowCollectionBehavior, NSWindowStyleMask,
+        NSWindowTitleVisibility,
+    };
+
+    let Ok(ns_window_ptr) = window.ns_window() else {
+        return;
+    };
+    if ns_window_ptr.is_null() {
+        return;
+    }
+    unsafe {
+        let ns_window = &*(ns_window_ptr as *const NSWindow);
+
+        // Promote Borderless → Titled so AppKit treats it as a
+        // standard window during fullscreen transitions, and add
+        // FullSizeContentView so the React content keeps drawing
+        // edge-to-edge under the (invisible) title bar.
+        let mask = ns_window.styleMask();
+        ns_window.setStyleMask(
+            mask | NSWindowStyleMask::Titled | NSWindowStyleMask::FullSizeContentView,
+        );
+        ns_window.setTitlebarAppearsTransparent(true);
+        ns_window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
+
+        // Hide the traffic-light buttons in case adding Titled exposes
+        // them. The Resizable bit (already set when config has
+        // resizable: true) also enables the zoom button, so we cover
+        // all three.
+        for kind in [
+            NSWindowButton::CloseButton,
+            NSWindowButton::MiniaturizeButton,
+            NSWindowButton::ZoomButton,
+        ] {
+            if let Some(btn) = ns_window.standardWindowButton(kind) {
+                btn.setHidden(true);
+            }
+        }
+
+        // Opt into native fullscreen. With FullScreenPrimary set,
+        // macOS routes the system-level Fn+F (and the green-button
+        // gesture, were it visible) to `toggleFullScreen:` on this
+        // window via the AppKit responder chain.
+        let behavior = ns_window.collectionBehavior();
+        ns_window.setCollectionBehavior(behavior | NSWindowCollectionBehavior::FullScreenPrimary);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -53,6 +123,12 @@ pub fn run() {
                 let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
                 let _ = handle.emit("prezl://deep-link", urls);
             });
+
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                configure_macos_window(&window);
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())

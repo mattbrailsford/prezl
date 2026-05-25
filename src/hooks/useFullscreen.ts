@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { useAppStore } from '@/state/store'
 
 const appWindow = getCurrentWindow()
 
 /**
- * Track and toggle the Tauri window's fullscreen state. F11 bound as the
- * global toggle (suppressed while the video demo modal is active — the
- * video modal owns the full viewport already).
+ * Track and toggle the Tauri window's fullscreen state. JS bindings: F11
+ * (Windows/Linux primary; also works on Mac if function keys aren't
+ * reclaimed by the OS) and ⌃⌘F (Mac convenience — not a true system
+ * shortcut without a menu item, so we wire it here). The system-level
+ * Mac shortcut Fn+F goes through native Cocoa instead: the NSWindow has
+ * `NSWindowCollectionBehaviorFullScreenPrimary` enabled at startup (see
+ * `enable_native_fullscreen` in src-tauri/src/lib.rs), so macOS routes
+ * Fn+F to `toggleFullScreen:` without touching JS. The `onResized`
+ * listener picks up the resulting state change either way.
+ *
+ * Both JS bindings stay live while the video demo modal is open: if the
+ * presenter accidentally exited fullscreen mid-clip, they need a way
+ * back in without closing and replaying the video.
  *
  * Windows quirk: transitioning directly from maximized to fullscreen leaves
  * the taskbar region black (the webview doesn't repaint). We un-maximize
@@ -52,8 +61,14 @@ export function useFullscreen(): {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'F11') return
-      if (useAppStore.getState().demoState.kind === 'video') return
+      const isF11 = e.key === 'F11'
+      const isMacShortcut =
+        e.metaKey &&
+        e.ctrlKey &&
+        !e.altKey &&
+        !e.shiftKey &&
+        (e.key === 'f' || e.key === 'F')
+      if (!isF11 && !isMacShortcut) return
       e.preventDefault()
       e.stopPropagation()
       void toggle()
