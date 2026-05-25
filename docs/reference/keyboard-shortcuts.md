@@ -28,7 +28,6 @@ clicker never gets stuck on the previous interaction.
 | Shortcut | Action |
 | --- | --- |
 | `F5` / `Ctrl+F5` / `Ctrl+Enter` | Run (equivalent to clicking the Run button) |
-| `F11` | Toggle fullscreen |
 
 Run is suppressed while a demo is already in flight. When the
 current screen has more than one demo the keyboard shortcut opens
@@ -132,7 +131,16 @@ video demo modal is open.
 | `Ctrl+Up` / `Ctrl+Down` | Zoom in / out (alternate) |
 | `Ctrl+0` | Reset zoom |
 | `Ctrl+MouseWheel` | Continuous zoom |
+| `F11` (Win/Linux) / `Fn+F` (Mac) / `⌃⌘F` (Mac) | Toggle fullscreen |
 
 Zoom scales both UI chrome (rem-based Tailwind) and the code viewer's
 font together. The current zoom percentage flashes briefly in the
 status bar.
+
+`Fn+F` on Mac is the system-level fullscreen action — Prezl's
+NSWindow has `NSWindowCollectionBehaviorFullScreenPrimary` enabled at
+startup, so macOS routes it straight to native Cocoa fullscreen (with
+the usual Spaces animation). `F11` and `⌃⌘F` go through JavaScript
+and reach the Tauri window API. All three stay live while a video
+demo modal is open, so an accidental fullscreen exit mid-clip is
+recoverable without closing and replaying the video.

@@ -61,7 +61,7 @@ Pre-1.0, but the core experience is in place:
 - Stage **cover** (presenter agenda of files and demos surfaced under the file tree, ticked as they're visited or launched)
 - `prezl://` deep links + back-to-presentation shortcut for slide-deck integration
 - Companion VS Code extension for authoring directives and `prezl.yaml`
-- Presentation-friendly UI zoom (`Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`), `Ctrl+E` to hide explorer, `F11` for fullscreen — all persisted across sessions
+- Presentation-friendly UI zoom (`Ctrl+=` / `Ctrl+-` / `Ctrl+0` / `Ctrl+MouseWheel`), `Ctrl+E` to hide explorer, `F11` / `Fn+F` / `⌃⌘F` for fullscreen — all persisted across sessions
 
 ## Getting started (developers)
 
