@@ -3,6 +3,7 @@ import { Pause, Play, RotateCcw, X } from 'lucide-react'
 import { useAppStore } from '@/state/store'
 import { useVideoCues, type VideoCueEvent } from '@/hooks/useVideoCues'
 import { convertProjectFileSrc } from '@/project/assetSrc'
+import { CURSOR_IDLE_MS } from '@/types'
 
 export function VideoDemo() {
   const demo = useAppStore((s) =>
@@ -82,6 +83,10 @@ export function VideoDemo() {
     }
     const onEnded = () => setAtEnd(true)
     const onSeeked = () => {
+      // Reflect the post-seek time immediately so the scrub head lands exactly
+      // where the seek put it (e.g. the snap-to-cue) without waiting for the
+      // next timeupdate tick.
+      setCurrentTime(video.currentTime)
       const stopAt = demo?.stopAt
       const endThreshold = stopAt ?? (Number.isFinite(video.duration) ? video.duration : Infinity)
       if (video.currentTime < endThreshold - 0.05) setAtEnd(false)
@@ -321,9 +326,11 @@ export function VideoDemo() {
 
   const controlsVisible = cursorActive
 
-  // Bump the cursor-idle state: flip controls visible, reset the 2s timer.
+  // Bump the cursor-idle state: flip controls visible, reset the idle timer.
   // Shared between mouse events and the Space keyboard handler so resuming
   // via keyboard starts the same fade-out countdown as a mouse interaction.
+  // Uses the same CURSOR_IDLE_MS as the cursor-highlight halo so the two
+  // disappear together over a clip.
   const bumpCursorActivity = useCallback(() => {
     setCursorActive(true)
     if (idleTimerRef.current != null) {
@@ -332,7 +339,7 @@ export function VideoDemo() {
     idleTimerRef.current = window.setTimeout(() => {
       setCursorActive(false)
       idleTimerRef.current = null
-    }, 1200)
+    }, CURSOR_IDLE_MS)
   }, [])
 
   useEffect(() => {
@@ -418,6 +425,11 @@ export function VideoDemo() {
     <div
       className="fixed inset-0 z-50 isolate flex items-center justify-center bg-black"
       style={{ cursor: controlsVisible ? 'default' : 'none' }}
+      // Suppress the WebView's native context menu over the video. A trackpad
+      // tap / right-click here used to pop the browser's video menu (and
+      // collided with macOS system zoom); presentation magnify is the Prezl-
+      // native way to zoom in instead.
+      onContextMenu={(e) => e.preventDefault()}
     >
       <video
         ref={videoRef}

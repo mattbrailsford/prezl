@@ -138,6 +138,7 @@ type AppState = {
    *  the editor consumes this and then clears it. */
   pendingNavigation: { file: string; line: number } | null
   symbolFinderOpen: boolean
+  settingsOpen: boolean
   /** When true, render BootCurtain over everything else. Used to hide any
    *  flash between WelcomeScreen / recent auto-open / deep-link routing
    *  during cold start, and to mask transitions when a runtime deep link
@@ -363,6 +364,8 @@ type AppActions = {
   consumePendingNavigation: () => void
   openSymbolFinder: () => void
   closeSymbolFinder: () => void
+  openSettings: () => void
+  closeSettings: () => void
   setIsRouting: (v: boolean) => void
   setLaunchedFromSlide: (v: boolean) => void
   /** Walk back / forward through the location history. No-op at boundaries. */
@@ -506,6 +509,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   loadError: null,
   pendingNavigation: null,
   symbolFinderOpen: false,
+  settingsOpen: false,
   isRouting: true,
   launchedFromSlide: false,
   history: [],
@@ -933,6 +937,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => {
   consumePendingNavigation: () => set({ pendingNavigation: null }),
   openSymbolFinder: () => set({ symbolFinderOpen: true }),
   closeSymbolFinder: () => set({ symbolFinderOpen: false }),
+
+  openSettings: () => set({ settingsOpen: true }),
+  closeSettings: () => set({ settingsOpen: false }),
   setIsRouting: (v) => set({ isRouting: v }),
   setLaunchedFromSlide: (v) => set({ launchedFromSlide: v }),
 

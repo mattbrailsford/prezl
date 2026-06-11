@@ -512,4 +512,49 @@
     border-radius: 3px;
     padding: 0.05em 0.4em;
   }
+
+  /* Magnifier wrapper. The transform itself is written inline from
+     ZoomViewport; this just hints the compositor. No transition — pan
+     follows the cursor every mousemove and a transition would make it lag. */
+  .zoom-viewport {
+    will-change: transform;
+  }
+
+  /* Cursor spotlight halo. The wrapper owns the cursor-following translate
+     (no transition — must track instantly); the inner element owns the
+     dotted ring, translucent fill, press-scale and idle-fade. Yellow
+     (--color-focus) reads clearly against the dark code surface and matches
+     the deck's existing emphasis colour. Position/scale/opacity are written
+     inline from CursorSpotlight. */
+  .cursor-spotlight-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* width/height set inline from CursorSpotlight (cursorSpotlightSize). */
+    pointer-events: none;
+    /* Above the video modal (z-50) so the halo tracks the cursor over demo
+       playback too; utility modals are suppressed in the component instead. */
+    z-index: 60;
+    will-change: transform;
+  }
+
+  .cursor-spotlight {
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    /* Dotted outer ring + semi-transparent inner ring (inset shadow). The
+       body stays transparent — just the ring, the Presentify look. Colour
+       comes from the --halo-color custom property set inline; the inner ring
+       is the same colour mixed toward transparent. */
+    border: 3px dotted var(--halo-color, rgb(var(--color-focus)));
+    background: transparent;
+    box-shadow: inset 0 0 0 5px
+      color-mix(in srgb, var(--halo-color, rgb(var(--color-focus))) 35%, transparent);
+    opacity: 0;
+    transform: scale(1);
+    /* Snappy press-scale; slower opacity so the idle fade is gentle. */
+    transition:
+      transform 120ms ease,
+      opacity 350ms ease;
+  }
 }

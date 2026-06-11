@@ -226,17 +226,38 @@ export type Preferences = {
   uiScale: number
   explorerCollapsed: boolean
   explorerWidth: number
-  autoRevealActiveFile: boolean
   explorerHintShown: boolean
+  /** When true, a halo follows the mouse so the audience can track the
+   *  presenter's cursor as they move around the code. Toggled live with
+   *  Ctrl/Cmd+Shift+H; sticky across sessions because it's a presenter
+   *  preference, not a per-deck setting. */
+  cursorSpotlight: boolean
+  /** CSS colour of the cursor halo (any CSS colour string). The semi-
+   *  transparent inner ring is derived from this via `color-mix`. */
+  cursorSpotlightColor: string
+  /** Diameter of the cursor halo in px. */
+  cursorSpotlightSize: number
+  /** Zoom level the magnifier toggle (Ctrl/Cmd+Shift+Z) jumps to. The
+   *  step/reset shortcuts still range freely; this is just the toggle
+   *  target. */
+  magnifyToggleLevel: number
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
   uiScale: 1.0,
   explorerCollapsed: false,
   explorerWidth: 260,
-  autoRevealActiveFile: true,
   explorerHintShown: false,
+  cursorSpotlight: false,
+  cursorSpotlightColor: '#facc15',
+  cursorSpotlightSize: 72,
+  magnifyToggleLevel: 2,
 }
 
 export const EXPLORER_MIN_WIDTH = 160
 export const EXPLORER_MAX_WIDTH = 600
+
+/** Idle delay (ms) before a cursor affordance hides: the video modal's
+ *  system-cursor auto-hide and the cursor-highlight halo's idle fade share
+ *  this so they disappear together. */
+export const CURSOR_IDLE_MS = 1200

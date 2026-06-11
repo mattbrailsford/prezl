@@ -532,7 +532,33 @@ Persisted to `<config-dir>/preferences.json` via the `read_preferences` /
 Hydrated on mount and debounced-written on change by
 `usePreferencesPersistence`; the shape lives in `Preferences` /
 `DEFAULT_PREFERENCES` in `src/types.ts` (uiScale, explorerCollapsed,
-explorerWidth, autoRevealActiveFile, explorerHintShown).
+explorerWidth, explorerHintShown, cursorSpotlight, cursorSpotlightColor,
+cursorSpotlightSize, magnifyToggleLevel). Unknown keys in a persisted file
+are spread through harmlessly, so dropping a field (e.g. the old
+`autoRevealActiveFile` orphan) is backward-compatible.
+
+## Presentation aids (cursor halo + magnifier)
+
+Live presenter tools layered over the deck, distinct from the authored
+`focus=`/`collapse=` emphasis:
+
+- **Cursor halo** (`CursorSpotlight.tsx`) — Presentify-style dotted ring that
+  follows the mouse, fades on idle, scales on click. Toggle Ctrl/Cmd+Shift+H
+  (`useCursorSpotlight`). Colour/size are prefs; the wrapper owns the
+  follow-`translate` (instant), the inner element owns scale/opacity
+  (transitioned), so the two transforms don't fight. Suppressed while a demo
+  modal is open.
+- **Magnifier** (`ZoomViewport.tsx`) — CSS-transform optical zoom wrapping
+  the shell AND the video modal (so demo playback zooms too). Anchors at the
+  cursor on each level change, then edge-nudge pans via a rAF loop (no
+  follow); clamped to keep content covering the viewport. Ctrl/Cmd+Shift+Z
+  toggles to `magnifyToggleLevel`; +/− step; 0/Esc reset. Distinct from
+  `useUiScale`'s reflow zoom (Ctrl/Cmd+=). The video modal's `onContextMenu`
+  is suppressed so a stray tap can't pop the native video menu.
+
+Colour/size/toggle-level are edited in `SettingsModal.tsx` (status-bar gear,
+`settingsOpen` store flag) — the home for presenter prefs that can't be a
+keyboard shortcut.
 
 ## Slide-deck integration
 

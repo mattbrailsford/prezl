@@ -85,11 +85,15 @@ export function useVideoCues({
   const sortedCues = useMemo(() => prepareCues(cues, startAt), [cues, startAt])
   const consumedRef = useRef<Set<number>>(new Set())
   const stopFiredRef = useRef(false)
+  // Set right before the programmatic snap-to-cue seek so the resulting
+  // `seeked` doesn't prune (re-arm) the cue we just consumed.
+  const snappingRef = useRef(false)
 
   // Reset consumed state for a new session.
   useEffect(() => {
     consumedRef.current = new Set()
     stopFiredRef.current = false
+    snappingRef.current = false
   }, [sortedCues, stopAt])
 
   useEffect(() => {
@@ -113,6 +117,16 @@ export function useVideoCues({
       if (idx !== null) {
         consumedRef.current.add(idx)
         onCueReached({ cue: sortedCues[idx], index: idx })
+        // Snap the playhead exactly onto the cue time. The tolerance and the
+        // coarse `timeupdate` cadence otherwise leave currentTime a fraction
+        // off the cue, so the scrub-bar head sits beside the marker instead
+        // of inside it. The `snappingRef` flag stops the `seeked` below from
+        // re-arming the cue we just fired.
+        const cueTime = sortedCues[idx].time
+        if (Math.abs(video.currentTime - cueTime) > 0.001) {
+          snappingRef.current = true
+          video.currentTime = cueTime
+        }
       }
     }
 
@@ -122,6 +136,13 @@ export function useVideoCues({
     // hooks naturally into both presenter scrubbing and any programmatic
     // time changes.
     const onSeeked = () => {
+      // The programmatic snap-to-cue seek isn't a presenter scrub — leave the
+      // just-consumed cue armed-off so it doesn't immediately re-fire on
+      // resume.
+      if (snappingRef.current) {
+        snappingRef.current = false
+        return
+      }
       const t = video.currentTime
       consumedRef.current = pruneConsumedAfterSeek(
         consumedRef.current,
