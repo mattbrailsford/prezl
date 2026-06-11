@@ -12,8 +12,12 @@ export function clampScale(value: number): number {
 
 /**
  * Drives presentation-mode zoom across UI (Tailwind rem-based) and the
- * code viewer's font size. Ctrl+=/Ctrl+-/Ctrl+Up/Ctrl+Down/Ctrl+0, plus
- * Ctrl+MouseWheel.
+ * code viewer's font size. Ctrl/Cmd + =/-/Up/Down/0.
+ *
+ * Wheel zoom is deliberately NOT bound: macOS reports a trackpad pinch to
+ * the web view as `ctrlKey + wheel`, so a stray pinch would silently zoom
+ * the whole presentation mid-talk. Keyboard shortcuts are the only zoom
+ * entry point — Ctrl/Cmd+0 resets to 100%.
  */
 export function useUiScale() {
   const uiScale = useAppStore((s) => s.preferences.uiScale)
@@ -78,19 +82,11 @@ export function useUiScale() {
       }
     }
 
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return
-      e.preventDefault()
-      adjust(e.deltaY < 0 ? STEP : -STEP)
-    }
-
-    // Capture phase so any browser/native zoom or wheel handler can't claim
-    // these first when the cursor is over the code viewer.
+    // Capture phase so any browser/native zoom handler can't claim these
+    // first when the cursor is over the code viewer.
     window.addEventListener('keydown', onKey, { capture: true })
-    window.addEventListener('wheel', onWheel, { capture: true, passive: false })
     return () => {
       window.removeEventListener('keydown', onKey, { capture: true } as EventListenerOptions)
-      window.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions)
     }
   }, [setPreferences, setStatusMessage])
 }

@@ -308,7 +308,9 @@ src/
                       consumes resolved open so per-step overrides take
                       effect. Stage-reset variant collapses tabs to the
                       resolved open file when crossing into reset: true.
-  hooks/              useUiScale (Ctrl+=/-/wheel, Ctrl+0),
+  hooks/              useUiScale (Ctrl/Cmd +=/-/Up/Down/0; no wheel
+                      zoom — a macOS trackpad pinch arrives as ctrl+wheel
+                      and would silently zoom mid-talk),
                       useExplorerToggle (Ctrl+E), useStageShortcuts
                       (Space/PageDown/Ctrl+Space — walks every screen
                       across stage boundaries), useMouseHistoryNav

@@ -31,6 +31,7 @@ export function VideoDemo() {
   const [currentTime, setCurrentTime] = useState(0)
   const [scrubbing, setScrubbing] = useState(false)
   const trackRef = useRef<HTMLDivElement | null>(null)
+  const barRef = useRef<HTMLDivElement | null>(null)
   const wasPlayingRef = useRef(false)
   const dragStartRef = useRef<
     { x: number; pointerId: number; anchorTime: number } | null
@@ -195,6 +196,73 @@ export function VideoDemo() {
     },
     [rangeStart, rangeEnd, span],
   )
+
+  // Absolute seek to a wall-clock time, clamped to the playable range.
+  const seekToTime = useCallback(
+    (t: number) => {
+      const video = videoRef.current
+      if (!video) return
+      video.currentTime = Math.max(rangeStart, Math.min(rangeEnd, t))
+    },
+    [rangeStart, rangeEnd],
+  )
+
+  // Click anywhere on the scrub bar to seek to that fraction of the playable
+  // range. Measured against the inner bar's rect so the click lands where the
+  // cursor points, independent of the track's padding.
+  const seekToClientX = useCallback(
+    (clientX: number) => {
+      const bar = barRef.current
+      if (!bar) return
+      const rect = bar.getBoundingClientRect()
+      if (rect.width <= 0) return
+      const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+      seekToTime(rangeStart + frac * span)
+    },
+    [rangeStart, span, seekToTime],
+  )
+
+  // Press-and-drag the scrub bar to drag the playhead. Down seeks to the press
+  // point and pauses; move keeps the head under the cursor; up resumes if the
+  // clip was playing and we're still before the stop point. Pointer capture on
+  // the track keeps the drag alive even if the cursor leaves the bar.
+  const barDragRef = useRef<number | null>(null)
+  const onBarPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    // Cue markers handle their own clicks (and stopPropagation), so this only
+    // fires for presses on the bare bar.
+    const video = videoRef.current
+    if (!video) return
+    e.stopPropagation()
+    wasPlayingRef.current = !video.paused
+    video.pause()
+    seekToClientX(e.clientX)
+    barDragRef.current = e.pointerId
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // setPointerCapture can throw on synthetic events / detached elements.
+    }
+    bumpCursorActivity()
+  }
+  const onBarPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (barDragRef.current == null) return
+    seekToClientX(e.clientX)
+  }
+  const onBarPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (barDragRef.current == null) return
+    barDragRef.current = null
+    try {
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+    } catch {
+      // releasePointerCapture can throw if capture was already lost.
+    }
+    const video = videoRef.current
+    if (!video) return
+    const stopAt = demo?.stopAt
+    const beforeStop = stopAt === undefined || video.currentTime < stopAt - 0.05
+    if (wasPlayingRef.current && beforeStop) void video.play()
+  }
 
   // Drag the video itself to scrub. The bar at the bottom is visual feedback
   // only — it appears as soon as the user crosses a small movement threshold
@@ -418,11 +486,23 @@ export function VideoDemo() {
       )}
       <div
         ref={trackRef}
-        className={`pointer-events-none absolute inset-x-6 bottom-0 z-20 px-1 pb-3 pt-4 transition-opacity duration-200 ${
-          scrubbing ? 'opacity-100' : 'opacity-0'
+        onPointerDown={onBarPointerDown}
+        onPointerMove={onBarPointerMove}
+        onPointerUp={onBarPointerUp}
+        onPointerCancel={onBarPointerUp}
+        // pointer-events stay on even while the bar is visually faded — gating
+        // them on controlsVisible meant the first click only woke the controls
+        // (via the global mousedown→bumpCursorActivity) and the second one
+        // actually seeked. A press reveals the bar (onBarPointerDown bumps) and
+        // seeks in the same gesture.
+        className={`absolute inset-x-6 bottom-0 z-20 cursor-pointer touch-none select-none px-1 pb-3 pt-5 transition-opacity duration-200 ${
+          scrubbing || controlsVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div className="relative h-1.5 w-full rounded-full bg-black/50 ring-4 ring-black/60">
+        <div
+          ref={barRef}
+          className="relative h-1.5 w-full rounded-full bg-black/50 ring-4 ring-black/60"
+        >
           <div
             className="h-full rounded-full bg-white"
             style={{ width: `${progress * 100}%` }}
@@ -430,15 +510,29 @@ export function VideoDemo() {
           {visibleCues.map((cue, i) => {
             const left = ((cue.time - rangeStart) / span) * 100
             return (
-              <div
+              <button
                 key={`${cue.time}-${i}`}
-                className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-app-accent)] ring-2 ring-black/60"
+                type="button"
+                data-cue
+                aria-label={`Jump to cue at ${Math.round(cue.time)}s`}
+                title="Jump to cue"
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  seekToTime(cue.time)
+                  bumpCursorActivity()
+                }}
+                className="group absolute top-1/2 grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center"
                 style={{ left: `${left}%` }}
-              />
+              >
+                {/* Vertical tick — extends well above/below the thin bar so
+                    cues read as clear, clickable stops, not stray dots. */}
+                <span className="absolute h-5 w-[3px] rounded-full bg-[var(--color-app-accent)] shadow ring-1 ring-black/50 transition-transform group-hover:scale-y-110" />
+                <span className="relative size-3.5 rounded-full bg-[var(--color-app-accent)] shadow-lg ring-2 ring-white transition-transform group-hover:scale-125" />
+              </button>
             )
           })}
           <div
-            className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg ring-1 ring-black/40"
+            className="pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg ring-1 ring-black/40"
             style={{ left: `${progress * 100}%` }}
           />
         </div>

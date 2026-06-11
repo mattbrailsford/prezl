@@ -130,12 +130,17 @@ video demo modal is open.
 | `Ctrl+=` / `Ctrl+-` | Zoom in / out |
 | `Ctrl+Up` / `Ctrl+Down` | Zoom in / out (alternate) |
 | `Ctrl+0` | Reset zoom |
-| `Ctrl+MouseWheel` | Continuous zoom |
 | `F11` (Win/Linux) / `Fn+F` (Mac) / `⌃⌘F` (Mac) | Toggle fullscreen |
 
 Zoom scales both UI chrome (rem-based Tailwind) and the code viewer's
 font together. The current zoom percentage flashes briefly in the
-status bar.
+status bar. `Cmd` works in place of `Ctrl` on every zoom shortcut, so
+`Cmd+0` resets just as well.
+
+> Zoom is keyboard-only by design. A macOS trackpad pinch reaches the
+> web view as `Ctrl+MouseWheel`, so binding wheel zoom meant a stray
+> pinch could silently rescale the whole presentation mid-talk — `Cmd+0`
+> was the only way back. Wheel/pinch zoom is therefore not bound.
 
 `Fn+F` on Mac is the system-level fullscreen action — Prezl's
 NSWindow has `NSWindowCollectionBehaviorFullScreenPrimary` enabled at

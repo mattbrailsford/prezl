@@ -216,10 +216,12 @@ but its omitted-step semantics are different — see
 
 | Input | Action |
 | --- | --- |
-| Move mouse | Fade in Close (×) + Pause chip |
+| Move mouse | Fade in Close (×) + Pause chip + the scrub bar |
 | Stop moving (1.2 s) | Chrome fades back out |
 | `Space` / `PageDown` / pause chip | Play / pause. At `stopAt`: close and continue. |
-| Drag on the video | Scrub relative to the current playhead — drag right to go forward, left to go back. A progress bar with cue markers appears at the bottom while you drag, and fades back out on release. |
+| Click / drag the scrub bar | Jump to that point, or drag the playhead along the bar |
+| Click a cue marker | Jump straight back to that cue — markers show as accent ticks on the bar |
+| Drag on the video | Scrub relative to the current playhead — drag right to go forward, left to go back. |
 | Restart chip click | Replay from `startAt` — deliberate, nav keys won't do this |
 | `Ctrl+W` / `Cmd+W` / `PageUp` / × button | Close the demo. `Esc` is intentionally **not** bound — too easy to fat-finger mid-clip and lose the playback position. |
 
