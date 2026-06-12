@@ -72,14 +72,22 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      # The extension is a standalone package, NOT a pnpm workspace member,
+      # so `--filter prezl-vscode` matches nothing and a root install never
+      # touches its deps (vsce/esbuild). Install, build, and package
+      # in-directory with --ignore-workspace (mirrors local dev) against the
+      # committed vscode-extension/pnpm-lock.yaml.
+      - name: Install extension deps
+        working-directory: vscode-extension
+        run: pnpm install --ignore-workspace --frozen-lockfile
 
       - name: Build extension
-        run: pnpm --filter prezl-vscode build
+        working-directory: vscode-extension
+        run: pnpm --ignore-workspace run build
 
       - name: Package VSIX
         working-directory: vscode-extension
-        run: pnpm exec vsce package --no-dependencies
+        run: pnpm --ignore-workspace exec vsce package --no-dependencies
 
       # Stash the resolved version + .vsix path for later steps. The package
       # script always emits `<name>-<version>.vsix` in the extension folder.
@@ -130,7 +138,7 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          pnpm exec vsce publish \
+          pnpm --ignore-workspace exec vsce publish \
             --no-dependencies \
             --packagePath "prezl-vscode-${{ steps.artifact.outputs.version }}.vsix" \
             ${{ github.event.inputs.prerelease == 'true' && '--pre-release' || '' }}
