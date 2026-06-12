@@ -56,6 +56,7 @@ export default defineConfig({
         {
           text: 'Presenting',
           items: [
+            { text: 'Presentation aids', link: '/guide/presentation-aids' },
             { text: 'Slide-deck integration', link: '/guide/slide-deck-integration' },
           ],
         },

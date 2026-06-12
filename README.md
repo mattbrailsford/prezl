@@ -62,6 +62,7 @@ Pre-1.0, but the core experience is in place:
 - `prezl://` deep links + back-to-presentation shortcut for slide-deck integration
 - Companion VS Code extension for authoring directives and `prezl.yaml`
 - Presentation-friendly UI zoom (`Ctrl+=` / `Ctrl+-` / `Ctrl+0`, `Cmd` works too), `Ctrl+E` to hide explorer, `F11` / `Fn+F` / `⌃⌘F` for fullscreen — all persisted across sessions
+- Presentation aids: a cursor highlight halo (`Ctrl+Shift+H`) and an optical magnifier that zooms code and demo videos (`Ctrl+Shift+Z`, edge-pan), configurable from the status-bar settings panel
 
 ## Getting started (developers)
 

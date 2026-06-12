@@ -127,7 +127,7 @@ video demo modal is open.
 | --- | --- |
 | `Ctrl+E` | Toggle explorer visibility |
 | `Ctrl+Shift+E` | Reveal active file in explorer *(planned)* |
-| `Ctrl+=` / `Ctrl+-` | Zoom in / out |
+| `Ctrl+=` / `Ctrl+-` | Zoom in / out (font / reflow) |
 | `Ctrl+Up` / `Ctrl+Down` | Zoom in / out (alternate) |
 | `Ctrl+0` | Reset zoom |
 | `F11` (Win/Linux) / `Fn+F` (Mac) / `⌃⌘F` (Mac) | Toggle fullscreen |
@@ -136,6 +136,35 @@ Zoom scales both UI chrome (rem-based Tailwind) and the code viewer's
 font together. The current zoom percentage flashes briefly in the
 status bar. `Cmd` works in place of `Ctrl` on every zoom shortcut, so
 `Cmd+0` resets just as well.
+
+> This is **reflow** zoom — text gets bigger and re-wraps. For an
+> *optical* zoom that magnifies a region pixel-for-pixel (and works on
+> demo videos), see the magnifier below.
+
+## Presentation aids
+
+Live presenter tools — a cursor highlight and an optical magnifier.
+`Cmd` works in place of `Ctrl` throughout. Full walkthrough:
+[Presentation aids](../guide/presentation-aids).
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+Shift+H` | Toggle the cursor highlight halo |
+| `Ctrl+Shift+Z` | Toggle the magnifier (off ↔ the configured level) |
+| `Ctrl+Shift+=` / `Ctrl+Shift+-` | Step the magnifier zoom level |
+| `Ctrl+Shift+0` / `Esc` | Reset the magnifier to 1× |
+
+The magnifier anchors on the cursor when you trigger it, then pans when
+you move the pointer into the screen edges (it never chases the cursor
+directly). It covers the code surface **and** a playing demo video.
+`Esc` only resets the magnifier while it's zoomed — otherwise it falls
+through. Halo colour / size and the magnifier's toggle level are set in
+the status-bar settings panel (gear icon, bottom-right).
+
+> The cursor highlight and magnifier are keyboard-toggled, and macOS
+> hides the system arrow on any key input — so the pointer briefly
+> vanishes when you press these (it returns on the next mouse move). The
+> halo itself stays visible.
 
 > Zoom is keyboard-only by design. A macOS trackpad pinch reaches the
 > web view as `Ctrl+MouseWheel`, so binding wheel zoom meant a stray
