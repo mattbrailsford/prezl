@@ -39,6 +39,29 @@ The Linux runner uses Tauri 2's canonical dependency set
 (`libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, etc.) — see
 the workflow file for the exact list.
 
+## Dependency pinning (`src-tauri/Cargo.lock` is committed)
+
+`src-tauri/Cargo.lock` is checked in — it is **not** gitignored, on
+purpose. Prezl ships as an application, so the Rust dependency graph
+must be pinned for reproducible CI builds. Without the committed lock,
+each release runner re-resolves crates to the newest semver-compatible
+versions at build time, so a release that worked last month can fail
+today purely from upstream churn — nothing in the repo changed.
+
+This bit us cutting `v0.1.0`: a fresh resolve pulled `tauri-utils
+2.9.2` + `time 0.3.48`, which fail to compile together (`error[E0119]:
+conflicting implementations` in `tauri-utils`), so all three platforms
+failed identically. The earlier beta had built fine only because its
+runner happened to resolve the older, compatible `time 0.3.47`.
+
+Committing the lock fixes the class of problem: CI now builds the exact
+versions verified locally. To update dependencies deliberately, run
+`cargo update` (optionally `-p <crate>`) in `src-tauri/`, rebuild, and
+commit the changed `Cargo.lock` like any other source change — don't
+let it drift silently. When a release build fails on a dependency
+compile error, suspect the lock is stale or absent before suspecting
+the release content.
+
 ## Cutting a release
 
 1. Pick the new version. Pre-releases use semver pre-release suffixes
@@ -57,10 +80,14 @@ the workflow file for the exact list.
    ```bash
    node .claude/skills/release/scripts/bump-version.mjs 0.1.0-beta.1
    ```
-4. Run `pnpm install` to refresh `pnpm-lock.yaml`, then `pnpm typecheck`
-   and `pnpm test`.
-5. Commit the four release files together (e.g. `Bump to 0.1.0-beta.1`)
-   and push to `dev` (or `main`).
+4. Run `pnpm install` to refresh `pnpm-lock.yaml`. Then sync the Rust
+   lockfile's own version entry — `cargo update -p prezl` in
+   `src-tauri/` (any cargo build also does it) — so the committed
+   `Cargo.lock` matches the bumped `Cargo.toml`. Finally `pnpm
+   typecheck` and `pnpm test`.
+5. Commit the release files together (e.g. `Bump to 0.1.0-beta.1`) —
+   the version trio, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`, and
+   `RELEASE_NOTES.md` — and push to `dev` (or `main`).
 6. Tag and push:
    ```bash
    git tag v0.1.0-beta.1
