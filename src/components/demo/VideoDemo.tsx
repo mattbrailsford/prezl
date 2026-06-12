@@ -507,16 +507,22 @@ export function VideoDemo() {
         // (via the global mousedown→bumpCursorActivity) and the second one
         // actually seeked. A press reveals the bar (onBarPointerDown bumps) and
         // seeks in the same gesture.
-        className={`absolute inset-x-6 bottom-0 z-20 cursor-pointer touch-none select-none px-1 pb-3 pt-5 transition-opacity duration-200 ${
+        className={`absolute inset-x-6 bottom-0 z-20 cursor-pointer touch-none select-none px-1 pb-3 pt-6 transition-opacity duration-200 ${
           scrubbing || controlsVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div
-          ref={barRef}
-          className="relative h-1.5 w-full rounded-full bg-black/50 ring-4 ring-black/60"
-        >
+        <div className="relative h-6 w-full rounded-full bg-black/60 px-[9px]">
+          {/* Inner content box — inset by the same amount as the vertical
+              padding so the track line, cues, and playhead all sit inside the
+              pill with even padding all around. This is also the seek geometry
+              reference (barRef), so progress / cue / playhead positions and the
+              click-to-seek mapping share one coordinate space. */}
+          <div ref={barRef} className="relative h-full w-full">
+          {/* Unfilled track line, vertically centered in the panel. */}
+          <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white/25" />
+          {/* Filled progress. */}
           <div
-            className="h-full rounded-full bg-white"
+            className="pointer-events-none absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white"
             style={{ width: `${progress * 100}%` }}
           />
           {visibleCues.map((cue, i) => {
@@ -536,9 +542,6 @@ export function VideoDemo() {
                 className="group absolute top-1/2 grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center"
                 style={{ left: `${left}%` }}
               >
-                {/* Vertical tick — extends well above/below the thin bar so
-                    cues read as clear, clickable stops, not stray dots. */}
-                <span className="absolute h-5 w-[3px] rounded-full bg-[var(--color-app-accent)] shadow ring-1 ring-black/50 transition-transform group-hover:scale-y-110" />
                 <span className="relative size-3.5 rounded-full bg-[var(--color-app-accent)] shadow-lg ring-2 ring-white transition-transform group-hover:scale-125" />
               </button>
             )
@@ -547,6 +550,7 @@ export function VideoDemo() {
             className="pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg ring-1 ring-black/40"
             style={{ left: `${progress * 100}%` }}
           />
+          </div>
         </div>
       </div>
     </div>
