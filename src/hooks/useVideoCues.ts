@@ -41,21 +41,32 @@ export function prepareCues(
 }
 
 /**
- * After a seek, drop any consumed cue whose time is now ahead of the playhead
- * so it'll fire again when we cross it forward. A cue exactly at the new
- * currentTime is treated as "ahead" — scrubbing right onto a cue should
- * re-trigger it on the next tick.
+ * Recompute the consumed set after a seek: a cue is consumed only if it sits
+ * more than `tolerance` behind the new playhead; everything within tolerance
+ * or ahead stays armed. This is a full recompute, not a prune — a seek can
+ * jump across several cues at once (e.g. clicking a far marker, or a big
+ * scrub), and cues that were jumped *over* must be marked consumed so they
+ * don't fire and snap the playhead backward. Pruning the prior set alone
+ * wasn't enough: a cue the playhead skipped past without ever consuming
+ * stayed armed, and the next `timeupdate` fired it, yanking the playhead back
+ * to that intermediate marker.
+ *
+ * The `tolerance` matters: a seek to a cue's exact time rarely lands exactly
+ * on it (seek precision is coarse), so the playhead often settles a few ms
+ * *past* the cue. A strict `time < currentTime` test would mark that just-
+ * clicked cue consumed and it would never fire — the playhead sails past and
+ * playback continues. Mirroring `selectNextCue`'s tolerance keeps a cue we
+ * landed on (or just past, within tolerance) armed so it fires and pauses.
  */
 export function pruneConsumedAfterSeek(
-  consumed: Set<number>,
+  _consumed: Set<number>,
   sortedCues: VideoCue[],
   currentTime: number,
+  tolerance: number = DEFAULT_TOLERANCE_SECONDS,
 ): Set<number> {
-  if (consumed.size === 0) return consumed
   const next = new Set<number>()
-  consumed.forEach((idx) => {
-    const cue = sortedCues[idx]
-    if (cue && cue.time < currentTime) next.add(idx)
+  sortedCues.forEach((cue, idx) => {
+    if (cue.time < currentTime - tolerance) next.add(idx)
   })
   return next
 }
@@ -88,12 +99,18 @@ export function useVideoCues({
   // Set right before the programmatic snap-to-cue seek so the resulting
   // `seeked` doesn't prune (re-arm) the cue we just consumed.
   const snappingRef = useRef(false)
+  // Last playhead time we observed on a `timeupdate`. Used to spot a
+  // discontinuous jump (a clicked marker / scrub) so cue selection can
+  // resync the consumed set before firing — see the jump guard in
+  // `onTimeUpdate`. `null` until the first tick.
+  const lastTimeRef = useRef<number | null>(null)
 
   // Reset consumed state for a new session.
   useEffect(() => {
     consumedRef.current = new Set()
     stopFiredRef.current = false
     snappingRef.current = false
+    lastTimeRef.current = null
   }, [sortedCues, stopAt])
 
   useEffect(() => {
@@ -102,6 +119,26 @@ export function useVideoCues({
 
     const onTimeUpdate = () => {
       const t = video.currentTime
+      const last = lastTimeRef.current
+      lastTimeRef.current = t
+
+      // Resync the consumed set on a discontinuous jump. A seek (clicking a
+      // marker, a big scrub) can cross several cues at once, and per the HTML
+      // spec the seek algorithm runs "time marches on" — which fires this
+      // `timeupdate` — *before* it queues the `seeked` task. So `onSeeked`'s
+      // resync may land too late: without this guard the earliest cue we
+      // jumped *over* is still armed, `selectNextCue` returns it, and the
+      // snap-to-cue yanks the playhead backward to that intermediate marker.
+      // A forward gap larger than a normal playback tick (~0.25s at 1×) or any
+      // backward move means we seeked, not played.
+      const SEEK_JUMP_SECONDS = 0.5
+      if (last !== null && (t < last - 0.01 || t > last + SEEK_JUMP_SECONDS)) {
+        consumedRef.current = pruneConsumedAfterSeek(
+          consumedRef.current,
+          sortedCues,
+          t,
+        )
+      }
 
       if (
         stopAt !== undefined &&

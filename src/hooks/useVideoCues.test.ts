@@ -57,9 +57,11 @@ describe('selectNextCue', () => {
 describe('pruneConsumedAfterSeek', () => {
   const sorted = cues(2, 5, 10)
 
-  it('returns the same set when nothing has been consumed', () => {
-    const empty = new Set<number>()
-    expect(pruneConsumedAfterSeek(empty, sorted, 7)).toBe(empty)
+  it('consumes every cue behind the playhead even if none were consumed', () => {
+    // Jumping forward across un-consumed cues (e.g. clicking a far marker)
+    // must mark the skipped cues consumed so they don't fire and snap the
+    // playhead backward to an earlier marker.
+    expect(pruneConsumedAfterSeek(new Set(), sorted, 7)).toEqual(new Set([0, 1]))
   })
 
   it('keeps cues that are now behind the playhead', () => {
@@ -75,5 +77,16 @@ describe('pruneConsumedAfterSeek', () => {
   it('un-consumes a cue we landed exactly on so it re-fires', () => {
     const consumed = new Set([0])
     expect(pruneConsumedAfterSeek(consumed, sorted, 2)).toEqual(new Set())
+  })
+
+  it('keeps a cue armed when the seek lands just past it (within tolerance)', () => {
+    // Seeking to cue 1 (time 5) often settles a few ms past it. The cue must
+    // stay armed so it still fires and pauses — a strict time<currentTime test
+    // would consume it and the playhead would sail through.
+    // cue 0 (time 2) is genuinely behind and consumed; cue 1 (time 5) is
+    // within tolerance of the playhead so it stays armed.
+    expect(pruneConsumedAfterSeek(new Set([1]), sorted, 5.1)).toEqual(new Set([0]))
+    // Beyond tolerance cue 1 is genuinely behind and stays consumed too.
+    expect(pruneConsumedAfterSeek(new Set([1]), sorted, 5.3)).toEqual(new Set([0, 1]))
   })
 })

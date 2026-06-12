@@ -327,10 +327,10 @@ export function VideoDemo() {
   const controlsVisible = cursorActive
 
   // Bump the cursor-idle state: flip controls visible, reset the idle timer.
-  // Shared between mouse events and the Space keyboard handler so resuming
-  // via keyboard starts the same fade-out countdown as a mouse interaction.
-  // Uses the same CURSOR_IDLE_MS as the cursor-highlight halo so the two
-  // disappear together over a clip.
+  // Driven by mouse events and the keyboard *pause* branch (pausing reveals
+  // controls so the presenter can scrub). Deliberately NOT called on keyboard
+  // resume — see the Space handler. Uses the same CURSOR_IDLE_MS as the
+  // cursor-highlight halo so the two disappear together over a clip.
   const bumpCursorActivity = useCallback(() => {
     setCursorActive(true)
     if (idleTimerRef.current != null) {
@@ -403,11 +403,17 @@ export function VideoDemo() {
         if (video.paused) {
           setAwaitingResume(false)
           void video.play()
+          // Resuming gets out of the way: no activity bump, so the scrub bar
+          // and cursor stay hidden until a real mouse move reveals them. This
+          // matters most for clicker-driven cue advances — a cue pause never
+          // bumps, so controls are already hidden on arrival, and the resume
+          // press shouldn't flash them back in.
         } else {
           video.pause()
           setAwaitingResume(true)
+          // Pausing reveals the controls so the presenter can scrub from here.
+          bumpCursorActivity()
         }
-        bumpCursorActivity()
       }
     }
     // Capture phase so global Prezl shortcuts (Ctrl+Space branch nav,
