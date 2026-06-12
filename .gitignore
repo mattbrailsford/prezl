@@ -16,8 +16,10 @@ dist-ssr/
 
 # Tauri
 src-tauri/target/
-src-tauri/Cargo.lock
 src-tauri/gen/
+# Cargo.lock IS committed: Prezl ships as an application, so deps must be
+# pinned for reproducible CI builds (an un-pinned resolve once pulled a
+# broken time 0.3.48 / tauri-utils 2.9.2 combo that failed to compile).
 
 # Presenter-supplied media (videos belong in each author's project folder, not git)
 examples/**/.prezl/videos/*.mp4
